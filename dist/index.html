@@ -15,7 +15,30 @@
       content="Issam Arida’s projects, work and hobbies in one place."
     />
     <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
+    <link rel="preload" href="./fonts/vt323.ttf" as="font" type="font/ttf" crossorigin />
     <link rel="stylesheet" href="./style.css" />
+    <style>
+      html.intro-pending,
+      html.intro-pending body {
+        background: #050b12;
+      }
+      html.intro-pending body > :not(.intro) {
+        visibility: hidden;
+      }
+    </style>
+    <script>
+      // Mirrors shouldPlayIntro() so the page never flashes before the title.
+      (function () {
+        var nav = performance.getEntriesByType && performance.getEntriesByType("navigation")[0];
+        if (location.hash || /[?&]intro=0\b/.test(location.search) || (nav && nav.type === "back_forward")) return;
+        var root = document.documentElement;
+        root.classList.add("intro-pending");
+        // Never leave the page hidden if the scripts fail to start.
+        setTimeout(function () {
+          if (!document.querySelector(".intro")) root.classList.remove("intro-pending");
+        }, 4000);
+      })();
+    </script>
     <noscript
       ><style>
         .world-layer,
@@ -180,19 +203,19 @@
                 <h3>Hobbies</h3>
                 <ul class="hobby-list">
                   <li>
-                    <strong>Rugby.</strong> I’ve played for eleven years at
+                    I’ve played <strong>rugby</strong> for eleven years at
                     national and international level in the UAE and Jordan. I
                     still play here in Spain.
                   </li>
-                  <li><strong>Arm wrestling.</strong> I compete.</li>
+                  <li>I compete in <strong>arm wrestling</strong>.</li>
                   <li>
-                    <strong>Camera work.</strong> I’ve done fashion modeling
-                    campaigns. I want to act, and right now I’m directing my
-                    own horror short film.
+                    I’ve done <strong>fashion modeling</strong> campaigns. I
+                    want to <strong>act</strong>, and right now I’m directing
+                    my own <strong>horror short film</strong>.
                   </li>
                   <li>
-                    <strong>Pharmacy.</strong> Chemistry fascinates me, so I
-                    read about pharmacy in my free time.
+                    <strong>Chemistry</strong> fascinates me, so I read about
+                    <strong>pharmacy</strong> in my free time.
                   </li>
                 </ul>
               </div>

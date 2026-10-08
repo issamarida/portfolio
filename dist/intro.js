@@ -1,11 +1,11 @@
-// Opening sequence: a blurred glimpse of the village behind a single
-// unfurling scroll, then a camera swoop onto the
+// Opening sequence: a still, blurred night ocean behind a single unrolling
+// scroll, then a camera swoop onto the
 // About cabin where the player steps outside to greet the visitor. It only
 // borrows the live world canvases, so the final frame matches the page.
 import { destinations } from "./world.js";
 
 const GREETING =
-  "Hello, welcome to my portfolio! I’m Issam. Walk around the cabins to view different aspects of my life!";
+  "Hey, I’m Issam. Welcome to my portfolio! Walk into any cabin and read the book inside to get to know me.";
 const about = destinations.find((d) => d.id === "about");
 const START = { x: about.doorX, y: about.y + about.h - 2 },
   STOP = { x: about.doorX, y: about.y + about.h + 34 };
@@ -17,6 +17,96 @@ export function shouldPlayIntro() {
   if (new URLSearchParams(location.search).get("intro") === "0") return false;
   const navigation = performance.getEntriesByType?.("navigation")[0];
   return navigation?.type !== "back_forward";
+}
+
+// A dark ocean under the moon, framed by tall pines, in 2px pixel art.
+function paintOcean(canvas) {
+  const W = 320,
+    H = 180;
+  const art = document.createElement("canvas");
+  art.width = W;
+  art.height = H;
+  const c = art.getContext("2d");
+  const rect = (x, y, w, h, color) => {
+    c.fillStyle = color;
+    c.fillRect(Math.round(x), Math.round(y), Math.round(w), Math.round(h));
+  };
+  const sky = ["#081019", "#0a1520", "#0c1a27", "#0f202e", "#122636"];
+  sky.forEach((color, i) => rect(0, i * 22, W, 22, color));
+  let seed = 41;
+  const rand = () => ((seed = (seed * 1664525 + 1013904223) >>> 0) / 4294967296);
+  for (let i = 0; i < 40; i++) rect(rand() * W, rand() * 90, 1, 1, "#9fb3b8");
+  const mx = 214,
+    my = 46;
+  // Moon with stepped halos.
+  for (const [r, color] of [
+    [30, "#14303c"],
+    [22, "#1d4250"],
+    [15, "#cfdcc4"],
+  ])
+    for (let y = -r; y <= r; y++) {
+      const half = Math.sqrt(r * r - y * y);
+      rect(mx - half, my + y, half * 2, 1, color);
+    }
+  rect(mx - 6, my - 5, 4, 3, "#b9c8b0");
+  rect(mx + 3, my + 3, 5, 3, "#b9c8b0");
+  // Moon rays slanting down to the water.
+  c.globalAlpha = 0.07;
+  for (const [spread, width] of [
+    [-150, 26],
+    [-70, 34],
+    [10, 22],
+    [80, 30],
+  ]) {
+    c.beginPath();
+    c.moveTo(mx - 3, my + 8);
+    c.lineTo(mx + 3, my + 8);
+    c.lineTo(mx + spread + width, H);
+    c.lineTo(mx + spread, H);
+    c.fillStyle = "#d8e8d0";
+    c.fill();
+  }
+  c.globalAlpha = 1;
+  // The ocean, with a broken moon path on the swell.
+  const sea = ["#0b1a24", "#0a1820", "#09151c", "#081218", "#060f14"];
+  sea.forEach((color, i) => rect(0, 112 + i * 14, W, 14, color));
+  for (let i = 0; i < 70; i++) {
+    const y = 114 + rand() * 66,
+      spread = 6 + (y - 112) * 0.5;
+    rect(mx - spread + rand() * spread * 2, y, 3 + rand() * 7, 1, rand() < 0.5 ? "#a9bfae" : "#56727a");
+  }
+  for (let i = 0; i < 60; i++)
+    rect(rand() * W, 114 + rand() * 66, 4 + rand() * 8, 1, "#16303a");
+  // Tall pines on the far shore and at both edges.
+  const pine = (x, base, h, color) => {
+    for (let y = 0; y < h; y++) {
+      const t = y / h,
+        tier = (y % Math.max(6, h / 8)) / Math.max(6, h / 8);
+      const half = Math.max(1, (1 + t * h * 0.16) * (0.7 + tier * 0.3));
+      rect(x - half, base - h + y, half * 2, 1, color);
+    }
+    rect(x - 1, base - 2, 2, 4, color);
+  };
+  for (let x = -4; x < W + 8; x += 7 + rand() * 6)
+    pine(x, 114, 16 + rand() * 18, "#0b1b22");
+  for (const [x, h] of [
+    [8, 150],
+    [26, 120],
+    [44, 168],
+    [-6, 176],
+    [292, 160],
+    [308, 132],
+    [326, 178],
+    [276, 118],
+  ])
+    pine(x, H, h, "#050b0f");
+  // Blur the still once; browsers without canvas filters soften it by scaling.
+  canvas.width = W * 2;
+  canvas.height = H * 2;
+  const out = canvas.getContext("2d");
+  out.imageSmoothingEnabled = true;
+  if ("filter" in out) out.filter = "blur(3px)";
+  out.drawImage(art, -8, -8, W * 2 + 16, H * 2 + 16);
 }
 
 export function runIntro(world, { onFinish } = {}) {
@@ -42,7 +132,7 @@ export function runIntro(world, { onFinish } = {}) {
     <div class="intro-dialog" hidden>
       <img src="./photo.jpg" alt="" width="88" height="88" />
       <div class="intro-dialog-body">
-        <p class="intro-speaker">Issam</p>
+        <p class="intro-speaker">Issam Arida</p>
         <p class="intro-line" aria-live="polite"></p>
         <p class="intro-controls" hidden>
           <span class="intro-keys"><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> or arrows to walk · <kbd>E</kbd> to enter a cabin</span>
@@ -130,23 +220,9 @@ export function runIntro(world, { onFinish } = {}) {
     }
   }
 
-  // The title backdrop is one tiny still of the village, blurred by CSS:
-  // nothing behind the scroll animates, so the title screen stays light.
-  function paintBackdrop() {
-    if (phase !== "title") return;
-    const sky = world.layout.skyHeight || 0;
-    const scale = Math.max(innerWidth / 900, innerHeight / 520);
-    paint({ scale, cx: 480, cy: sky + 300 }, backdrop, 0.25);
-  }
-  let backdropPending = false;
-  function scheduleBackdrop() {
-    if (backdropPending) return;
-    backdropPending = true;
-    requestAnimationFrame(() => {
-      backdropPending = false;
-      paintBackdrop();
-    });
-  }
+  // The title backdrop is painted and blurred once, then never redrawn,
+  // so nothing behind the scroll costs a frame.
+  paintOcean(backdrop);
 
   // The script: door opens, Issam steps out, waves and starts talking.
   function script(dt) {
@@ -258,7 +334,6 @@ export function runIntro(world, { onFinish } = {}) {
     world.active = true;
     world.keys.clear();
     removeEventListener("keydown", onKey, true);
-    removeEventListener("resize", scheduleBackdrop);
     world.suspended = false;
     inert.forEach((el) => (el.inert = false));
     root.remove();
@@ -289,11 +364,8 @@ export function runIntro(world, { onFinish } = {}) {
     else if (phase === "ready") leave();
   }
   addEventListener("keydown", onKey, true);
-  addEventListener("resize", scheduleBackdrop);
-  document.fonts?.ready.then(scheduleBackdrop);
   // The live village is hidden behind the title, so it rests until play.
   world.suspended = true;
-  paintBackdrop();
   start.addEventListener("click", (event) => {
     event.stopPropagation();
     begin();

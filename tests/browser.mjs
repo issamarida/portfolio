@@ -142,7 +142,7 @@ try {
     await page
       .locator(".reading-section> .section-heading h2")
       .allTextContents(),
-    ["About", "Projects", "Career", "Game Dev"],
+    ["About", "Career", "Projects", "Game Dev"],
   );
   assert.equal(await page.locator(".destinations, .progress").count(), 0);
   for (const id of ["about", "projects", "career", "gamedev"]) {
@@ -351,7 +351,7 @@ try {
   await intro.locator(".intro-controls").waitFor({ state: "visible" });
   assert.match(
     await intro.locator(".intro-line").innerText(),
-    /welcome to my portfolio! I’m Issam\. Walk around the cabins/,
+    /Hey, I’m Issam\. Welcome to my portfolio! Walk into any cabin/,
   );
   await intro.locator(".intro-continue").click();
   await intro.locator(".intro").waitFor({ state: "detached" });

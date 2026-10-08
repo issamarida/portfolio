@@ -197,19 +197,22 @@ try {
       metrics.readingFits && metrics.textFits,
       `Reading text must not clip at ${width}px`,
     );
-    // Scrolls share one width in staggered pairs on wide screens, alternate
-    // offsets when stacked, and keep a distinct colour for every topic.
+    // Scrolls share one width in two staggered columns on wide screens,
+    // alternate offsets when stacked, and keep a distinct colour per topic.
     const [about, projects, career, gamedev] = metrics.scrolls;
     assert.equal(new Set(metrics.scrolls.map((s) => s.background)).size, 4);
     if (width > 850) {
       assert.ok(projects.left >= about.right && gamedev.left >= career.right);
-      assert.ok(projects.top - about.top > 40 && gamedev.top - career.top > 40);
+      assert.ok(projects.top - about.top > 40);
+      assert.ok(career.top > about.bottom && gamedev.top > projects.bottom);
+      // Columns stack tightly: no scroll waits on its neighbour's height.
+      assert.ok(career.top - about.bottom < 120 && gamedev.top - projects.bottom < 120);
       const widths = metrics.scrolls.map((s) => Math.round(s.right - s.left));
       assert.ok(Math.max(...widths) - Math.min(...widths) <= 1, `${widths}`);
     } else {
-      for (let i = 1; i < 4; i++)
-        assert.ok(metrics.scrolls[i].top >= metrics.scrolls[i - 1].bottom);
-      assert.ok(projects.left > about.left && career.left < projects.left);
+      const stacked = [about, career, projects, gamedev];
+      for (let i = 1; i < 4; i++) assert.ok(stacked[i].top >= stacked[i - 1].bottom);
+      assert.ok(career.left > about.left && projects.left < career.left);
     }
     assert.equal(
       metrics.transparent,

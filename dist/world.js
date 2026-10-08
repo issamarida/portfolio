@@ -951,17 +951,61 @@ export class World {
       this.rect(x - span, y + yy, span * 2, 2, color);
     }
   }
-  tree(t) {
+  // Live village trees are drawn from two cached sprites per tree: the
+  // trunk stays put and only the crown is shifted by the breeze.
+  cachedTree(t) {
+    if (!this.treeSprites) this.treeSprites = new WeakMap();
+    let sprite = this.treeSprites.get(t);
+    if (!sprite) {
+      const box = treeFootprint(t);
+      const left = Math.floor(box.left / 2) * 2 - 8,
+        top = Math.floor(box.top / 2) * 2 - 8,
+        width = Math.ceil((box.right - left) / 2) * 2 + 8,
+        height = Math.ceil((box.bottom - top) / 2) * 2 + 8;
+      const paint = (part) => {
+        const canvas = document.createElement("canvas");
+        canvas.width = width / 2;
+        canvas.height = height / 2;
+        const ctx = canvas.getContext("2d");
+        ctx.imageSmoothingEnabled = false;
+        ctx.scale(0.5, 0.5);
+        ctx.translate(-left, -top);
+        const main = this.ctx,
+          reduced = this.reduced;
+        this.ctx = ctx;
+        this.reduced = true;
+        try {
+          this.tree(t, part);
+        } finally {
+          this.ctx = main;
+          this.reduced = reduced;
+        }
+        return canvas;
+      };
+      sprite = { left, top, width, height, base: paint("base"), crown: paint("crown") };
+      this.treeSprites.set(t, sprite);
+    }
+    const sway = this.reduced
+      ? 0
+      : Math.round(Math.sin(this.time * 0.8 + t.x * 0.017) * 1.2) * 2;
+    const { left, top, width, height } = sprite;
+    this.ctx.drawImage(sprite.base, left, top, width, height);
+    this.ctx.drawImage(sprite.crown, left + sway, top, width, height);
+  }
+  tree(t, part) {
     const x = Math.round(t.x / 2) * 2,
       y = Math.round(t.y / 2) * 2;
     const s = t.s,
       width = Math.round((34 * s) / 2) * 2,
       height = Math.round((68 * s) / 2) * 2;
-    this.ellipse(x, y + 2, width * 1.7, 12, "#192a24");
-    this.rect(x - 6, y - 29, 12, 33, "#403c2c");
-    this.rect(x - 3, y - 27, 4, 30, "#786445");
-    this.rect(x - 9, y - 3, 5, 7, "#514c33");
-    this.rect(x + 5, y - 5, 5, 9, "#514c33");
+    if (part !== "crown") {
+      this.ellipse(x, y + 2, width * 1.7, 12, "#192a24");
+      this.rect(x - 6, y - 29, 12, 33, "#403c2c");
+      this.rect(x - 3, y - 27, 4, 30, "#786445");
+      this.rect(x - 9, y - 3, 5, 7, "#514c33");
+      this.rect(x + 5, y - 5, 5, 9, "#514c33");
+    }
+    if (part === "base") return;
     this.ctx.save();
     const sway = this.reduced
       ? 0
@@ -1646,7 +1690,10 @@ export class World {
                 y: d.y + d.h,
                 draw: () => this.building(d),
               })),
-              ...this.trees.map((t) => ({ y: t.y, draw: () => this.tree(t) })),
+              ...this.trees.map((t) => ({
+                y: t.y,
+                draw: () => this.cachedTree(t),
+              })),
               ...foxes.map((fox) => ({ y: fox.y, draw: () => this.fox(fox) })),
               ...rabbits.map((rabbit, i) => ({
                 y: rabbit.y,

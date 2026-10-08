@@ -1,7 +1,7 @@
 // Building metadata. Portfolio copy lives in the static HTML reading sections.
 export const areas = {
   projects: {
-    number: "01",
+    number: "03",
     name: "Projects",
     subtitle: "PROJECTS",
     sectionId: "projects",
@@ -13,13 +13,13 @@ export const areas = {
     sectionId: "career",
   },
   gamedev: {
-    number: "03",
+    number: "04",
     name: "Game Dev",
     subtitle: "GAME DEV",
     sectionId: "gamedev",
   },
   about: {
-    number: "04",
+    number: "01",
     name: "About",
     subtitle: "ABOUT ME",
     sectionId: "about",

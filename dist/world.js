@@ -351,6 +351,13 @@ export class World {
     this.last = 0;
     this.walking = false;
     this.walkTime = 0;
+    // Opening cutscene hooks: a script drives the player, the About door and
+    // a greeting wave instead of the keyboard.
+    this.cutscene = null;
+    this.doorOpen = 0;
+    this.emerging = false;
+    this.waving = false;
+    this.talking = false;
     const rand = seeded(827);
     this.grass = Array.from({ length: 1400 }, () => ({
       x: rand() * 960,
@@ -1054,6 +1061,15 @@ export class World {
     this.rect(d.doorX - 7, doorY + 7, 14, 15, "#e2b765");
     this.rect(d.doorX - 1, doorY + 7, 2, 15, "#877047");
     this.rect(d.doorX + 5, doorY + 29, 3, 3, "#ecc981");
+    if (id === "about" && this.doorOpen > 0) {
+      // The door swings inward onto a warm, lamplit room.
+      const leaf = Math.round((1 - this.doorOpen) * 10) * 2;
+      this.rect(d.doorX - 10, doorY + 4, 20, 38, "#f0c063");
+      this.rect(d.doorX - 8, doorY + 6, 16, 34, "#ffdc8e");
+      this.rect(d.doorX - 10, doorY + 32, 20, 10, "#e3a64f");
+      this.rect(d.doorX - 10, doorY + 4, Math.max(4, leaf), 38, "#7c5c36");
+      this.glow(d.doorX, doorY + 40, 46 * this.doorOpen, "#f2c36a");
+    }
     this.rect(d.doorX - 17, y + h, 34, 5, "#ad9a6b");
     this.rect(d.doorX - 22, y + h + 5, 44, 4, "#6c7354");
     [x + 16, x + w - 39].forEach((wx) => {
@@ -1098,6 +1114,21 @@ export class World {
     this.glow(x - 4, y - 25, 68);
   }
   character() {
+    if (!this.emerging) return this.characterSprite();
+    // Stepping out of the About cabin: hide whatever is still indoors.
+    const about = destinations.find((d) => d.id === "about");
+    this.ctx.save();
+    this.ctx.beginPath();
+    this.ctx.rect(0, about.y + about.h, WIDTH, HEIGHT);
+    this.ctx.rect(about.doorX - 10, about.y + about.h - 38, 20, 38);
+    this.ctx.clip();
+    try {
+      this.characterSprite();
+    } finally {
+      this.ctx.restore();
+    }
+  }
+  characterSprite() {
     const { x, y, facing } = this.player;
     const px = Math.round(x / 2) * 2,
       py = Math.round(y / 2) * 2;
@@ -1151,6 +1182,25 @@ export class World {
       this.rect(px - 3, body - 27, 6, 2, "#ad845a");
       this.rect(px - 5, body - 18, 10, 10, "#5d7865");
       this.rect(px - 3, body - 16, 6, 2, "#b2b18b");
+    }
+    if (this.waving) {
+      // A raised hand waves hello over the shoulder.
+      const sway = this.reduced ? 0 : Math.round(Math.sin(this.time * 9)) * 3;
+      this.rect(px + 9, body - 34, 5, 12, "#dcbb85");
+      this.rect(px + 10, body - 40, 4, 8, "#9dad89");
+      this.rect(px + 10 + sway, body - 47, 6, 7, "#dcbb85");
+    }
+    if (this.talking) {
+      // A small speech bubble with drifting dots.
+      const bx = px + 8,
+        by = body - 74;
+      this.rect(bx, by, 30, 18, "#f3ead2");
+      this.rect(bx + 2, by - 2, 26, 22, "#f3ead2");
+      this.rect(bx + 2, by + 18, 6, 4, "#f3ead2");
+      this.rect(bx, by + 22, 4, 4, "#f3ead2");
+      const dot = this.reduced ? 3 : Math.floor(this.time * 4) % 4;
+      for (let i = 0; i < 3; i++)
+        this.rect(bx + 6 + i * 8, by + 8 - (i === dot ? 2 : 0), 4, 4, "#4b4034");
     }
   }
   smoke(d) {
@@ -1520,7 +1570,10 @@ export class World {
               y: rabbit.y,
               draw: () => this.rabbit(rabbit, i),
             })),
-            { y: this.player.y, draw: () => this.character() },
+            {
+              y: this.emerging ? Infinity : this.player.y,
+              draw: () => this.character(),
+            },
           ].sort((a, b) => a.y - b.y);
           sorted.forEach((o) => o.draw());
           destinations.forEach((d) => this.smoke(d));
@@ -1576,7 +1629,10 @@ export class World {
     const dt = this.last ? Math.min((now - this.last) / 1000, 0.04) : 0;
     this.last = now;
     if (!document.hidden && this.visible) {
-      if (this.active && this.gameVisible) {
+      if (this.cutscene) {
+        this.cutscene(dt);
+        if (this.walking) this.walkTime += dt;
+      } else if (this.active && this.gameVisible) {
         const dx =
             Number(this.keys.has("right")) - Number(this.keys.has("left")),
           dy = Number(this.keys.has("down")) - Number(this.keys.has("up"));

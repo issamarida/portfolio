@@ -8,6 +8,17 @@ try {
   });
   page.on("pageerror", (error) => errors.push(error.message));
   await page.goto(process.env.TEST_URL || "http://localhost:5173");
+  // The medieval title screen blocks the page until started or skipped.
+  assert.equal(await page.locator(".intro").isVisible(), true);
+  assert.match(await page.locator(".intro-start").innerText(), /click to start/i);
+  assert.equal(
+    await page.locator(".intro-start").evaluate((el) => el === document.activeElement),
+    true,
+  );
+  assert.equal(await page.locator(".shell").evaluate((el) => el.inert), true);
+  await page.keyboard.press("Escape");
+  assert.equal(await page.locator(".intro").count(), 0);
+  assert.equal(await page.locator(".shell").evaluate((el) => el.inert), false);
   for (const id of ["projects", "career", "gamedev", "about"]) {
     const button = page.locator(`[data-area="${id}"]`);
     await button.click();
@@ -26,7 +37,7 @@ try {
   );
   assert.equal(await page.title(), "Issam Arida's Portfolio");
   assert.equal(await page.locator(".reading-section .inline-links").count(), 0);
-  assert.equal(await page.locator("#projects .project-card").count(), 4);
+  assert.equal(await page.locator("#projects .project-card").count(), 6);
   assert.doesNotMatch(await page.locator("#projects").innerText(), /LLTE/);
   assert.equal(
     await page.locator('#projects a[href$="structural_atlas"]').count(),
@@ -249,6 +260,7 @@ try {
   );
   const reduced = await browser.newPage({ reducedMotion: "reduce" });
   await reduced.goto(process.env.TEST_URL || "http://localhost:5173");
+  await reduced.keyboard.press("Escape");
   await reduced.evaluate(() => document.fonts.ready);
   await reduced.waitForTimeout(100);
   const still = await reduced
@@ -262,13 +274,14 @@ try {
   await reduced.close();
   const plain = await browser.newPage({ javaScriptEnabled: false });
   await plain.goto(process.env.TEST_URL || "http://localhost:5173");
+  assert.equal(await plain.locator(".intro").count(), 0);
   assert.equal(await plain.locator(".reading-section").count(), 4);
   assert.equal(await plain.locator(".building-access").isVisible(), false);
   assert.equal(await plain.locator(".social-links").isVisible(), true);
   assert.ok(await plain.locator(".reading-invitation a strong").count());
   await plain.locator(".reading-invitation a").click();
   assert.equal(new URL(plain.url()).hash, "#about");
-  assert.equal(await plain.locator("#projects .project-card").count(), 4);
+  assert.equal(await plain.locator("#projects .project-card").count(), 6);
   assert.equal(
     await plain.locator("#about .volunteer-list article").count(),
     2,
@@ -280,6 +293,7 @@ try {
   });
   walking.on("pageerror", (error) => errors.push(error.message));
   await walking.goto(process.env.TEST_URL || "http://localhost:5173");
+  await walking.keyboard.press("Escape");
   await walking.locator("#world").focus();
   await walking.evaluate(() => scrollTo(0, 0));
   await walking.keyboard.down("s");
@@ -309,9 +323,39 @@ try {
     false,
   );
   await walking.close();
+  // The full opening: start, Issam steps out of the About cabin and greets.
+  const intro = await browser.newPage({
+    viewport: { width: 1280, height: 800 },
+    reducedMotion: "reduce",
+  });
+  intro.on("pageerror", (error) => errors.push(error.message));
+  await intro.goto(process.env.TEST_URL || "http://localhost:5173");
+  await intro.keyboard.press("Enter");
+  await intro.locator(".intro-dialog").waitFor({ state: "visible" });
+  await intro.locator(".intro-controls").waitFor({ state: "visible" });
+  assert.match(
+    await intro.locator(".intro-line").innerText(),
+    /welcome to my portfolio! I’m Issam\. Walk around the cabins/,
+  );
+  await intro.locator(".intro-continue").click();
+  await intro.locator(".intro").waitFor({ state: "detached" });
+  assert.equal(
+    await intro.evaluate(() => document.activeElement.id),
+    "world",
+  );
+  await intro.locator("#interact").waitFor({ state: "visible" });
+  assert.equal(
+    await intro.locator("#interact span").textContent(),
+    "Enter the about section",
+  );
+  await intro.close();
+  const linked = await browser.newPage();
+  await linked.goto(`${process.env.TEST_URL || "http://localhost:5173"}#career`);
+  assert.equal(await linked.locator(".intro").count(), 0);
+  await linked.close();
   assert.deepEqual(errors, []);
   console.log(
-    "Browser verification passed: 4 destinations, focus return, Escape, shared static reading content and portrait, bounded cabin movement and viewport rendering, reduced motion, mobile layout, and no runtime errors.",
+    "Browser verification passed: title screen and opening cutscene, 4 destinations, focus return, Escape, shared static reading content and portrait, bounded cabin movement and viewport rendering, reduced motion, mobile layout, and no runtime errors.",
   );
 } finally {
   await browser.close();

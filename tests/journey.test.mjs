@@ -13,6 +13,14 @@ import {
   farmFenceGeometry,
   treeFootprint,
   intersects,
+  camperState,
+  CAMPER_LOOP,
+  farmYard,
+  HOMESTEAD_BAND,
+  farmerState,
+  dogState,
+  crowState,
+  homesteadGeometry,
 } from "../dist/journey.js";
 
 const layout = {
@@ -163,4 +171,57 @@ test("organic pasture surrounds the enlarged right pig pen and left hen shelter"
         for (const dy of [-15, 15])
           assert.ok(inside([state.x + dx, layout.stable.y + state.y + dy]));
     }
+});
+
+test("the camper toasts, burns, blows out, eats and reloads in one loop", () => {
+  const phases = new Set();
+  for (let t = 0; t < CAMPER_LOOP; t += 0.05) {
+    const state = camperState(t);
+    phases.add(state.phase);
+    assert.ok(state.bites >= 0 && state.bites <= 3);
+    // The stick tip stays between the camper's seat and the fire ring.
+    assert.ok(state.end[0] >= -80 && state.end[0] <= -20);
+    assert.ok(state.end[1] >= -20 && state.end[1] <= 40);
+  }
+  for (const phase of ["reach", "toast", "burning", "blowing", "eating", "reload"])
+    assert.ok(phases.has(phase), phase);
+  assert.deepEqual(camperState(1, true), camperState(9, true));
+  assert.deepEqual(camperState(2), camperState(2 + CAMPER_LOOP));
+});
+
+test("the homestead band sits above the paddock fence without overlaps", () => {
+  const yard = farmYard(layout.stable);
+  assert.equal(yard.y, layout.stable.y + HOMESTEAD_BAND);
+  const fenceTop = Math.min(...farmFenceGeometry(yard).points.map((p) => p[1]));
+  const parts = Object.entries(homesteadGeometry(layout.stable)).filter(
+    ([name]) => name !== "lane",
+  );
+  for (const [name, box] of parts) {
+    assert.ok(box.top >= layout.stable.y, name);
+    assert.ok(box.bottom < fenceTop - 18, name);
+    assert.ok(box.left >= 0 && box.right <= 960, name);
+  }
+  for (let i = 0; i < parts.length; i++)
+    for (let j = i + 1; j < parts.length; j++)
+      assert.ok(!intersects(parts[i][1], parts[j][1]), `${parts[i][0]} ${parts[j][0]}`);
+});
+
+test("farmer, dog and crow keep to the lane and sky and freeze under reduced motion", () => {
+  const actions = new Set();
+  for (let t = 0; t < 40; t += 0.1) {
+    const farmer = farmerState(t),
+      dog = dogState(t),
+      crow = crowState(t);
+    actions.add(farmer.action);
+    for (const actor of [farmer, dog]) {
+      assert.ok(actor.x > 100 && actor.x < 500);
+      assert.ok(actor.y > 150 && actor.y + 12 < HOMESTEAD_BAND - 8);
+    }
+    assert.ok(crow.y > 30 && crow.y < 100);
+  }
+  for (const action of ["walk", "crank", "carry", "water", "rest"])
+    assert.ok(actions.has(action), action);
+  assert.deepEqual(farmerState(3, true), farmerState(17, true));
+  assert.deepEqual(dogState(3, true), dogState(17, true));
+  assert.deepEqual(crowState(3, true), crowState(17, true));
 });

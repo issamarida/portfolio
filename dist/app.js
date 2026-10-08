@@ -1,20 +1,42 @@
 import { World } from "./world.js";
 import { areas } from "./content.js";
+import { interiorLabel } from "./interiors.js";
 import { runIntro, shouldPlayIntro } from "./intro.js";
 const canvas = document.querySelector("#world"),
   panel = document.querySelector("#panel"),
   interact = document.querySelector("#interact");
 let returnFocus = null;
-const world = new World(canvas, (id) => {
-  interact.hidden = !id;
-  if (id) {
-    const section =
-      id === "gamedev" ? "game development" : areas[id].name.toLowerCase();
-    interact.querySelector("span").textContent = `Enter the ${section} section`;
-    document.querySelector("#world-status").textContent =
-      `Press E to enter the ${section} section`;
-  } else document.querySelector("#world-status").textContent = "";
+const status = document.querySelector("#world-status");
+function prompt(near, kind) {
+  if (kind === "exit") return "Leave the cabin";
+  if (kind === "lectern")
+    return `Open to read about ${near === "about" ? "me" : areas[near].name}`;
+  const section =
+    near === "gamedev" ? "game development" : areas[near].name.toLowerCase();
+  return `Enter the ${section} cabin`;
+}
+const world = new World(canvas, (near, kind) => {
+  interact.hidden = !near;
+  const label = near ? prompt(near, kind) : "";
+  interact.querySelector("span").textContent = label;
+  status.textContent = label && `Press E to ${label.toLowerCase()}`;
 });
+const worldWrap = document.querySelector(".world-wrap");
+world.onScene = (id) => {
+  worldWrap.classList.toggle("is-inside", Boolean(id));
+  status.textContent = id
+    ? `Inside ${interiorLabel(id)}. Walk to the lectern and press E to read about ${areas[id].name}, or press Escape to leave.`
+    : "Back in the village.";
+};
+world.onTransition = (active) =>
+  worldWrap.classList.toggle("is-transitioning", active);
+// E acts on whatever is nearby: a cabin door, a lectern or the way out.
+function act() {
+  if (!world.near || world.iris) return;
+  if (world.nearKind === "cabin") world.enterCabin(world.near);
+  else if (world.nearKind === "exit") world.leaveCabin();
+  else openArea(world.near);
+}
 const journey = document.querySelector("#journey-world");
 let worldTop = 0,
   worldScale = 1,
@@ -185,7 +207,7 @@ document.querySelector("#return-world").addEventListener("click", closeArea);
 document
   .querySelectorAll("[data-area]")
   .forEach((b) => b.addEventListener("click", () => openArea(b.dataset.area)));
-interact.addEventListener("click", () => openArea(world.near));
+interact.addEventListener("click", act);
 const movement = {
   w: "up",
   ArrowUp: "up",
@@ -208,7 +230,12 @@ window.addEventListener("keydown", (e) => {
   }
   if ((key === "e" || key === "Enter") && world.near) {
     e.preventDefault();
-    openArea(world.near);
+    act();
+  }
+  if (key === "Escape" && world.interior) {
+    e.preventDefault();
+    world.keys.clear();
+    world.leaveCabin();
   }
 });
 window.addEventListener("keyup", (e) => {
@@ -247,7 +274,7 @@ canvas.addEventListener("click", (e) => {
     y <= 540 &&
     world.near
   )
-    openArea(world.near);
+    act();
 });
 matchMedia("(prefers-reduced-motion: reduce)").addEventListener(
   "change",

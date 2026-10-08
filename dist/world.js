@@ -1,6 +1,14 @@
 import { paintGround, paintFern } from "./ground.js";
 export { paintGround, paintFern } from "./ground.js";
 import { paintJourney, animateJourney } from "./journey.js";
+import {
+  EXIT_Y,
+  INTERIOR_SPAWN,
+  drawInteriorScene,
+  interiorNear,
+  interiorWalkable,
+  paintInterior,
+} from "./interiors.js";
 export const WIDTH = 960,
   HEIGHT = 540;
 export const destinations = [
@@ -70,6 +78,8 @@ export function nearbyArea(x, y) {
   );
 }
 export const WALK_SPEED = 184;
+// Iris wipe between the village and a cabin: close, hold black, reopen.
+export const IRIS = { close: 0.34, hold: 0.1, open: 0.36 };
 export function movePlayer(player, dx, dy, dt, walkable = canWalk) {
   const length = Math.hypot(dx, dy);
   if (!length) return false;
@@ -358,6 +368,15 @@ export class World {
     this.emerging = false;
     this.waving = false;
     this.talking = false;
+    // The cabin the player is standing in, or null for the village.
+    this.interior = null;
+    this.nearKind = null;
+    this.iris = null;
+    this.interiorCache = new Map();
+    this.onScene = null;
+    this.onTransition = null;
+    // Set while the title screen covers the page and nothing needs drawing.
+    this.suspended = false;
     const rand = seeded(827);
     this.grass = Array.from({ length: 1400 }, () => ({
       x: rand() * 960,
@@ -419,7 +438,7 @@ export class World {
       this.time = time;
     }
 
-    if (!canWalk(this.player.x, this.player.y))
+    if (!this.interior && !canWalk(this.player.x, this.player.y))
       this.player = { x: 482, y: 355, facing: "down" };
     this.buildSurfaces();
   }
@@ -467,7 +486,68 @@ export class World {
     this.viewport = viewport;
   }
   isWalkable(x, y) {
-    return canWalk(x, y);
+    return this.interior ? interiorWalkable(this.interior, x, y) : canWalk(x, y);
+  }
+  enterCabin(id) {
+    if (this.interior || this.iris || !destinations.some((d) => d.id === id))
+      return;
+    this.transition(() => {
+      this.interior = id;
+      this.player = { ...INTERIOR_SPAWN, facing: "up" };
+    });
+  }
+  leaveCabin() {
+    const d = destinations.find((d) => d.id === this.interior);
+    if (!d || this.iris) return;
+    this.transition(() => {
+      this.interior = null;
+      this.player = { x: d.doorX, y: d.doorY + 4, facing: "down" };
+    });
+  }
+  transition(swap) {
+    this.walking = false;
+    this.setNear(null, null);
+    if (this.reduced) {
+      swap();
+      this.onScene?.(this.interior);
+      this.updateNear();
+      this.draw();
+      return;
+    }
+    this.iris = { t: 0, swap, swapped: false };
+    this.onTransition?.(true);
+  }
+  stepIris(dt) {
+    const iris = this.iris;
+    iris.t += dt;
+    if (!iris.swapped && iris.t >= IRIS.close + IRIS.hold / 2) {
+      iris.swapped = true;
+      iris.swap();
+      this.onScene?.(this.interior);
+    }
+    if (iris.t >= IRIS.close + IRIS.hold + IRIS.open) {
+      this.iris = null;
+      this.onTransition?.(false);
+      this.updateNear();
+    }
+  }
+  setNear(near, kind) {
+    if (near === this.near && kind === this.nearKind) return;
+    this.near = near;
+    this.nearKind = kind;
+    this.onNear(near, kind);
+  }
+  updateNear() {
+    const { x, y } = this.player;
+    if (!this.interior) {
+      const id = nearbyArea(x, y);
+      return this.setNear(id, id && "cabin");
+    }
+    const spot = interiorNear(x, y);
+    this.setNear(
+      spot === "lectern" ? this.interior : spot === "exit" ? "exit" : null,
+      spot,
+    );
   }
   moonPosition() {
     return { x: 480, y: (this.layout.moonArea?.y || 0) + 125, diameter: 118 };
@@ -1536,85 +1616,90 @@ export class World {
         c.save();
         try {
           c.translate(0, this.layout.skyHeight);
-          this.skyClouds();
-          this.crows();
-          this.moonlight();
-          this.riverLife();
-          for (let i = 0; i < 7; i++) {
-            const phase = this.reduced ? 0 : Math.floor(this.time * 3 + i) % 4;
+          if (this.interior) this.drawInterior();
+          else {
+            this.skyClouds();
+            this.crows();
+            this.moonlight();
+            this.riverLife();
+            for (let i = 0; i < 7; i++) {
+              const phase = this.reduced ? 0 : Math.floor(this.time * 3 + i) % 4;
+              this.rect(
+                458 + Math.sin(i * 2) * 10 + phase * 2,
+                148 + i * 19,
+                12,
+                2,
+                "#51736b",
+              );
+            }
+            const foxes = [
+              foxState(this.time, 0, this.reduced),
+              foxState(this.time, 1, this.reduced),
+            ];
+            const rabbits = [
+              rabbitState(this.time, 0, this.reduced),
+              rabbitState(this.time, 1, this.reduced),
+            ];
+            const sorted = [
+              { y: 344, draw: () => this.fountainWater() },
+              ...destinations.map((d) => ({
+                y: d.y + d.h,
+                draw: () => this.building(d),
+              })),
+              ...this.trees.map((t) => ({ y: t.y, draw: () => this.tree(t) })),
+              ...foxes.map((fox) => ({ y: fox.y, draw: () => this.fox(fox) })),
+              ...rabbits.map((rabbit, i) => ({
+                y: rabbit.y,
+                draw: () => this.rabbit(rabbit, i),
+              })),
+              {
+                y: this.emerging ? Infinity : this.player.y,
+                draw: () => this.character(),
+              },
+            ].sort((a, b) => a.y - b.y);
+            sorted.forEach((o) => o.draw());
+            destinations.forEach((d) => this.smoke(d));
+            [
+              [363, 289],
+              [596, 314],
+              [334, 420],
+              [633, 452],
+              [458, 460],
+            ].forEach(([x, y]) => this.lantern(x, y));
+            this.rect(531, 318, 4, 30, "#796343");
+            this.rect(516, 318, 37, 10, "#b69b66");
+            this.rect(519, 320, 29, 2, "#78613e");
+            this.fire();
+            // A sleeping cat beside the cabin: only its tail stirs.
+            this.rect(626, 426, 17, 8, "#9f9472");
+            this.rect(623, 424, 7, 8, "#9f9472");
+            this.rect(623, 421, 3, 4, "#b4a17b");
+            this.rect(627, 429, 2, 2, "#4c4e37");
+            this.rect(636, 431, 9, 2, "#756f50");
             this.rect(
-              458 + Math.sin(i * 2) * 10 + phase * 2,
-              148 + i * 19,
-              12,
-              2,
-              "#51736b",
+              643,
+              424 +
+                (this.reduced ? 0 : Math.round(Math.sin(this.time * 0.7)) * 2),
+              7,
+              3,
+              "#aaa07b",
             );
+            this.flies.forEach((f) => {
+              const t = this.reduced ? f.phase : this.time;
+              const x = f.x + Math.sin(t * 0.5 + f.phase) * 9,
+                y = f.y + Math.cos(t * 0.7 + f.phase) * 6;
+              c.globalAlpha = 0.4 + (0.5 + 0.5 * Math.sin(t + f.phase)) * 0.6;
+              this.rect(x, y, 2, 2, "#cfcb85");
+              c.globalAlpha = 1;
+            });
+            if (this.near) {
+              const d = destinations.find((d) => d.id === this.near);
+              this.rect(d.doorX - 4, d.y + d.h - 52, 8, 4, "#f1d58b");
+              this.rect(d.doorX - 2, d.y + d.h - 48, 4, 3, "#f1d58b");
+            }
+  
           }
-          const foxes = [
-            foxState(this.time, 0, this.reduced),
-            foxState(this.time, 1, this.reduced),
-          ];
-          const rabbits = [
-            rabbitState(this.time, 0, this.reduced),
-            rabbitState(this.time, 1, this.reduced),
-          ];
-          const sorted = [
-            { y: 344, draw: () => this.fountainWater() },
-            ...destinations.map((d) => ({
-              y: d.y + d.h,
-              draw: () => this.building(d),
-            })),
-            ...this.trees.map((t) => ({ y: t.y, draw: () => this.tree(t) })),
-            ...foxes.map((fox) => ({ y: fox.y, draw: () => this.fox(fox) })),
-            ...rabbits.map((rabbit, i) => ({
-              y: rabbit.y,
-              draw: () => this.rabbit(rabbit, i),
-            })),
-            {
-              y: this.emerging ? Infinity : this.player.y,
-              draw: () => this.character(),
-            },
-          ].sort((a, b) => a.y - b.y);
-          sorted.forEach((o) => o.draw());
-          destinations.forEach((d) => this.smoke(d));
-          [
-            [363, 289],
-            [596, 314],
-            [334, 420],
-            [633, 452],
-            [458, 460],
-          ].forEach(([x, y]) => this.lantern(x, y));
-          this.rect(531, 318, 4, 30, "#796343");
-          this.rect(516, 318, 37, 10, "#b69b66");
-          this.rect(519, 320, 29, 2, "#78613e");
-          this.fire();
-          // A sleeping cat beside the cabin: only its tail stirs.
-          this.rect(626, 426, 17, 8, "#9f9472");
-          this.rect(623, 424, 7, 8, "#9f9472");
-          this.rect(623, 421, 3, 4, "#b4a17b");
-          this.rect(627, 429, 2, 2, "#4c4e37");
-          this.rect(636, 431, 9, 2, "#756f50");
-          this.rect(
-            643,
-            424 +
-              (this.reduced ? 0 : Math.round(Math.sin(this.time * 0.7)) * 2),
-            7,
-            3,
-            "#aaa07b",
-          );
-          this.flies.forEach((f) => {
-            const t = this.reduced ? f.phase : this.time;
-            const x = f.x + Math.sin(t * 0.5 + f.phase) * 9,
-              y = f.y + Math.cos(t * 0.7 + f.phase) * 6;
-            c.globalAlpha = 0.4 + (0.5 + 0.5 * Math.sin(t + f.phase)) * 0.6;
-            this.rect(x, y, 2, 2, "#cfcb85");
-            c.globalAlpha = 1;
-          });
-          if (this.near) {
-            const d = destinations.find((d) => d.id === this.near);
-            this.rect(d.doorX - 4, d.y + d.h - 52, 8, 4, "#f1d58b");
-            this.rect(d.doorX - 2, d.y + d.h - 48, 4, 3, "#f1d58b");
-          }
+          if (this.iris) this.drawIris();
         } finally {
           c.restore();
         }
@@ -1624,14 +1709,76 @@ export class World {
       this.ctx = previousContext;
     }
   }
+  drawInterior() {
+    let cache = this.interiorCache.get(this.interior);
+    if (!cache) {
+      // Rooms are painted once, at the village framebuffer resolution.
+      cache = document.createElement("canvas");
+      cache.width = WIDTH / 2;
+      cache.height = HEIGHT / 2;
+      const main = this.ctx,
+        reduced = this.reduced,
+        time = this.time;
+      this.ctx = cache.getContext("2d");
+      this.ctx.imageSmoothingEnabled = false;
+      this.ctx.scale(0.5, 0.5);
+      this.reduced = true;
+      this.time = 0;
+      try {
+        paintInterior(this, this.interior);
+      } finally {
+        this.ctx = main;
+        this.reduced = reduced;
+        this.time = time;
+      }
+      this.interiorCache.set(this.interior, cache);
+    }
+    this.ctx.drawImage(cache, 0, 0, WIDTH / 2, HEIGHT / 2, 0, 0, WIDTH, HEIGHT);
+    drawInteriorScene(
+      this,
+      this.interior,
+      this.reduced ? 0 : this.time,
+      () => this.characterSprite(),
+      this.nearKind === "lectern",
+    );
+  }
+  drawIris() {
+    // A pixel-stepped iris closes on the player, then opens on the new scene.
+    const { t, swapped } = this.iris;
+    const ease = (k) => k * k * (3 - 2 * k);
+    const k = swapped
+      ? ease(Math.min(1, Math.max(0, (t - IRIS.close - IRIS.hold) / IRIS.open)))
+      : 1 - ease(Math.min(1, t / IRIS.close));
+    const radius = k * 760,
+      cx = this.player.x,
+      cy = this.player.y - 22;
+    const c = this.ctx;
+    c.save();
+    for (let y = 0; y < HEIGHT; y += 4) {
+      const edge = Math.min(1, y / 70, (HEIGHT - y) / 40);
+      c.globalAlpha = Math.ceil(edge * 5) / 5;
+      const dy = y + 2 - cy;
+      if (Math.abs(dy) >= radius) {
+        this.rect(0, y, WIDTH, 4, "#050809");
+        continue;
+      }
+      const half = Math.sqrt(radius * radius - dy * dy);
+      if (cx - half > 1) this.rect(0, y, cx - half, 4, "#050809");
+      if (cx + half < WIDTH - 1)
+        this.rect(cx + half, y, WIDTH - cx - half, 4, "#050809");
+    }
+    c.restore();
+  }
   frame(now) {
     requestAnimationFrame(this.frame);
     const dt = this.last ? Math.min((now - this.last) / 1000, 0.04) : 0;
     this.last = now;
-    if (!document.hidden && this.visible) {
+    if (!document.hidden && this.visible && !this.suspended) {
       if (this.cutscene) {
         this.cutscene(dt);
         if (this.walking) this.walkTime += dt;
+      } else if (this.iris) {
+        this.stepIris(dt);
       } else if (this.active && this.gameVisible) {
         const dx =
             Number(this.keys.has("right")) - Number(this.keys.has("left")),
@@ -1641,11 +1788,9 @@ export class World {
         );
         if (this.walking) this.walkTime += dt;
         else this.walkTime = 0;
-        const near = nearbyArea(this.player.x, this.player.y);
-        if (near !== this.near) {
-          this.near = near;
-          this.onNear(near);
-        }
+        // Stepping down through the open door walks back into the village.
+        if (this.interior && this.player.y > EXIT_Y) this.leaveCabin();
+        else this.updateNear();
       } else this.walking = false;
       this.time += dt;
       this.draw();

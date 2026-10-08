@@ -10,7 +10,7 @@ try {
   await page.goto(process.env.TEST_URL || "http://localhost:5173");
   // The medieval title screen blocks the page until started or skipped.
   assert.equal(await page.locator(".intro").isVisible(), true);
-  assert.match(await page.locator(".intro-start").innerText(), /click to start/i);
+  assert.match(await page.locator(".intro-start").innerText(), /click to explore my portfolio/i);
   assert.equal(
     await page.locator(".intro-start").evaluate((el) => el === document.activeElement),
     true,
@@ -181,11 +181,27 @@ try {
   await page.keyboard.up("w");
   assert.equal(
     await page.locator("#interact span").textContent(),
-    "Enter the career section",
+    "Enter the career cabin",
+  );
+  // E steps inside the cabin; the lectern in the middle opens the section.
+  await page.keyboard.press("e");
+  await page.locator(".world-wrap.is-inside").waitFor();
+  await page.keyboard.down("w");
+  await page.waitForTimeout(500);
+  await page.keyboard.up("w");
+  assert.equal(
+    await page.locator("#interact span").textContent(),
+    "Open to read about Career",
   );
   await page.keyboard.press("e");
   assert.equal(await page.locator("#panel-title").textContent(), "Career");
   await page.keyboard.press("Escape");
+  await page.keyboard.press("Escape");
+  assert.equal(await page.locator(".world-wrap.is-inside").count(), 0);
+  assert.equal(
+    await page.locator("#interact span").textContent(),
+    "Enter the career cabin",
+  );
   // Only the visible world band is animated; the offscreen village stays still.
   await page.emulateMedia({ reducedMotion: "no-preference" });
   await page.locator(".reading-invitation a").click();
@@ -346,7 +362,7 @@ try {
   await intro.locator("#interact").waitFor({ state: "visible" });
   assert.equal(
     await intro.locator("#interact span").textContent(),
-    "Enter the about section",
+    "Enter the about cabin",
   );
   await intro.close();
   const linked = await browser.newPage();

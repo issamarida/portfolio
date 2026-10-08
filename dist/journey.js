@@ -1600,6 +1600,35 @@ function relics(p, x, y) {
     p.ellipse(x + dx, y + dy, 20, 9, "#526e42");
     paintFern(p, x + dx + 9, y + dy + 5, 0.7);
   }
+  relicCandles(p, x, y);
+}
+
+// Votive candles ring the shrine: [dx, dy, height] from the relic centre.
+const RELIC_CANDLES = [
+  [-40, 56, 22],
+  [40, 56, 20],
+  [-96, 70, 12],
+  [-66, 82, 18],
+  [-32, 90, 10],
+  [0, 92, 16],
+  [32, 90, 12],
+  [66, 82, 20],
+  [96, 70, 10],
+];
+
+function relicCandles(p, x, y) {
+  for (const [dx, dy, h] of RELIC_CANDLES) {
+    const cx = x + dx,
+      base = y + dy;
+    p.ellipse(cx, base + 1, 16, 5, "#22301f");
+    p.rect(cx - 4, base - h, 8, h, "#e9dcb8");
+    p.rect(cx - 4, base - h, 2, h, "#fff6dc");
+    p.rect(cx + 2, base - h, 2, h, "#c9b88e");
+    // Wax runs down from the rim and pools at the foot.
+    p.rect(cx - 2, base - h, 2, 6 + (h % 4), "#fff6dc");
+    p.rect(cx - 6, base - 2, 12, 2, "#e9dcb8");
+    p.rect(cx - 1, base - h - 3, 2, 3, "#3a2d22");
+  }
 }
 
 function landmarks(layout) {
@@ -1826,6 +1855,20 @@ export function animateJourney(p, layout) {
         );
       }
       camper(p, x, y, time, p.reduced);
+    } else if (scene.paint === relics) {
+      RELIC_CANDLES.forEach(([dx, dy, h], i) => {
+        const cx = x + dx,
+          top = y + dy - h - 3;
+        const f = p.reduced ? 1 : Math.floor(time * 7 + i * 1.9) % 3;
+        // Two stepped pools of candlelight.
+        p.ctx.globalAlpha = 0.06;
+        p.rect(cx - 16, top - 12, 32, 22, "#f2c36a");
+        p.ctx.globalAlpha = 0.1;
+        p.rect(cx - 8, top - 8, 16, 14, "#f2c36a");
+        p.ctx.globalAlpha = 1;
+        p.rect(cx - 2, top - 6 - f, 4, 7 + f, "#e98a3a");
+        p.rect(cx - 1, top - 4 - f, 2, 4 + f, "#ffe19a");
+      });
     } else if (scene.paint === farm) {
       farmActors(p, farmYard(layout.stable), time);
       animateHomestead(p, layout.stable, time);

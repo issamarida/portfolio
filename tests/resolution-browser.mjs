@@ -197,14 +197,15 @@ try {
       metrics.readingFits && metrics.textFits,
       `Reading text must not clip at ${width}px`,
     );
-    // Scrolls are scattered: staggered pairs on wide screens, alternating
-    // offsets when stacked, and a distinct colour for every topic.
+    // Scrolls share one width in staggered pairs on wide screens, alternate
+    // offsets when stacked, and keep a distinct colour for every topic.
     const [about, projects, career, gamedev] = metrics.scrolls;
     assert.equal(new Set(metrics.scrolls.map((s) => s.background)).size, 4);
     if (width > 850) {
       assert.ok(projects.left >= about.right && gamedev.left >= career.right);
       assert.ok(projects.top - about.top > 40 && gamedev.top - career.top > 40);
-      assert.ok(Math.abs(about.left - career.left) > 20);
+      const widths = metrics.scrolls.map((s) => Math.round(s.right - s.left));
+      assert.ok(Math.max(...widths) - Math.min(...widths) <= 1, `${widths}`);
     } else {
       for (let i = 1; i < 4; i++)
         assert.ok(metrics.scrolls[i].top >= metrics.scrolls[i - 1].bottom);

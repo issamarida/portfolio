@@ -1,4 +1,5 @@
-// Opening sequence: a medieval title screen, then a camera swoop onto the
+// Opening sequence: a blurred glimpse of the village behind a single
+// unfurling scroll, then a camera swoop onto the
 // About cabin where the player steps outside to greet the visitor. It only
 // borrows the live world canvases, so the final frame matches the page.
 import { destinations } from "./world.js";
@@ -18,25 +19,6 @@ export function shouldPlayIntro() {
   return navigation?.type !== "back_forward";
 }
 
-function torch(side) {
-  return `<svg class="intro-torch intro-torch-${side}" viewBox="0 0 12 28" aria-hidden="true" shape-rendering="crispEdges">
-    <g class="intro-flame">
-      <path d="M5 0h2v2h1v2h1v3H8v1H4V7H3V4h1V2h1z" fill="#e98a3a"/>
-      <path d="M5 3h2v2h1v2H4V5h1z" fill="#ffd27a"/>
-    </g>
-    <path d="M2 8h8v2H2z" fill="#6d5034"/><path d="M3 10h6v3H3z" fill="#8c6a43"/>
-    <path d="M5 13h2v15H5z" fill="#5b4530"/><path d="M4 16h4v2H4z" fill="#a6a79c"/>
-  </svg>`;
-}
-
-const CREST = `<svg class="intro-crest" viewBox="0 0 24 26" aria-hidden="true" shape-rendering="crispEdges">
-  <path d="M1 1h22v12l-2 4-3 4-4 3-2 1-2-1-4-3-3-4-2-4z" fill="#e7c46e"/>
-  <path d="M3 3h18v10l-2 3-3 4-4 3-4-3-3-4-2-3z" fill="#7d1f24"/>
-  <path d="M12 3h9v10l-2 3-3 4-4 3z" fill="#24395f"/>
-  <path d="M7 12l5-5 5 5v6H7z" fill="#e7c46e"/><path d="M9 12l3-3 3 3v5H9z" fill="#3a2a1c"/>
-  <path d="M11 14h2v3h-2z" fill="#ffd27a"/><path d="M15 6h2v4h-2z" fill="#e7c46e"/>
-</svg>`;
-
 export function runIntro(world, { onFinish } = {}) {
   const reduced = () => world.reduced;
   const journey = document.querySelector("#journey-world");
@@ -45,33 +27,17 @@ export function runIntro(world, { onFinish } = {}) {
   root.setAttribute("role", "dialog");
   root.setAttribute("aria-modal", "true");
   root.setAttribute("aria-labelledby", "intro-title");
-  const embers = Array.from({ length: 22 }, (_, i) => {
-    const left = (i * 37 + 11) % 100,
-      delay = ((i * 7) % 11) * 0.45,
-      duration = 5 + ((i * 13) % 7) * 0.6,
-      size = i % 3 ? 4 : 6;
-    return `<span style="--left:${left}%;--delay:-${delay}s;--duration:${duration}s;--size:${size}px"></span>`;
-  }).join("");
   root.innerHTML = `
     <canvas class="intro-stage" aria-hidden="true"></canvas>
     <div class="intro-title-screen">
-      <div class="intro-embers" aria-hidden="true">${embers}</div>
-      <div class="intro-banner">
-        ${torch("left")}
-        <div class="intro-heraldry">
-          ${CREST}
-          <h2 id="intro-title" class="intro-name">Issam Arida</h2>
-          <p class="intro-ribbon"><span>Portfolio</span></p>
-        </div>
-        ${torch("right")}
-      </div>
+      <canvas class="intro-backdrop" aria-hidden="true"></canvas>
+      <h2 id="intro-title" class="sr-only">Issam Arida’s portfolio</h2>
       <button class="intro-start" type="button">
-        <span class="intro-pointer" aria-hidden="true">▶</span>
-        <span class="intro-start-label">Click to start</span>
-        <span class="intro-pointer" aria-hidden="true">◀</span>
+        <span class="intro-roller" aria-hidden="true"></span>
+        <span class="intro-paper"><span class="intro-start-label">Click to explore my portfolio</span></span>
+        <span class="intro-roller" aria-hidden="true"></span>
       </button>
-      <p class="intro-hint">Press Enter or click · Esc skips the intro</p>
-      <p class="intro-copyright">© ${new Date().getFullYear()} Issam Arida</p>
+      <button class="intro-skip" type="button">Skip intro <span aria-hidden="true">▸▸</span></button>
     </div>
     <div class="intro-dialog" hidden>
       <img src="./photo.jpg" alt="" width="88" height="88" />
@@ -85,14 +51,14 @@ export function runIntro(world, { onFinish } = {}) {
         </p>
       </div>
     </div>
-    <button class="intro-skip" type="button">Skip intro <span aria-hidden="true">▸▸</span></button>`;
+`;
   // The page behind stays alive but out of reach until the intro ends.
   const inert = [...document.body.children].filter((el) => !el.inert);
   inert.forEach((el) => (el.inert = true));
   document.body.append(root);
   document.documentElement.classList.add("intro-open");
   const stage = root.querySelector(".intro-stage"),
-    ctx = stage.getContext("2d"),
+    backdrop = root.querySelector(".intro-backdrop"),
     start = root.querySelector(".intro-start"),
     dialog = root.querySelector(".intro-dialog"),
     line = root.querySelector(".intro-line"),
@@ -133,13 +99,13 @@ export function runIntro(world, { onFinish } = {}) {
       cy: a.cy + (b.cy - a.cy) * t,
     };
   }
-  function paint(view) {
-    const ratio = devicePixelRatio || 1;
+  function paint(view, target = stage, ratio = devicePixelRatio || 1) {
+    const ctx = target.getContext("2d");
     const width = Math.round(innerWidth * ratio),
       height = Math.round(innerHeight * ratio);
-    if (stage.width !== width || stage.height !== height) {
-      stage.width = width;
-      stage.height = height;
+    if (target.width !== width || target.height !== height) {
+      target.width = width;
+      target.height = height;
     }
     ctx.imageSmoothingEnabled = false;
     ctx.fillStyle = "#17242b";
@@ -162,6 +128,24 @@ export function runIntro(world, { onFinish } = {}) {
         Math.round(surface.height * s),
       );
     }
+  }
+
+  // The title backdrop is one tiny still of the village, blurred by CSS:
+  // nothing behind the scroll animates, so the title screen stays light.
+  function paintBackdrop() {
+    if (phase !== "title") return;
+    const sky = world.layout.skyHeight || 0;
+    const scale = Math.max(innerWidth / 900, innerHeight / 520);
+    paint({ scale, cx: 480, cy: sky + 300 }, backdrop, 0.25);
+  }
+  let backdropPending = false;
+  function scheduleBackdrop() {
+    if (backdropPending) return;
+    backdropPending = true;
+    requestAnimationFrame(() => {
+      backdropPending = false;
+      paintBackdrop();
+    });
   }
 
   // The script: door opens, Issam steps out, waves and starts talking.
@@ -211,6 +195,7 @@ export function runIntro(world, { onFinish } = {}) {
     const dt = last ? Math.min((now - last) / 1000, 0.05) : 0;
     last = now;
     if (phase === "title") return;
+    if (document.hidden) return;
     if (phase === "zoom-in") {
       const k = reduced() ? 1 : clamp01(clock / 1.5);
       paint(mixView(camera.from, cabinView(), ease(k)));
@@ -232,6 +217,7 @@ export function runIntro(world, { onFinish } = {}) {
     if (phase !== "title") return;
     scrollTo(0, 0);
     phase = "zoom-in";
+    world.suspended = false;
     root.classList.add("is-playing");
     camera = { from: pageView() };
     clock = 0;
@@ -272,6 +258,8 @@ export function runIntro(world, { onFinish } = {}) {
     world.active = true;
     world.keys.clear();
     removeEventListener("keydown", onKey, true);
+    removeEventListener("resize", scheduleBackdrop);
+    world.suspended = false;
     inert.forEach((el) => (el.inert = false));
     root.remove();
     document.documentElement.classList.remove("intro-open");
@@ -301,6 +289,11 @@ export function runIntro(world, { onFinish } = {}) {
     else if (phase === "ready") leave();
   }
   addEventListener("keydown", onKey, true);
+  addEventListener("resize", scheduleBackdrop);
+  document.fonts?.ready.then(scheduleBackdrop);
+  // The live village is hidden behind the title, so it rests until play.
+  world.suspended = true;
+  paintBackdrop();
   start.addEventListener("click", (event) => {
     event.stopPropagation();
     begin();

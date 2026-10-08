@@ -5,7 +5,7 @@
 import { destinations } from "./world.js";
 
 const GREETING =
-  "Hey, I’m Issam. Welcome to my portfolio! Walk into any cabin and read the book inside to get to know me.";
+  "Hey, I’m Issam! Welcome to my little corner of the internet. Walk into any cabin and read the book on the lectern to get to know me a bit better.";
 const about = destinations.find((d) => d.id === "about");
 const START = { x: about.doorX, y: about.y + about.h - 2 },
   STOP = { x: about.doorX, y: about.y + about.h + 34 };
@@ -302,7 +302,9 @@ export function runIntro(world, { onFinish } = {}) {
         phase = "walk";
       }
     };
-    root.querySelector(".intro-skip").focus({ preventScroll: true });
+    // Esc still skips, but the button is only offered on the title.
+    root.tabIndex = -1;
+    root.focus({ preventScroll: true });
   }
   function leave() {
     if (phase === "zoom-out" || finished) return;

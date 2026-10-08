@@ -152,7 +152,9 @@ try {
             );
           }),
           portraitTop: rect(".identity img").top,
-          socialInGame: !!document.querySelector(".game-frame .social-links"),
+          socialUnderEmail:
+            !!document.querySelector(".header .contact .social-links") &&
+            rect(".header .social-links").top >= rect(".email-link").bottom - 1,
           touchClear: [...document.querySelectorAll(".touch-pad button")].every(
             (button) => {
               if (
@@ -178,7 +180,7 @@ try {
         opening.boardInset,
         "Reading sign content must stay inset within its wood face",
       );
-      assert.ok(opening.socialInGame);
+      assert.ok(opening.socialUnderEmail);
       assert.ok(
         opening.boardCentered,
         "Reading lettering must center on both axes",

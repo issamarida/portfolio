@@ -351,7 +351,7 @@ try {
   await intro.locator(".intro-controls").waitFor({ state: "visible" });
   assert.match(
     await intro.locator(".intro-line").innerText(),
-    /Hey, I’m Issam\. Welcome to my portfolio! Walk into any cabin/,
+    /Hey, I’m Issam! Welcome to my little corner of the internet\. Walk into any cabin/,
   );
   await intro.locator(".intro-continue").click();
   await intro.locator(".intro").waitFor({ state: "detached" });

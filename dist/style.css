@@ -1003,7 +1003,8 @@ kbd,
   min-height: 190px;
 }
 .identity,
-.email-link {
+.email-link,
+.contact {
   position: relative;
   isolation: isolate;
   border: 0;
@@ -1028,7 +1029,7 @@ kbd,
   box-shadow: 0 0 24px #d2dfb348;
 }
 .identity::before,
-.email-link::before {
+.contact::before {
   content: "";
   position: absolute;
   z-index: -1;
@@ -1056,7 +1057,7 @@ kbd,
   );
 }
 .identity::after,
-.email-link::after {
+.contact::after {
   content: "";
   position: absolute;
   z-index: -2;
@@ -1262,11 +1263,11 @@ dialog::backdrop {
     font-size: 24px;
   }
   .identity::after,
-  .email-link::after {
+  .contact::after {
     height: 150px;
   }
   .identity::before,
-  .email-link::before {
+  .contact::before {
     inset: -14px -10px;
   }
   .panel-content {
@@ -1800,7 +1801,7 @@ dialog {
     0 0 10px #d9eab68c;
 }
 .identity::before,
-.email-link::before {
+.contact::before {
   background: radial-gradient(
     ellipse,
     #d4e6b75c 10%,
@@ -1809,7 +1810,7 @@ dialog {
   );
 }
 .identity::after,
-.email-link::after {
+.contact::after {
   background: linear-gradient(#cee2af3d, #c7dab31c 75%, transparent);
 }
 .identity img {
@@ -2799,7 +2800,7 @@ html.intro-open {
     inset 0 -6px 0 #c4a062,
     0 14px 0 #00000059;
   clip-path: inset(-10px 0 -20px 0);
-  animation: intro-unfurl 1.8s cubic-bezier(0.3, 0.7, 0.2, 1) 1s both;
+  animation: intro-unfurl 3s cubic-bezier(0.35, 0.6, 0.25, 1) 1s both;
 }
 /* Ragged, pixel-stepped deckle edges along the top and bottom. */
 .intro-paper::before,
@@ -2835,7 +2836,7 @@ html.intro-open {
   text-align: center;
   letter-spacing: 2px;
   text-shadow: 2px 2px 0 #fff3d080;
-  animation: intro-ink 0.6s steps(6) 2.4s both;
+  animation: intro-ink 0.8s steps(8) 3.4s both;
 }
 @keyframes intro-unfurl {
   from {
@@ -2864,7 +2865,7 @@ html.intro-open {
     #6e4a20 26px
   );
   box-shadow: 0 14px 0 #00000059;
-  animation: intro-roll-left 1.8s cubic-bezier(0.3, 0.7, 0.2, 1) 1s both;
+  animation: intro-roll-left 3s cubic-bezier(0.35, 0.6, 0.25, 1) 1s both;
 }
 .intro-roller:last-child {
   animation-name: intro-roll-right;
@@ -2965,15 +2966,11 @@ html.intro-open {
   border: 0;
   text-shadow: 2px 2px 0 #000000a6;
   pointer-events: auto;
-  animation: intro-ink 0.5s steps(5) 2.9s both;
+  animation: intro-ink 0.5s steps(5) 1.4s both;
 }
+/* Skipping is offered once, on the title; the cutscene plays clean. */
 .intro.is-playing .intro-skip {
-  position: fixed;
-  top: 16px;
-  right: 16px;
-  background: #1d1610cc;
-  box-shadow: 0 0 0 2px #7d6644;
-  animation: none;
+  display: none;
 }
 .intro-skip:hover,
 .intro-skip:focus-visible {
@@ -3134,4 +3131,115 @@ html.intro-open {
 
 .open-note {
   color: var(--accent);
+}
+
+/* Email and profiles share one pool of light in the header. */
+.contact {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  align-self: center;
+  padding: 4px 18px 10px;
+  pointer-events: auto;
+}
+.sky-header .contact .email-link {
+  align-self: center;
+  margin: 0;
+  padding: 8px 4px 2px;
+}
+.header .social-links {
+  position: static;
+  display: flex;
+  justify-content: center;
+  gap: 22px;
+  width: auto;
+  margin: 0;
+  padding: 0;
+  background: none;
+  border: 0;
+  box-shadow: none;
+  transform: none;
+}
+.header .social-links a {
+  position: static;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  width: auto;
+  min-width: 0;
+  height: auto;
+  min-height: 0;
+  padding: 2px;
+  font: 22px/1.2 var(--pixel);
+  color: #fff6d9;
+  background: none;
+  border: 0;
+  border-image: none;
+  box-shadow: none;
+  transform: none;
+  text-shadow:
+    2px 2px #101a1e,
+    0 0 10px #d9eab68c;
+}
+.header .social-links a::before,
+.header .social-links a::after {
+  content: none;
+}
+.header .social-links a:hover,
+.header .social-links a:focus-visible {
+  color: #ffe08d;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+.header .social-emoji {
+  font-size: 20px;
+}
+@media (max-width: 740px) {
+  .contact {
+    align-self: flex-end;
+  }
+}
+@media (max-width: 700px) {
+  .header .social-links a {
+    font-size: 18px;
+  }
+  .header .social-emoji {
+    font-size: 16px;
+  }
+}
+
+/* Reading copy uses a smoother pixel face; headings keep VT323. */
+@font-face {
+  font-family: "Pixelify Sans";
+  src: url("./fonts/pixelify-sans.ttf") format("truetype");
+  font-weight: 400 700;
+  font-style: normal;
+  font-display: swap;
+}
+:root {
+  --reading: "Pixelify Sans", "VT323", monospace;
+}
+.reading-section .section-body p,
+.reading-section .section-body li,
+dialog .section-body p,
+dialog .section-body li {
+  font-family: var(--reading);
+  font-size: 18px;
+  line-height: 1.7;
+  letter-spacing: 0;
+  word-spacing: 0.18em;
+}
+.section-body p .text-link {
+  font: inherit;
+}
+@media (max-width: 700px) {
+  .reading-section .section-body p,
+  .reading-section .section-body li,
+  dialog .section-body p,
+  dialog .section-body li {
+    font-size: 16px;
+  }
+}
+.intro:focus {
+  outline: none;
 }

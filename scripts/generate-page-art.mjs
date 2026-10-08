@@ -8,7 +8,7 @@ try {
   const page = await browser.newPage({
     viewport: { width: 1440, height: 1100 },
   });
-  await page.goto(process.env.ART_URL || "http://localhost:5173");
+  await page.goto(process.env.ART_URL || "http://localhost:5173/?intro=0");
   await page.evaluate(() => document.fonts.ready);
   const data = await page.evaluate(async () => {
     const { World } = await import("./world.js");

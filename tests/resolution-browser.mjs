@@ -17,7 +17,9 @@ try {
     }),
     errors = [];
   page.on("pageerror", (error) => errors.push(error.message));
-  await page.goto(process.env.TEST_URL || "http://localhost:5173");
+  await page.goto(
+    `${process.env.TEST_URL || "http://localhost:5173"}/?intro=0`,
+  );
   await page.evaluate(() => document.fonts.ready);
   for (const [width, height] of [
     [1920, 1080],
@@ -78,9 +80,17 @@ try {
       return {
         readingFits,
         textFits,
-        columns: getComputedStyle(
-          document.querySelector(".portfolio-reading"),
-        ).gridTemplateColumns.split(" ").length,
+        scrolls: ["about", "projects", "career", "gamedev"].map((id) => {
+          const box = document.getElementById(id).getBoundingClientRect();
+          return {
+            left: box.left,
+            right: box.right,
+            top: box.top,
+            bottom: box.bottom,
+            background: getComputedStyle(document.getElementById(id))
+              .backgroundColor,
+          };
+        }),
         left: shell.left,
         width: shell.width,
         overflow: document.documentElement.scrollWidth > innerWidth,
@@ -187,7 +197,19 @@ try {
       metrics.readingFits && metrics.textFits,
       `Reading text must not clip at ${width}px`,
     );
-    assert.equal(metrics.columns, width > 850 ? 2 : 1);
+    // Scrolls are scattered: staggered pairs on wide screens, alternating
+    // offsets when stacked, and a distinct colour for every topic.
+    const [about, projects, career, gamedev] = metrics.scrolls;
+    assert.equal(new Set(metrics.scrolls.map((s) => s.background)).size, 4);
+    if (width > 850) {
+      assert.ok(projects.left >= about.right && gamedev.left >= career.right);
+      assert.ok(projects.top - about.top > 40 && gamedev.top - career.top > 40);
+      assert.ok(Math.abs(about.left - career.left) > 20);
+    } else {
+      for (let i = 1; i < 4; i++)
+        assert.ok(metrics.scrolls[i].top >= metrics.scrolls[i - 1].bottom);
+      assert.ok(projects.left > about.left && career.left < projects.left);
+    }
     assert.equal(
       metrics.transparent,
       0,

@@ -152,28 +152,54 @@
         </div>
         <div class="portfolio-reading">
           <section
-            class="reading-section"
+            class="reading-section scroll-about"
             id="about"
             aria-labelledby="about-title"
           >
             <div class="section-heading">
               <span class="section-number">01</span>
               <h2 id="about-title">About</h2>
+              <svg class="ribbon-emblem" viewBox="0 0 16 16" aria-hidden="true">
+                <path d="M2 1h12v8l-2 3-2 2-2 1-2-1-2-2-2-3z" fill="#e7c46e" />
+                <path d="M3 2h10v7l-2 2-1 2-2 1-2-1-1-2-2-2z" fill="#7d1f24" />
+                <path d="M5 5h2v1h2V5h2v3l-1 1-1 1-1 1-1-1-1-1-1-1z" fill="#f2d48a" />
+              </svg>
             </div>
             <div class="section-body">
               <p>
-                I like working across the stack: bringing AI into useful
-                applications, exploring how systems behave under the hood, and
-                making interactive things that feel a little different.
+                I’m a Computer Science &amp; Artificial Intelligence student at
+                IE University. I’m Jordanian, grew up for most of my life in
+                Dubai, and I’m now based in Madrid.
               </p>
               <p>
-                My interests span full-stack AI applications, low-level systems,
-                and interactive graphics. I enjoy turning technical ideas into
-                things people can use.
+                I’m very interested in full-stack AI engineering: AI workflows
+                and orchestration. I love working fast and efficiently,
+                especially on problems that demand complex system design.
               </p>
               <div class="about-details">
-                <span>MADRID, SPAIN</span><span>IE UNIVERSITY</span
+                <span>MADRID, SPAIN</span><span>RAISED IN DUBAI</span
+                ><span>IE UNIVERSITY</span
                 ><span>CS & ARTIFICIAL INTELLIGENCE</span>
+              </div>
+              <div class="hobbies">
+                <h3>Beyond the code</h3>
+                <ul class="hobby-list">
+                  <li>
+                    <strong>Rugby.</strong> Eleven years at national and
+                    international level in the UAE and Jordan, and still
+                    playing today in Spain.
+                  </li>
+                  <li><strong>Arm wrestling.</strong> I compete.</li>
+                  <li>
+                    <strong>Camera work.</strong> Fashion modeling campaigns,
+                    and as an aspiring actor I’m directing my own horror short
+                    film.
+                  </li>
+                  <li>
+                    <strong>Pharmacy.</strong> Chemistry intrigues me, so I
+                    spend free time learning about it.
+                  </li>
+                </ul>
               </div>
               <div class="volunteering">
                 <h3>Volunteering</h3>
@@ -203,16 +229,64 @@
             </div>
           </section>
           <section
-            class="reading-section"
+            class="reading-section scroll-projects"
             id="projects"
             aria-labelledby="projects-title"
           >
             <div class="section-heading">
               <span class="section-number">02</span>
               <h2 id="projects-title">Projects</h2>
+              <svg class="ribbon-emblem" viewBox="0 0 16 16" aria-hidden="true">
+                <path d="M2 2h9v2h3v4h-3v1H9V7H7v8H5V7H2z" fill="#e7c46e" />
+                <path d="M3 3h7v2h3v2h-2V6H8v8H6V6H3z" fill="#5d6a66" />
+                <path d="M3 3h7v1H3z" fill="#c9d1c4" />
+                <path d="M6 9h2v5H6z" fill="#8a5a33" />
+              </svg>
             </div>
             <div class="section-body">
               <div class="project-grid">
+                <article class="project-card">
+                  <div class="tags">
+                    <span>AI</span><span>REGULATORY REVIEW</span
+                    ><span>FOUNDER</span>
+                  </div>
+                  <h3>Pharmable</h3>
+                  <p>
+                    Uses AI to check pharmaceutical documents against health
+                    regulations before they are submitted. It points out
+                    anything that is missing and shows which rule applies, so
+                    teams can fix problems early and spend far less time on
+                    review.
+                  </p>
+                  <a
+                    class="text-link"
+                    href="https://pharmable.dev/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    >Visit pharmable.dev <span aria-hidden="true">↗</span></a
+                  >
+                </article>
+                <article class="project-card">
+                  <div class="tags">
+                    <span>C++20</span><span>PYTHON</span
+                    ><span>QUANT FINANCE</span>
+                  </div>
+                  <h3>Schrödinger Local Vol</h3>
+                  <p>
+                    Prices SPX options by solving a Schrödinger equation in
+                    imaginary time with a C++ Crank-Nicolson solver, backtested
+                    on 1.2 million real SPX quotes against SVI, Heston and the
+                    practitioner smile. Zero butterfly arbitrage across 2,019
+                    holdout slices.
+                  </p>
+                  <a
+                    class="text-link"
+                    href="https://github.com/issamarida/schrodinger-local-vol"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    >View source <span aria-hidden="true">↗</span></a
+                  >
+                </article>
                 <article class="project-card">
                   <div class="tags">
                     <span>TYPESCRIPT</span><span>NEXT.JS</span
@@ -220,9 +294,9 @@
                   </div>
                   <h3>Vocable</h3>
                   <p>
-                    An article reader that turns dense pages into a clearer
-                    reading experience, with sentence-synced speech,
-                    translation, and simplified explanations.
+                    Turns any webpage into audio you can follow and understand,
+                    with sentence-synced speech, translation, and simplified
+                    explanations.
                   </p>
                   <a
                     class="text-link"
@@ -239,9 +313,10 @@
                   </div>
                   <h3>Optimus</h3>
                   <p>
-                    Meeting intelligence built on the AMI corpus. Dialogue
-                    classification and summarization with grouped evaluation, a
-                    CLI, and tests.
+                    The AI voice meeting assistant from my Optimiza internship,
+                    published on the AMI meeting corpus: dialogue-act
+                    classification across 90,142 segments, summarization with
+                    ROUGE evaluation, a CLI, and offline tests.
                   </p>
                   <a
                     class="text-link"
@@ -259,7 +334,8 @@
                   <p>
                     Private watchlists with streaming market quotes,
                     authenticated ownership, and transactional one-shot price
-                    alerts.
+                    alerts. 240 tests with full statement coverage of the
+                    measured modules.
                   </p>
                   <a
                     class="text-link"
@@ -291,64 +367,123 @@
             </div>
           </section>
           <section
-            class="reading-section"
+            class="reading-section scroll-career"
             id="career"
             aria-labelledby="career-title"
           >
             <div class="section-heading">
               <span class="section-number">03</span>
               <h2 id="career-title">Career</h2>
+              <svg class="ribbon-emblem" viewBox="0 0 16 16" aria-hidden="true">
+                <path d="M7 0h2v4h3l-2 3 3 2-4 1-1 4-1-4-4-1 3-2-2-3h3z" fill="#e7c46e" />
+                <path d="M7 3h2v3h1l-1 2 2 1-3 1-0 2-1-2-3-1 2-1-1-2h2z" fill="#f6e3a8" />
+              </svg>
             </div>
             <div class="section-body">
               <div class="timeline">
                 <article>
+                  <small>FOUNDER · NOW</small>
+                  <h3>Pharmable</h3>
+                  <p>
+                    Building AI that reviews pharmaceutical documents against
+                    health regulations before submission.
+                  </p>
+                </article>
+                <article>
+                  <small>AWARD · 3RD OF 18 TEAMS</small>
+                  <h3>First Claude Hackathon in Madrid</h3>
+                  <p>
+                    A 48-hour hackathon where AI agents competed in a live,
+                    negotiated trading game. We built an agent that negotiated
+                    on its own, learned from rival teams as the game went on,
+                    and ran its own marketplace where other teams traded.
+                  </p>
+                </article>
+                <article>
+                  <small>EXPERIENCE · INTERNSHIP</small>
+                  <h3>AI Engineer · Optimiza</h3>
+                  <p>
+                    Built an AI tool that turns raw meeting transcripts into
+                    clear summaries and flags moments where a client is
+                    unhappy, replacing a review process that was done by hand.
+                    Also configured IIS web services across virtual machines
+                    and built a chatbot with Hugging Face Transformers and
+                    TensorFlow, served through Flask.
+                  </p>
+                </article>
+                <article>
+                  <small>EXPERIENCE · INTERNSHIP</small>
+                  <h3>Data Scientist · British Airways</h3>
+                  <p>
+                    Built an automated system that collected over 13,000
+                    records of competitor fares and seat availability across
+                    six routes over two years. The analysis uncovered a 29%
+                    rise in winter delays and showed demand falling as fares
+                    rose on every route, shaping how capacity was scheduled.
+                  </p>
+                </article>
+                <article>
+                  <small>AWARD · 1ST PLACE</small>
+                  <h3>EDP × IE Datathon</h3>
+                  <p>
+                    Ran battery energy storage systems more efficiently with
+                    multivariate time-series forecasting of supply and demand.
+                    Our model ranked first in accuracy.
+                  </p>
+                </article>
+                <article>
+                  <small>RESEARCH</small>
+                  <h3>IE Tech Lab × Bloomberg</h3>
+                  <p>
+                    Co-developed a Bloomberg-sponsored ESG trust score and a
+                    simplified Bloomberg Terminal for everyday investors,
+                    working directly with the Bloomberg team.
+                  </p>
+                </article>
+                <article>
+                  <small>RESEARCH</small>
+                  <h3>IE Econ Data Lab × UNDP</h3>
+                  <p>
+                    A comparative study for the United Nations Development
+                    Programme on how cities in North America and South Asia
+                    invest in resilience, using longitudinal economic
+                    time-series data.
+                  </p>
+                </article>
+                <article>
                   <small>EDUCATION · 2024–2028</small>
                   <h3>IE University</h3>
                   <p>
-                    Computer Science &amp; Artificial Intelligence in Madrid.
-                    Building a foundation in software and machine learning,
+                    Computer Science &amp; Artificial Intelligence in Madrid,
                     alongside rugby and hackathons.
-                  </p>
-                </article>
-                <article>
-                  <small>EXPERIENCE · TWO-MONTH INTERNSHIP</small>
-                  <h3>AI Engineer · Optimiza</h3>
-                  <p>
-                    Configured IIS web services across virtual machines and
-                    built a chatbot using Hugging Face Transformers and
-                    TensorFlow, served through Flask. Began developing an AI
-                    meeting assistant to analyze client conversations.
-                  </p>
-                </article>
-                <article>
-                  <small>TECHNICAL DIRECTION</small>
-                  <h3>From model to useful product</h3>
-                  <p>
-                    I’m interested in full-stack AI applications, workflows,
-                    orchestration, and harnesses. My repositories span Python,
-                    TypeScript, C, and C++.
                   </p>
                 </article>
                 <article>
                   <small>THE NEXT CHAPTER</small>
                   <h3>Open to opportunities</h3>
                   <p>
-                    I’m looking for a team where I can contribute, learn, and
-                    build useful software. Explore my code or get in touch to
-                    start a conversation.
+                    I’m looking for work where I can build full-stack AI
+                    systems. Explore my code or get in touch to start a
+                    conversation.
                   </p>
                 </article>
               </div>
             </div>
           </section>
           <section
-            class="reading-section"
+            class="reading-section scroll-gamedev"
             id="gamedev"
             aria-labelledby="gamedev-title"
           >
             <div class="section-heading">
               <span class="section-number">04</span>
               <h2 id="gamedev-title">Game Dev</h2>
+              <svg class="ribbon-emblem" viewBox="0 0 16 16" aria-hidden="true">
+                <path d="M2 4h12l2 2v5l-2 2h-3l-1-2H6l-1 2H2l-2-2V6z" fill="#e7c46e" />
+                <path d="M2 5h12l1 1v5l-1 1h-2l-1-2H5l-1 2H2l-1-1V6z" fill="#5a3a68" />
+                <path d="M3 7h1V6h1v1h1v1H5v1H4V8H3z" fill="#f2d48a" />
+                <path d="M11 6h1v1h-1zM12 8h1v1h-1z" fill="#e48f7a" />
+              </svg>
             </div>
             <div class="section-body">
               <div class="tech-list">
@@ -365,6 +500,23 @@
                   <p>
                     Time-based movement, collision boundaries, proximity
                     interactions, and keyboard and touch controls.
+                  </p>
+                </article>
+                <article>
+                  <h3>Title screen and cutscene</h3>
+                  <p>
+                    A scripted opening drives the live world: the camera
+                    swoops from the page onto a cabin, the door swings open and
+                    the character walks out to greet you, then hands over
+                    control.
+                  </p>
+                </article>
+                <article>
+                  <h3>A living homestead</h3>
+                  <p>
+                    Looping chores and small stories: a farmer drawing water,
+                    a camper burning marshmallows, a crowing rooster, a
+                    turning windmill and a rocking chair.
                   </p>
                 </article>
                 <article>
@@ -388,11 +540,14 @@
         <div class="drift-clearing" aria-hidden="true"></div>
         <aside
           class="stable-clearing"
-          aria-label="Woodland stable with horses and a highland cow paddock"
+          aria-label="Woodland homestead with a farmhouse, windmill and animal paddock"
         >
           <span class="sr-only"
-            >A cozy woodland stable with horses, a herd of highland cows, warm
-            lanterns, and a fenced paddock.</span
+            >A cozy woodland homestead: a farmhouse with a grandfather rocking on
+            the porch, a vegetable garden and scarecrow, a stone well, a
+            turning windmill, a washing line and beehives, with a farmer and
+            dog doing chores above a paddock of horses, highland cows,
+            chickens and pigs.</span
           >
         </aside>
       </main>

@@ -1,4 +1,16 @@
 import { paintGround, paintFern } from "./ground.js";
+import {
+  HOMESTEAD_BAND,
+  paintHomestead,
+  animateHomestead,
+} from "./homestead.js";
+export {
+  HOMESTEAD_BAND,
+  farmerState,
+  dogState,
+  crowState,
+  homesteadGeometry,
+} from "./homestead.js";
 
 const WIDTH = 960;
 
@@ -23,7 +35,167 @@ function log(p, x, y) {
   p.rect(x - 13, y + 4, 18, 3, "#405339");
 }
 
-function campfire(p, x, y) {
+const lerp = (a, b, t) => a + (b - a) * Math.min(1, Math.max(0, t));
+const mix = (a, b, t) => {
+  const from = a.match(/\w\w/g).map((h) => parseInt(h, 16)),
+    to = b.match(/\w\w/g).map((h) => parseInt(h, 16));
+  return `#${from
+    .map((v, i) =>
+      Math.round(lerp(v, to[i], t))
+        .toString(16)
+        .padStart(2, "0"),
+    )
+    .join("")}`;
+};
+export const CAMPER_LOOP = 13;
+// One toasting loop: reach in, toast golden, catch fire, blow it out, eat,
+// skewer a fresh marshmallow from the bag. Offsets are relative to the fire.
+export function camperState(time, reduced = false) {
+  const s = reduced ? 3 : ((time % CAMPER_LOOP) + CAMPER_LOOP) % CAMPER_LOOP;
+  const rest = [-58, -16],
+    toast = [-21, -6],
+    blow = [-64, -12],
+    mouth = [-76, -8],
+    bag = [-46, 36];
+  const at = (a, b, t) => [lerp(a[0], b[0], t), lerp(a[1], b[1], t)];
+  let end = toast,
+    phase = "toast",
+    roast = 0,
+    bites = 0;
+  if (s < 0.9) {
+    end = at(rest, toast, s / 0.9);
+    phase = "reach";
+  } else if (s < 6.4) {
+    roast = (s - 0.9) / 5.5;
+    end = [toast[0], toast[1] + Math.round(Math.sin(s * 3)) * 2];
+  } else if (s < 8) {
+    phase = "burning";
+    roast = 1 + (s - 6.4) / 1.6;
+  } else if (s < 9.4) {
+    phase = "blowing";
+    roast = 2;
+    end = at(toast, blow, (s - 8) / 0.5);
+  } else if (s < 11) {
+    phase = "eating";
+    roast = 1.4;
+    end = at(blow, mouth, (s - 9.4) / 0.4);
+    bites = Math.max(0, Math.min(3, Math.floor((s - 9.6) / 0.45) + 1));
+  } else if (s < 12.2) {
+    phase = "reload";
+    end = at(mouth, bag, (s - 11) / 0.7);
+    bites = s < 11.8 ? 3 : 0;
+  } else {
+    phase = "reach";
+    end = at(bag, rest, (s - 12.2) / 0.8);
+  }
+  return { s, phase, end, roast, bites, burning: phase === "burning" || (phase === "blowing" && s < 8.9) };
+}
+function camper(p, x, y, time, reduced) {
+  const state = camperState(time, reduced);
+  const [ex, ey] = state.end;
+  const breathe = reduced ? 0 : Math.floor(time * 1.3) % 3 === 0 ? 2 : 0;
+  const lean = state.phase === "blowing" || state.phase === "eating" ? 2 : 0;
+  const chew =
+    state.phase === "eating" && !reduced ? (Math.floor(time * 7) % 2) * 2 : 0;
+  const glow = reduced ? 0 : Math.floor(time * 6) % 3;
+  const warm = ["#f2b676", "#f6c588", "#eaa866"][glow];
+  // Legs folded over the log, boots planted in the dirt.
+  p.ellipse(x - 76, y + 44, 34, 7, "#2c241b");
+  p.rect(x - 88, y + 18, 22, 8, "#3b4658");
+  p.rect(x - 70, y + 20, 8, 20, "#3b4658");
+  p.rect(x - 72, y + 38, 12, 6, "#33271d");
+  p.rect(x - 70, y + 20, 3, 18, "#56637a");
+  // Plaid flannel torso with a firelit edge.
+  const ty = y - 4 + breathe / 2 - lean / 2;
+  p.rect(x - 96, ty, 18, 26, "#9c4f37");
+  for (const dy of [4, 12, 20]) p.rect(x - 96, ty + dy, 18, 2, "#6f3326");
+  for (const dx of [-92, -85]) p.rect(x + dx, ty, 2, 26, "#7c3b2b");
+  p.rect(x - 80, ty + 2, 2, 22, warm);
+  // Head in a knitted beanie; it leans in to blow and to eat.
+  const hx = x - 94 + lean,
+    hy = ty - 15 + chew / 2;
+  p.rect(hx - 2, hy + 2, 4, 9, "#4f3424");
+  p.rect(hx, hy, 14, 14, "#d6ab84");
+  p.rect(hx + 12, hy + 2, 2, 10, warm);
+  p.rect(hx - 2, hy - 6, 18, 8, "#3f6e7a");
+  p.rect(hx - 2, hy - 1, 18, 2, "#2c5059");
+  p.rect(hx + 4, hy - 9, 6, 4, "#e5dcc6");
+  p.rect(hx + 9, hy + 4, 2, 3, "#2b2621");
+  p.rect(hx + 7, hy + 9, 3, 2, "#c98463");
+  if (state.phase === "blowing") {
+    p.rect(hx + 12, hy + 9, 3, 3, "#5a3125");
+    for (let i = 0; i < 3; i++) {
+      const drift = ((state.s - 8) * 22 + i * 7) % 26;
+      p.ctx.globalAlpha = Math.max(0, 0.7 - drift / 30);
+      p.rect(hx + 16 + drift, hy + 8 - i * 2, 4 + i * 2, 3, "#e7e2d4");
+      p.ctx.globalAlpha = 1;
+    }
+  } else p.rect(hx + 11, hy + 10, 3, 1 + chew / 2, "#7b4434");
+  // Arms follow the stick; the hand stays a fixed reach from the shoulder.
+  const handX = Math.max(x - 73, x - 70 + (ex - -21) * 0.18),
+    handY = y + 4 + (ey - -6) * 0.25;
+  p.path(
+    [
+      [x - 84, ty + 4],
+      [handX, handY - 2],
+      [handX, handY + 4],
+      [x - 86, ty + 11],
+    ],
+    "#b5634a",
+  );
+  p.rect(handX - 2, handY - 2, 6, 6, "#d6ab84");
+  // The stick: tail tucked under the arm, tip held at the marshmallow.
+  const tipX = x + ex,
+    tipY = y + ey,
+    dx = tipX - handX,
+    dy = tipY - handY,
+    len = Math.hypot(dx, dy) || 1;
+  const tailX = handX - (dx / len) * 12,
+    tailY = handY - (dy / len) * 12;
+  const nx = (-dy / len) * 1.2,
+    ny = (dx / len) * 1.2;
+  p.path(
+    [
+      [tailX + nx, tailY + ny],
+      [tipX + nx, tipY + ny],
+      [tipX - nx, tipY - ny],
+      [tailX - nx, tailY - ny],
+    ],
+    "#b08c5b",
+  );
+  // The marshmallow browns, chars, and is eaten in three bites.
+  if (state.bites < 3) {
+    const r = state.roast;
+    const color =
+      r <= 1
+        ? r < 0.55
+          ? mix("f4eedf", "e9c17a", r / 0.55)
+          : mix("e9c17a", "b8773d", (r - 0.55) / 0.45)
+        : mix("b8773d", "3a2a20", Math.min(1, r - 1));
+    const width = 10 - state.bites * 3;
+    p.rect(tipX - 5, tipY - 4, width, 8, color);
+    p.rect(tipX - 5, tipY - 4, width, 2, mix(color.slice(1), "ffffff", 0.25));
+    if (state.burning) {
+      const f = reduced ? 0 : Math.floor(time * 12) % 3;
+      p.rect(tipX - 3, tipY - 9 - f, 6, 6 + f, "#e98a3a");
+      p.rect(tipX - 1, tipY - 12 + f, 3, 5, "#ffd27a");
+    }
+  }
+  if (state.phase === "eating" && state.s > 10.3 && !reduced) {
+    // A small happy heart rises after the last bite.
+    const rise = (state.s - 10.3) * 24;
+    p.ctx.globalAlpha = Math.max(0, 1 - rise / 20);
+    const cx = hx + 6,
+      cy = hy - 14 - rise;
+    p.rect(cx - 4, cy, 3, 3, "#e0707a");
+    p.rect(cx + 1, cy, 3, 3, "#e0707a");
+    p.rect(cx - 4, cy + 2, 8, 3, "#e0707a");
+    p.rect(cx - 2, cy + 5, 4, 2, "#e0707a");
+    p.ctx.globalAlpha = 1;
+  }
+}
+
+function campfire(p, x, y, includeActors = false) {
   // An outdoor clearing: warm stones, log seats and cocoa under the trees.
   p.ellipse(x, y + 20, 242, 172, "#304334");
   p.path(
@@ -141,18 +313,14 @@ function campfire(p, x, y) {
     p.rect(x + dx, y + dy, 3, 4, "#d9aa62");
     p.rect(x + dx + 3, y + dy - 7, 2, 2, "#8b8972");
   }
-  // Marshmallows on sticks lean from the seats toward the warmth.
-  p.path(
-    [
-      [x - 83, y + 23],
-      [x - 80, y + 25],
-      [x - 20, y - 6],
-      [x - 21, y - 9],
-    ],
-    "#b39161",
-  );
-  p.rect(x - 24, y - 13, 10, 9, "#e8d9b8");
-  p.rect(x - 23, y - 5, 8, 2, "#b99061");
+  // A paper bag of marshmallows waits beside the camper's seat.
+  p.rect(x - 52, y + 40, 11, 11, "#e6dcc2");
+  p.rect(x - 52, y + 40, 11, 2, "#bfb193");
+  p.rect(x - 50, y + 45, 7, 3, "#d58f95");
+  p.rect(x - 49, y + 37, 4, 4, "#f6f0e2");
+  p.rect(x - 45, y + 38, 3, 3, "#f6f0e2");
+  if (includeActors) camper(p, x, y, 0, true);
+  // A spare marshmallow stick leans from the right seat toward the warmth.
   p.path(
     [
       [x + 80, y + 26],
@@ -282,6 +450,37 @@ function barn(p, x, y) {
     );
   }
   p.rect(x - 138, y - 63, 276, 7, "#9c7b50");
+  // A louvred cupola rides the ridge; an owl lives in its window.
+  p.rect(x - 15, y - 135, 30, 23, "#6b5139");
+  p.rect(x - 13, y - 133, 26, 2, "#86684a");
+  p.rect(x - 8, y - 130, 16, 14, "#1f1a16");
+  p.path(
+    [
+      [x - 20, y - 134],
+      [x, y - 150],
+      [x + 20, y - 134],
+    ],
+    "#365349",
+  );
+  p.rect(x - 1, y - 156, 2, 8, "#3b3a33");
+  p.rect(x - 7, y - 153, 14, 2, "#3b3a33");
+  // The hayloft door stands open, straw spilling over the sill.
+  p.rect(x + 54, y - 104, 26, 34, "#2c241c");
+  p.rect(x + 56, y - 80, 22, 10, "#c2a662");
+  for (let i = 0; i < 5; i++) p.rect(x + 56 + i * 5, y - 72 + (i % 2) * 3, 2, 7, "#e0c47a");
+  p.rect(x + 80, y - 104, 8, 34, "#76553b");
+  // Horseshoe over the stalls and a saddle across the left rail.
+  p.rect(x - 9, y - 56, 4, 9, "#a6a79c");
+  p.rect(x + 5, y - 56, 4, 9, "#a6a79c");
+  p.rect(x - 7, y - 49, 14, 4, "#a6a79c");
+  p.ellipse(x - 179, y + 44, 30, 12, "#7d4a2b");
+  p.rect(x - 186, y + 44, 12, 14, "#9c3f36");
+  p.rect(x - 186, y + 48, 12, 2, "#d9b25e");
+  p.rect(x - 166, y + 47, 3, 10, "#5b3b24");
+  // A pitchfork leans against the corner post.
+  p.rect(x + 128, y - 2, 2, 52, "#8c6a43");
+  for (const dx of [124, 128, 132]) p.rect(x + dx, y - 10, 2, 9, "#a6a79c");
+  p.rect(x + 124, y - 2, 10, 2, "#a6a79c");
   for (const dx of [-118, -4, 110]) {
     p.rect(x + dx, y - 57, 8, 115, "#b08a54");
     p.rect(x + dx + 2, y - 55, 3, 110, "#d0aa6e");
@@ -616,10 +815,13 @@ function chicken(p, area, time, reduced, index) {
     "#c2ab80",
     "#d4bd8a",
   ][index % 6];
+  // Hens stop now and then to peck at the ground.
+  const peck = reduced ? 0 : Math.floor(time * 1.6 + index * 0.7) % 4 === 0 ? 6 : 0;
   p.ellipse(x, y, 15, 11, body);
-  p.ellipse(x + state.face * 7, y - 5, 8, 8, index % 2 ? "#c9ad80" : "#e5dcc0");
-  p.rect(x + state.face * 5, y - 12, 4, 4, "#bd7955");
-  p.rect(x + state.face * 11, y - 4, 4, 2, "#c8a35b");
+  p.ellipse(x + state.face * (7 + peck / 3), y - 5 + peck, 8, 8, index % 2 ? "#c9ad80" : "#e5dcc0");
+  p.rect(x + state.face * 5, y - 12 + peck, 4, 4, "#bd7955");
+  p.rect(x + state.face * (11 + peck / 3), y - 4 + peck, 4, 2, "#c8a35b");
+  p.rect(x - state.face * 8, y - 6, 4, 4, body);
   p.rect(x - 3, y + 4, 2, 5 + step, "#c8a35b");
   p.rect(x + 3, y + 4, 2, 7 - step, "#c8a35b");
 }
@@ -757,13 +959,80 @@ function henShelter(p, area) {
   p.ellipse(74, y + 415, 27, 13, "#797963");
   p.ellipse(74, y + 412, 21, 7, "#547574");
 }
+function rooster(p, x, y, time, reduced) {
+  // Perched on the hay cart, he crows every few seconds.
+  const s = reduced ? 0 : time % 7;
+  const crowing = s > 5.4 && s < 6.6;
+  const lift = crowing ? 4 : 0;
+  p.path(
+    [
+      [x - 8, y - 2],
+      [x - 16, y - 18],
+      [x - 10, y - 16],
+      [x - 6, y - 22],
+      [x - 2, y - 6],
+    ],
+    "#2d4a3c",
+  );
+  p.rect(x - 14, y - 16, 3, 6, "#9c3f36");
+  p.ellipse(x, y, 18, 14, "#b0603a");
+  p.ellipse(x - 2, y + 2, 12, 8, "#d4a057");
+  p.rect(x + 4, y - 14 - lift, 8, 12, "#c9773f");
+  p.rect(x + 5, y - 19 - lift, 6, 5, "#c43f36");
+  p.rect(x + 12, y - 10 - lift, 3, crowing ? 2 : 3, "#e1b45a");
+  if (crowing) p.rect(x + 12, y - 7 - lift, 3, 2, "#e1b45a");
+  p.rect(x + 7, y - 6 - lift, 3, 4, "#c43f36");
+  p.rect(x + 8, y - 11 - lift, 2, 2, "#1f1d1a");
+  for (const dx of [-3, 3]) p.rect(x + dx, y + 6, 2, 4, "#e1b45a");
+  if (crowing)
+    for (let i = 0; i < 3; i++) {
+      const t = (s - 5.4) / 1.2;
+      p.ctx.globalAlpha = 1 - t;
+      p.rect(x + 18 + i * 6 + t * 10, y - 18 - i * 4 - t * 8, 3, 2, "#efe6c8");
+      p.rect(x + 20 + i * 6 + t * 10, y - 22 - i * 4 - t * 8, 2, 4, "#efe6c8");
+      p.ctx.globalAlpha = 1;
+    }
+}
+
+function barnLife(p, time, reduced) {
+  // Weathervane rooster swings with the night wind.
+  const turn = reduced ? 1 : Math.cos(time * 0.45);
+  const w = Math.max(0.2, Math.abs(turn)),
+    dir = turn < 0 ? -1 : 1;
+  for (const [dx, dy, rw, rh] of [
+    [-6, -160, 10, 5],
+    [2, -164, 5, 5],
+    [6, -162, 3, 2],
+    [-9, -164, 4, 5],
+  ])
+    p.rect(dir * dx * w - (dir < 0 ? rw * w : 0), dy, Math.max(2, rw * w), rh, "#2c2b26");
+  // The owl in the cupola blinks and turns its head.
+  const blink = !reduced && Math.floor(time * 0.8) % 6 === 0;
+  const look = reduced ? 0 : Math.round(Math.sin(time * 0.35) * 2);
+  p.ellipse(0, -121, 13, 12, "#8a6a4a");
+  p.rect(-5 + look, -126, 4, blink ? 1 : 4, "#f0c85c");
+  p.rect(1 + look, -126, 4, blink ? 1 : 4, "#f0c85c");
+  p.rect(-1 + look, -122, 2, 2, "#d79c4a");
+  // A barn cat sits on the ridge and flicks its tail.
+  const tail = reduced ? 0 : Math.round(Math.sin(time * 1.8)) * 3;
+  p.rect(60, -125, 12, 12, "#57524a");
+  p.rect(64, -133, 9, 8, "#57524a");
+  p.rect(64, -136, 2, 3, "#57524a");
+  p.rect(71, -136, 2, 3, "#57524a");
+  p.rect(70, -130, 2, 2, "#d9c05a");
+  p.rect(54, -117 + tail, 8, 3, "#57524a");
+  p.rect(52, -122 + tail, 3, 6, "#57524a");
+}
+
 function farmActors(p, area, time = 0) {
   const g = farmGeometry(area);
   scaledAt(p, ...g.barn, () => {
     stallHorse(p, -58, 8, true, time);
     stallHorse(p, 56, 8, false, time);
     stallFront(p);
+    barnLife(p, time, p.reduced);
   });
+  rooster(p, 380, area.y + 270, time, p.reduced);
   const poses = [
     highlandCow,
     grazingCow,
@@ -787,7 +1056,7 @@ function farmActors(p, area, time = 0) {
   farmFence(p, area, true);
 }
 
-function farm(p, area, includeActors) {
+function paddock(p, area, includeActors) {
   const g = farmGeometry(area);
   p.path(
     [
@@ -928,6 +1197,20 @@ function farm(p, area, includeActors) {
   pigPen(p, area);
   if (includeActors) farmActors(p, area);
   farmFence(p, area, true);
+}
+
+export function farmYard(stable) {
+  return {
+    ...stable,
+    y: stable.y + HOMESTEAD_BAND,
+    height: stable.height - HOMESTEAD_BAND,
+  };
+}
+
+function farm(p, stable, includeActors) {
+  paintHomestead(p, stable);
+  paddock(p, farmYard(stable), includeActors);
+  if (includeActors) animateHomestead(p, stable, 0);
 }
 
 function riverY(area, x) {
@@ -1542,8 +1825,10 @@ export function animateJourney(p, layout) {
           "#d6ab64",
         );
       }
+      camper(p, x, y, time, p.reduced);
     } else if (scene.paint === farm) {
-      farmActors(p, layout.stable, time);
+      farmActors(p, farmYard(layout.stable), time);
+      animateHomestead(p, layout.stable, time);
     } else if (scene.paint === drift) {
       animateDrift(p, layout.drift, time, p.reduced);
     } else if (scene.paint === river) {

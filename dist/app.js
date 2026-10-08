@@ -1,5 +1,6 @@
 import { World } from "./world.js";
 import { areas } from "./content.js";
+import { runIntro, shouldPlayIntro } from "./intro.js";
 const canvas = document.querySelector("#world"),
   panel = document.querySelector("#panel"),
   interact = document.querySelector("#interact");
@@ -254,3 +255,10 @@ matchMedia("(prefers-reduced-motion: reduce)").addEventListener(
     world.reduced = e.matches;
   },
 );
+if (shouldPlayIntro())
+  runIntro(world, {
+    onFinish: () => {
+      updateViewport();
+      canvas.focus({ preventScroll: true });
+    },
+  });

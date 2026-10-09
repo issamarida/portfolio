@@ -9,6 +9,9 @@ const GREETING =
 const about = destinations.find((d) => d.id === "about");
 const START = { x: about.doorX, y: about.y + about.h - 2 },
   STOP = { x: about.doorX, y: about.y + about.h + 34 };
+// Letters per second, and the dialogue scroll's unroll time in seconds.
+const TYPE_RATE = 38,
+  UNROLL = 0.8;
 const ease = (t) => (t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2);
 const clamp01 = (t) => Math.min(1, Math.max(0, t));
 
@@ -122,16 +125,20 @@ export function runIntro(world, { onFinish } = {}) {
       <button class="intro-skip" type="button">Skip intro <span aria-hidden="true">▸▸</span></button>
     </div>
     <div class="intro-dialog" hidden>
-      <img src="./photo.jpg" alt="" width="88" height="88" />
-      <div class="intro-dialog-body">
-        <p class="intro-speaker">Issam Arida</p>
-        <p class="intro-line" aria-live="polite"></p>
-        <p class="intro-controls" hidden>
-          <span class="intro-keys"><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> or arrows to walk · <kbd>E</kbd> to enter a cabin</span>
-          <span class="intro-touch">Walk with the arrow pad · tap a cabin to enter</span>
-          <button class="intro-continue" type="button">Let’s go <span aria-hidden="true">▼</span></button>
-        </p>
+      <span class="intro-roller" aria-hidden="true"></span>
+      <div class="intro-paper">
+        <img src="./photo.jpg" alt="" width="88" height="88" />
+        <div class="intro-dialog-body">
+          <p class="intro-speaker">Issam Arida</p>
+          <p class="intro-line" aria-live="polite"></p>
+          <p class="intro-controls" hidden>
+            <span class="intro-keys"><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> or arrows to walk · <kbd>E</kbd> to enter a cabin</span>
+            <span class="intro-touch">Walk with the arrow pad · tap a cabin to enter</span>
+            <button class="intro-continue" type="button">Let’s go <span aria-hidden="true">▼</span></button>
+          </p>
+        </div>
       </div>
+      <span class="intro-roller" aria-hidden="true"></span>
     </div>
 `;
   // The page behind stays alive but out of reach until the intro ends.
@@ -173,7 +180,7 @@ export function runIntro(world, { onFinish } = {}) {
     );
     const sky = world.layout.skyHeight || 0;
     // The dialogue sits low, so frame the doorway in the upper half.
-    return { scale, cx: about.doorX, cy: sky + 412 + (innerHeight * 0.14) / scale };
+    return { scale, cx: about.doorX, cy: sky + 412 + (innerHeight * 0.2) / scale };
   }
   function mixView(a, b, t) {
     return {
@@ -247,6 +254,8 @@ export function runIntro(world, { onFinish } = {}) {
     phase = "talk";
     world.talking = true;
     dialog.hidden = false;
+    // Writing starts once the scroll has unrolled.
+    typed = -UNROLL * TYPE_RATE;
     if (reduced()) finishTyping();
   }
   function finishTyping() {
@@ -276,8 +285,8 @@ export function runIntro(world, { onFinish } = {}) {
       return;
     } else paint(cabinView());
     if (phase === "talk") {
-      typed = Math.min(GREETING.length, typed + dt * 38);
-      line.textContent = GREETING.slice(0, Math.floor(typed));
+      typed = Math.min(GREETING.length, typed + dt * TYPE_RATE);
+      line.textContent = GREETING.slice(0, Math.max(0, Math.floor(typed)));
       if (typed >= GREETING.length) finishTyping();
     }
   }

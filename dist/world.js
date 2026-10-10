@@ -529,7 +529,38 @@ export class World {
     this.viewport = viewport;
   }
   isWalkable(x, y) {
-    return this.interior ? interiorWalkable(this.interior, x, y) : canWalk(x, y);
+    if (this.interior) return interiorWalkable(this.interior, x, y);
+    return canWalk(x, y) && !this.signBlocks(x, y);
+  }
+  // The reading sign below the fountain is a DOM board standing in the
+  // village: its posts and the ground in front of it are solid, so the
+  // player can only pass behind it, where it turns translucent.
+  setReadingSign(rect) {
+    this.readingSign = rect;
+    if (!this.interior && !this.isWalkable(this.player.x, this.player.y))
+      this.player = { x: 482, y: 355, facing: "down" };
+    this.updateSignShade();
+  }
+  signBlocks(x, y) {
+    const s = this.readingSign;
+    return Boolean(
+      s && x > s.x - 8 && x < s.x + s.w + 8 && y > s.y + s.h - 16 && y < s.y + s.h + 60,
+    );
+  }
+  updateSignShade() {
+    const s = this.readingSign,
+      { x, y } = this.player,
+      behind = Boolean(
+        s &&
+          !this.interior &&
+          x + 14 > s.x &&
+          x - 16 < s.x + s.w &&
+          y + 6 > s.y &&
+          y - 44 < s.y + s.h,
+      );
+    if (behind === this.behindSign) return;
+    this.behindSign = behind;
+    this.onSignShade?.(behind);
   }
   enterCabin(id) {
     if (this.interior || this.iris || !destinations.some((d) => d.id === id))
@@ -1996,6 +2027,7 @@ export class World {
         // Stepping down through the open door walks back into the village.
         if (this.interior && this.player.y > EXIT_Y) this.leaveCabin();
         else this.updateNear();
+        this.updateSignShade();
       } else this.walking = false;
       this.time += dt;
       this.draw();

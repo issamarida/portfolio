@@ -44,10 +44,9 @@ function shade(t) {
   return 6;
 }
 
-export function paintPillar(canvas, mirror, seed) {
-  const W = canvas.width,
-    H = canvas.height,
-    rand = seeded(seed);
+// One carved column with its forest floor, as packed RGBA pixels (0 = clear).
+export function pillarPixels(W, H, seed) {
+  const rand = seeded(seed);
   const stone = new Int8Array(W * H).fill(-1),
     special = new Map(),
     inside = (x, y) => x >= 0 && y >= 0 && x < W && y < H;
@@ -269,14 +268,12 @@ export function paintPillar(canvas, mirror, seed) {
   }
 
   // Compose stone, then a dark outline around the silhouette.
-  const ctx = canvas.getContext("2d"),
-    image = ctx.createImageData(W, H),
-    pixels = new Uint32Array(image.data.buffer);
+  const pixels = new Uint32Array(W * H);
   const put = (x, y, hex) => {
     x = Math.round(x);
     y = Math.round(y);
     if (!inside(x, y)) return;
-    pixels[y * W + (mirror ? W - 1 - x : x)] = rgba(hex);
+    pixels[y * W + x] = rgba(hex);
   };
   for (let i = 0; i < W * H; i++) {
     const x = i % W,
@@ -353,18 +350,455 @@ export function paintPillar(canvas, mirror, seed) {
     }
     if (rand() < 0.05) put(x, groundY - 3, BLOOM[Math.floor(rand() * 3)]);
   }
+  return pixels;
+}
+
+// Copies packed pixels onto a canvas, mirrored so the lit side faces the page.
+function blit(canvas, pixels, mirror) {
+  const W = canvas.width,
+    H = canvas.height,
+    ctx = canvas.getContext("2d"),
+    image = ctx.createImageData(W, H),
+    out = new Uint32Array(image.data.buffer);
+  for (let y = 0; y < H; y++)
+    for (let x = 0; x < W; x++)
+      out[y * W + (mirror ? W - 1 - x : x)] = pixels[y * W + x];
   ctx.putImageData(image, 0, 0);
 }
 
-export function mountPillars(shell) {
-  const canvases = ["left", "right"].map((side) => {
-    const canvas = document.createElement("canvas");
-    canvas.className = `pillar pillar-${side}`;
-    canvas.setAttribute("aria-hidden", "true");
-    canvas.hidden = true;
-    document.body.prepend(canvas);
-    return canvas;
+export function paintPillar(canvas, mirror, seed) {
+  blit(canvas, pillarPixels(canvas.width, canvas.height, seed), mirror);
+}
+
+
+// The temple wall behind the columns: darker than the pillars so they stand
+// forward, with faded red pigment in the carvings and firelit braziers.
+const WALL = [
+  "#0b0d0b",
+  "#141612",
+  "#1b1d18",
+  "#22241e",
+  "#2b2c25",
+  "#35352d",
+  "#424037",
+  "#535045",
+];
+const OCHRE = ["#2e1915", "#45231b", "#5e2f23", "#7a3d2b"];
+const TURQUOISE = ["#1a3532", "#25504a", "#367064"];
+const FIRE = ["#6b2210", "#b4451a", "#e7802a", "#ffc65c", "#fff1b8"];
+// A hooked step-fret (xicalcoliuhqui): raised stone "#", carved and painted ".".
+const FRET = [
+  "#######",
+  "#.....#",
+  "#.###.#",
+  "#.#.#.#",
+  "#.#...#",
+  "#.#####",
+  "#......",
+  "######.",
+  ".......",
+  "#####.#",
+  "#...#.#",
+  "#.#.#.#",
+  "#.#...#",
+  "#.#####",
+];
+// Glyph stones set into the wall: sun, stepped pyramid, spiral and serpent eye.
+const GLYPHS = [
+  [
+    "....####....",
+    "..##....##..",
+    ".#..####..#.",
+    ".#.#....#.#.",
+    "#.#..##..#.#",
+    "#.#.#..#.#.#",
+    "#.#.#..#.#.#",
+    "#.#..##..#.#",
+    ".#.#....#.#.",
+    ".#..####..#.",
+    "..##....##..",
+    "....####....",
+  ],
+  [
+    "............",
+    ".....##.....",
+    ".....##.....",
+    "....####....",
+    "....#..#....",
+    "...######...",
+    "...#.##.#...",
+    "..########..",
+    "..#..##..#..",
+    ".##########.",
+    ".#...##...#.",
+    "############",
+  ],
+  [
+    "############",
+    "#..........#",
+    "#.########.#",
+    "#.#......#.#",
+    "#.#.####.#.#",
+    "#.#.#..#.#.#",
+    "#.#.#.##.#.#",
+    "#.#.#....#.#",
+    "#.#.######.#",
+    "#.#........#",
+    "#.##########",
+    "#...........",
+  ],
+  [
+    "..########..",
+    ".#........#.",
+    "#..######..#",
+    "#.#......#.#",
+    "#.#.####.#.#",
+    "#.#.#..#.#.#",
+    "#.#.#..#.#.#",
+    "#.#.####.#.#",
+    "#.#......#.#",
+    "#..######..#",
+    ".#..#..#..#.",
+    "..##.##.##..",
+  ],
+];
+const BAYER = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5];
+
+// Paints a whole margin: a carved lintel, coursed masonry, a step-fret band
+// along the page, a stepped platform and as many columns as fit. Authored
+// with the page on the right; `mirror` flips it for the right-hand margin.
+// Returns the brazier flames in canvas pixels for the animated overlay.
+export function paintTemple(canvas, mirror, seed) {
+  const W = canvas.width,
+    H = canvas.height,
+    rand = seeded(seed * 7919 + 1);
+  const shade = new Int8Array(W * H).fill(2),
+    paint = new Map(),
+    inside = (x, y) => x >= 0 && y >= 0 && x < W && y < H;
+  const setShade = (x, y, v) => {
+    if (inside(x, y)) shade[y * W + x] = Math.max(0, Math.min(7, v));
+  };
+  const nudge = (x, y, d) => {
+    if (inside(x, y)) setShade(x, y, shade[y * W + x] + d);
+  };
+  const tint = (x, y, hex) => {
+    if (inside(x, y)) paint.set(y * W + x, hex);
+  };
+
+  const border = W >= 22 ? 9 : 0,
+    wallW = W - border,
+    lintel = Math.min(13, Math.max(8, Math.round(H * 0.025))),
+    groundH = Math.max(7, Math.round((H - lintel) * 0.04)),
+    groundY = H - groundH;
+
+  // Coursed masonry: staggered blocks, lit from the page, mortar in shadow.
+  const course = 10;
+  for (let cy = lintel; cy < groundY; cy += course) {
+    let x = -Math.floor(rand() * 16);
+    const depth = cy < lintel + course ? -1 : 0;
+    while (x < wallW) {
+      const bw = 12 + Math.floor(rand() * 14),
+        base = 3 + (rand() < 0.3 ? 1 : 0) - (rand() < 0.15 ? 1 : 0) + depth,
+        h = Math.min(course, groundY - cy);
+      for (let yy = 0; yy < h; yy++)
+        for (let xx = 0; xx < bw; xx++) {
+          const px = x + xx,
+            py = cy + yy;
+          if (!inside(px, py) || px >= wallW) continue;
+          let v = base;
+          if (xx === bw - 1 || yy === course - 1) v = 0;
+          else if (xx === 0 || yy === course - 2) v = base - 1;
+          else if (yy === 0 || xx === bw - 2) v = base + 1;
+          if (rand() < 0.07) v += rand() < 0.5 ? 1 : -1;
+          shade[py * W + px] = Math.max(0, v);
+        }
+      // Chipped corners.
+      if (rand() < 0.4) setShade(x, cy, 0);
+      if (rand() < 0.4) setShade(x + bw - 2, cy + course - 2, 1);
+      x += bw;
+    }
+  }
+  // Hairline cracks wander down a few blocks.
+  for (let i = 0; i < Math.round((wallW * H) / 2600); i++) {
+    let cx = Math.floor(rand() * wallW),
+      cy = lintel + Math.floor(rand() * (groundY - lintel));
+    for (let step = 0; step < 4 + rand() * 10; step++) {
+      setShade(cx, cy, 1);
+      cy++;
+      cx += rand() < 0.3 ? -1 : rand() < 0.45 ? 1 : 0;
+    }
+  }
+
+  // Where the columns stand, and the open bays of wall between them.
+  const count = wallW >= 26 ? Math.max(1, Math.round(wallW / 120)) : 0,
+    slots = [],
+    bays = [];
+  for (let i = 0; i < count; i++) {
+    const left = Math.round((i * wallW) / count),
+      width = Math.round(((i + 1) * wallW) / count) - left,
+      PW = Math.max(14, Math.min(66, Math.round(width * 0.48))) & ~1,
+      x0 = left + Math.floor(width / 2) - PW / 2;
+    slots.push({ left, width, from: x0 - 9, to: x0 + PW + 9 });
+  }
+  let edge = 0;
+  for (const slot of slots) {
+    bays.push([edge, slot.from]);
+    edge = slot.to;
+  }
+  bays.push([edge, wallW]);
+
+  // Carved glyph stones and a brazier in every bay wide enough for them.
+  const flames = [],
+    braziers = [];
+  const carveMask = (ox, oy, rows, painted) => {
+    rows.forEach((row, yy) =>
+      [...row].forEach((ch, xx) => {
+        const x = ox + xx,
+          y = oy + yy;
+        if (ch === ".") {
+          nudge(x, y, -2);
+          if (painted) tint(x, y, painted[(x + y) % 3 ? 1 : 0]);
+        } else if (!rows[yy + 1] || rows[yy + 1][xx] === ".") nudge(x, y, 1);
+      }),
+    );
+  };
+  const glyphStone = (cx, top, kind) => {
+    const size = 16,
+      left = cx - size / 2;
+    for (let yy = 0; yy < size; yy++)
+      for (let xx = 0; xx < size; xx++) {
+        let v = 4;
+        if (xx === 0 || yy === 0) v = 6;
+        if (xx === size - 1 || yy === size - 1) v = 1;
+        else if (xx === 1 || yy === 1) v = 5;
+        setShade(left + xx, top + yy, v);
+      }
+    setShade(left - 1, top + size, 0);
+    for (let xx = 0; xx <= size; xx++) setShade(left + xx, top + size, 0);
+    for (let yy = 0; yy <= size; yy++) setShade(left + size, top + yy, 0);
+    const pigment = kind % 2 ? TURQUOISE : OCHRE;
+    carveMask(left + 2, top + 2, GLYPHS[kind % GLYPHS.length], pigment);
+  };
+  bays.forEach(([from, to], b) => {
+    const width = to - from,
+      cx = Math.round((from + to) / 2);
+    if (width < 18) return;
+    const flameY = Math.round(lintel + (groundY - lintel) * (0.44 + (b % 2) * 0.08));
+    braziers.push({ x: cx, y: flameY });
+    const spacing = 46;
+    let kind = Math.floor(rand() * GLYPHS.length);
+    for (let top = lintel + 14; top + 16 < groundY - 24; top += spacing) {
+      if (top + 16 > flameY - 30 && top < flameY + 22) continue;
+      glyphStone(cx, top, kind++);
+    }
   });
+
+  // The lintel: mouldings around a band of step-frets, moss along the top.
+  for (let y = 0; y < lintel; y++)
+    for (let x = 0; x < wallW; x++) {
+      let v = 4;
+      if (y === 0) v = 6;
+      else if (y === 1) v = 5;
+      else if (y === lintel - 2) v = 3;
+      else if (y === lintel - 1) v = 0;
+      setShade(x, y, v);
+    }
+  {
+    const band = lintel - 5;
+    for (let x = 0; x < wallW; x++)
+      for (let k = 0; k < band; k++) {
+        const motif = FRET[(x + seed) % FRET.length],
+          ch = motif[Math.round((k * 6) / Math.max(1, band - 1))];
+        if (ch === ".") {
+          nudge(x, 2 + k, -2);
+          tint(x, 2 + k, OCHRE[2]);
+        }
+      }
+  }
+  // Step-fret band along the page edge, framed by two raised fillets.
+  if (border)
+    for (let y = 0; y < H; y++) {
+      const row = FRET[(y + seed) % FRET.length];
+      for (let k = 0; k < border; k++) {
+        const x = wallW + k;
+        if (k === 0) {
+          setShade(x, y, 0);
+          continue;
+        }
+        if (k === 1) {
+          setShade(x, y, 3);
+          continue;
+        }
+        if (k === border - 1) {
+          setShade(x, y, 6);
+          continue;
+        }
+        const ch = row[k - 2];
+        if (ch === ".") {
+          setShade(x, y, 2);
+          tint(x, y, OCHRE[y % 7 ? 2 : 3]);
+        } else setShade(x, y, k === border - 2 ? 6 : 5);
+      }
+    }
+
+  // A low stepped platform the columns stand on.
+  for (let y = groundY - 6; y < groundY; y++)
+    for (let x = 0; x < wallW; x++) {
+      const step = y < groundY - 3 ? 0 : 1;
+      let v = step ? 4 : 3;
+      if (y === groundY - 6 || y === groundY - 3) v = 6;
+      if (y === groundY - 4 || y === groundY - 1) v = 1;
+      if ((x + step * 7) % 23 === 0) v = 0;
+      setShade(x, y, v);
+    }
+
+  // Compose the stone, pigments and moss into colour.
+  const pixels = new Uint32Array(W * H);
+  for (let i = 0; i < W * H; i++) {
+    const y = (i / W) | 0,
+      x = i % W;
+    let hex = paint.get(i) ?? WALL[shade[i]];
+    // Moss creeps up from the ground and gathers in the mortar.
+    const damp = Math.pow(y / H, 2.2);
+    if (x < wallW && shade[i] <= 1 && rand() < 0.04 + damp * 0.45)
+      hex = MOSS[rand() < 0.6 ? 0 : 1];
+    else if (y === 0 && rand() < 0.7) hex = MOSS[rand() < 0.5 ? 2 : 3];
+    pixels[i] = rgba(hex);
+  }
+  const put = (x, y, hex) => {
+    x = Math.round(x);
+    y = Math.round(y);
+    if (inside(x, y)) pixels[y * W + x] = rgba(hex);
+  };
+
+  // Vines and roots hang from the lintel into the open bays.
+  bays.forEach(([from, to]) => {
+    for (let v = 0; v < Math.max(1, Math.round((to - from) / 28)); v++) {
+      const vx = from + 3 + Math.floor(rand() * Math.max(1, to - from - 6)),
+        length = 20 + Math.floor(rand() * (H * 0.22));
+      let x = vx;
+      for (let y = lintel - 1; y < lintel + length; y++) {
+        x += rand() < 0.15 ? (rand() < 0.5 ? -1 : 1) : 0;
+        put(x, y, LEAF[0]);
+        if (y % 5 === 0) {
+          const dir = (y / 5) % 2 ? 1 : -1;
+          put(x + dir, y, LEAF[2]);
+          put(x + dir * 2, y - 1, LEAF[3]);
+          put(x + dir, y - 1, LEAF[1]);
+        }
+      }
+      put(x, lintel + length, LEAF[2]);
+    }
+  });
+
+  // Braziers: a stepped stone stand, a bowl and a bed of embers. The flame
+  // itself is an animated overlay so the stone never has to repaint.
+  for (const { x, y } of braziers) {
+    const bowl = y + 4;
+    for (let k = -6; k <= 6; k++) {
+      put(x + k, bowl, WALL[Math.abs(k) === 6 ? 2 : k > 2 ? 7 : 5]);
+      if (Math.abs(k) <= 5) put(x + k, bowl + 1, WALL[k > 1 ? 6 : 4]);
+      if (Math.abs(k) <= 4) put(x + k, bowl + 2, WALL[k > 1 ? 5 : 3]);
+      if (Math.abs(k) <= 2) put(x + k, bowl + 3, WALL[2]);
+    }
+    for (let k = -5; k <= 5; k++) put(x + k, bowl - 1, k % 2 ? FIRE[1] : FIRE[2]);
+    for (let yy = bowl + 4; yy < bowl + 14; yy++)
+      for (let k = -2; k <= 1; k++) put(x + k, yy, WALL[k === 1 ? 6 : k === -2 ? 2 : 4]);
+    for (let k = -4; k <= 3; k++) {
+      put(x + k, bowl + 14, WALL[k > 1 ? 6 : 4]);
+      put(x + k, bowl + 15, WALL[1]);
+    }
+    // Soot darkens the stone above the flame.
+    for (let yy = y - 22; yy < y - 6; yy++)
+      for (let k = -3; k <= 3; k++)
+        if (inside(x + k, yy) && (rand() < 0.5 || Math.abs(k) < 2))
+          pixels[yy * W + x + k] = rgba(WALL[1]);
+    flames.push({ x, y });
+  }
+
+  // The columns, each painted over its slot of wall.
+  slots.forEach((slot, i) => {
+    const column = pillarPixels(slot.width, H - lintel, seed + i * 13);
+    for (let y = 0; y < H - lintel; y++)
+      for (let x = 0; x < slot.width; x++) {
+        const value = column[y * slot.width + x];
+        if (value) pixels[(y + lintel) * W + slot.left + x] = value;
+      }
+  });
+
+  // Warm firelight falls on everything near a brazier, dithered in steps.
+  for (const { x: fx, y: fy } of flames) {
+    const R = 54;
+    for (let y = Math.max(0, fy - R); y < Math.min(H, fy + R); y++)
+      for (let x = Math.max(0, fx - R); x < Math.min(W, fx + R); x++) {
+        const d = Math.hypot(x - fx, (y - fy) * 1.15) / R;
+        if (d >= 1) continue;
+        const level =
+          Math.floor((1 - d) * (1 - d) * 4 + BAYER[(y % 4) * 4 + (x % 4)] / 16) / 4;
+        if (level <= 0) continue;
+        const i = y * W + x,
+          v = pixels[i],
+          k = level * 0.4;
+        const r = v & 255,
+          g = (v >> 8) & 255,
+          b = (v >> 16) & 255;
+        pixels[i] =
+          ((255 << 24) |
+            (Math.round(b + (40 - b) * k) << 16) |
+            (Math.round(g + (150 - g) * k) << 8) |
+            Math.round(r + (255 - r) * k)) >>>
+          0;
+      }
+  }
+
+  blit(canvas, pixels, mirror);
+  return flames.map(({ x, y }) => ({ x: mirror ? W - 1 - x : x, y }));
+}
+
+// Three frames of brazier fire, side by side, on the village's pixel grid.
+function flameSheet() {
+  const w = 11,
+    h = 14,
+    sheet = document.createElement("canvas");
+  sheet.width = w * 3;
+  sheet.height = h;
+  const ctx = sheet.getContext("2d");
+  for (let f = 0; f < 3; f++) {
+    const sway = [0, 1, -1][f],
+      tall = [12, 13, 11][f];
+    for (let y = 0; y < h; y++)
+      for (let x = 0; x < w; x++) {
+        const t = (h - 1 - y) / tall;
+        if (t > 1) continue;
+        const half = Math.max(0, (1 - t) * 4.6 * Math.sqrt(Math.min(1, t * 3 + 0.25))),
+          dx = Math.abs(x - 5 - sway * t * 1.6);
+        if (dx > half + 0.25) continue;
+        const heat = (1 - dx / (half + 0.8)) * (1 - t * 0.55);
+        ctx.fillStyle = FIRE[Math.min(4, Math.floor(heat * 5.2))];
+        ctx.fillRect(f * w + x, y, 1, 1);
+      }
+    // A spark lifts off each frame at a different height.
+    ctx.fillStyle = FIRE[3];
+    ctx.fillRect(f * w + [3, 7, 5][f], [1, 0, 2][f], 1, 1);
+  }
+  return sheet.toDataURL();
+}
+
+export function mountPillars(shell) {
+  const temple = document.createElement("div");
+  temple.className = "temple";
+  temple.setAttribute("aria-hidden", "true");
+  document.body.prepend(temple);
+  const sides = ["left", "right"].map((side) => {
+    const element = document.createElement("div"),
+      canvas = document.createElement("canvas");
+    element.className = `temple-side temple-${side}`;
+    canvas.className = "pillar";
+    element.append(canvas);
+    temple.append(element);
+    return { element, canvas };
+  });
+  const sheet = flameSheet();
   let signature = "",
     pending = false;
   function layout() {
@@ -372,23 +806,34 @@ export function mountPillars(shell) {
     const box = shell.getBoundingClientRect(),
       gutter = Math.min(box.left, document.documentElement.clientWidth - box.right),
       pixel = Math.max(2, box.width / 480),
-      cols = Math.floor(gutter / pixel),
+      // Round up so the stone always reaches the screen edge.
+      cols = gutter > 0.5 ? Math.ceil(gutter / pixel) : 0,
       rows = Math.ceil(innerHeight / pixel);
-    const next = `${cols}|${rows}|${pixel.toFixed(3)}|${Math.round(box.left)}`;
+    const next = `${cols}|${rows}|${pixel.toFixed(3)}|${box.left.toFixed(1)}`;
     if (next === signature) return;
     signature = next;
-    canvases.forEach((canvas, i) => {
-      // Too narrow a margin for a column: leave it plainly empty.
-      canvas.hidden = cols < 26;
-      if (canvas.hidden) return;
+    temple.hidden = cols < 1;
+    if (temple.hidden) return;
+    sides.forEach(({ element, canvas }, i) => {
       canvas.width = cols;
       canvas.height = rows;
-      Object.assign(canvas.style, {
+      Object.assign(element.style, {
         width: `${cols * pixel}px`,
         height: `${rows * pixel}px`,
         left: `${i ? box.right : box.left - cols * pixel}px`,
       });
-      paintPillar(canvas, i === 1, i ? 41 : 17);
+      element.style.setProperty("--px", `${pixel}px`);
+      const flames = paintTemple(canvas, i === 1, i ? 41 : 17);
+      element.querySelectorAll(".temple-flame").forEach((flame) => flame.remove());
+      flames.forEach(({ x, y }, k) => {
+        const flame = document.createElement("span");
+        flame.className = "temple-flame";
+        flame.style.left = `${(x - 5) * pixel}px`;
+        flame.style.top = `${(y + 3 - 14) * pixel}px`;
+        flame.style.backgroundImage = `url(${sheet})`;
+        flame.style.animationDelay = `${-((k * 0.37 + i * 0.21) % 1).toFixed(2)}s`;
+        element.append(flame);
+      });
     });
   }
   const schedule = () => {

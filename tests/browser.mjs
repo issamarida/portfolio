@@ -72,10 +72,9 @@ try {
     "🐙",
     "💼",
   ]);
-  assert.doesNotMatch(
-    await page.locator(".keyboard-hint").innerText(),
-    /click a building/,
-  );
+  // No controls bar above the moon; the key reminder only shows on focus.
+  assert.equal(await page.locator(".keyboard-hint").count(), 0);
+  assert.equal(await page.locator(".walk-hint").isVisible(), false);
   assert.equal(await page.locator("#panel-footer-note").count(), 0);
   assert.match(
     await page.locator("#return-world").innerText(),

@@ -3300,12 +3300,74 @@ dialog .section-body li {
 }
 
 /* Four moonlit clouds carry the name and contact details. */
-.pillar {
+/* A temple wall fills both margins from edge to edge; only its brazier
+   flames move, and they rest when motion is reduced. */
+.temple {
   position: fixed;
-  top: 0;
+  inset: 0;
   z-index: 0;
-  image-rendering: pixelated;
+  overflow: hidden;
   pointer-events: none;
+}
+.temple-side {
+  position: absolute;
+  top: 0;
+}
+.pillar {
+  display: block;
+  width: 100%;
+  height: 100%;
+  image-rendering: pixelated;
+}
+.temple-flame {
+  position: absolute;
+  width: calc(11 * var(--px));
+  height: calc(14 * var(--px));
+  background-size: 300% 100%;
+  background-repeat: no-repeat;
+  image-rendering: pixelated;
+  animation: temple-flame 0.48s steps(1, end) infinite;
+}
+.temple-flame::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 55%;
+  width: calc(64 * var(--px));
+  height: calc(64 * var(--px));
+  transform: translate(-50%, -50%);
+  background: radial-gradient(
+    closest-side,
+    #ffb45a2e,
+    #ff9a3c14 55%,
+    transparent
+  );
+  animation: temple-glow 1.9s steps(4, end) infinite alternate;
+}
+@keyframes temple-flame {
+  0% {
+    background-position: 0 0;
+  }
+  33.33% {
+    background-position: 50% 0;
+  }
+  66.66% {
+    background-position: 100% 0;
+  }
+}
+@keyframes temple-glow {
+  from {
+    opacity: 0.75;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .temple-flame,
+  .temple-flame::after {
+    animation: none;
+  }
 }
 .sky-header .header {
   inset: 0;
@@ -3354,11 +3416,11 @@ dialog .section-body li {
   content: "";
   position: absolute;
   z-index: -1;
-  inset: calc(-11 * var(--cp)) calc(-9 * var(--cp)) calc(-6 * var(--cp));
+  /* Puffs on every side, so no cloud ends in a straight cut. */
+  inset: calc(-12 * var(--cp)) calc(-13 * var(--cp));
   border-style: solid;
-  border-width: calc(16 * var(--cp)) calc(16 * var(--cp)) calc(10 * var(--cp));
-  border-image: url("./art/cloud.svg") 16 16 10 fill / calc(16 * var(--cp))
-    calc(16 * var(--cp)) calc(10 * var(--cp)) round;
+  border-width: calc(16 * var(--cp));
+  border-image: url("./art/cloud.svg") 16 fill / calc(16 * var(--cp)) round;
   background: none;
   clip-path: none;
   image-rendering: pixelated;
@@ -3487,6 +3549,32 @@ dialog .section-body li {
     top: 214px;
   }
 }
+/* Every cloud keeps its outermost puffs on screen. */
+.sky-header .header .identity::before {
+  left: calc(-1 * min(13 * var(--cp), 2.6cqw - 4px));
+}
+.sky-header .header .email-link::before {
+  right: calc(-1 * min(13 * var(--cp), 2.6cqw - 4px));
+}
+@media (max-width: 740px) {
+  .sky-header .header .sky-cloud::before {
+    inset: calc(-12 * var(--cp)) calc(-10 * var(--cp));
+  }
+  .sky-header .header .identity::before {
+    left: calc(-10 * var(--cp));
+  }
+  .sky-header .header .email-link::before {
+    right: calc(-10 * var(--cp));
+  }
+  .sky-header .header .identity,
+  .sky-header .header .social-links a.cloud-github {
+    margin-left: calc(10 * var(--cp) - 8px);
+  }
+  .sky-header .contact .email-link,
+  .sky-header .header .social-links a.cloud-linkedin {
+    margin-right: calc(10 * var(--cp) - 8px);
+  }
+}
 @media (max-width: 360px) {
   .sky-header .identity h1 {
     font-size: 22px;
@@ -3496,8 +3584,10 @@ dialog .section-body li {
   }
 }
 
-/* The reading sign stands at the forest edge of the village on desktop,
-   so it is part of the opening view; phones keep it below the river. */
+/* The reading sign stands on the green just below the fountain on desktop,
+   in the opening view; phones keep it, full size, below the river. The
+   village treats it as solid, and it turns translucent when the player
+   walks behind it. */
 @media (min-width: 741px) {
   #journey-world > .reading-invitation {
     position: static;
@@ -3507,29 +3597,34 @@ dialog .section-body li {
   .reading-invitation a {
     position: absolute;
     z-index: 2;
-    /* Ends at x 140, clear of the player at the village's west edge. */
-    left: 0.4cqw;
-    top: calc(15.625cqw + 30.5cqw);
-    width: 14.2cqw;
+    /* Centred on the fountain (x 482), from village y 382 downwards. */
+    left: calc(50.2cqw - 12.4cqw);
+    top: calc(15.625cqw + 39.8cqw);
+    width: 24.8cqw;
     min-height: 0;
     margin: 0;
-    padding: max(21px, 2.3cqw) max(11px, 1.1cqw) max(22px, 2.4cqw);
+    padding: max(21px, 2.1cqw) max(12px, 1.4cqw) max(22px, 2.2cqw);
+    transition: opacity 0.25s steps(3);
+  }
+  .reading-invitation.is-see-through a {
+    opacity: 0.45;
   }
   .reading-invitation strong {
     max-width: none;
-    font-size: clamp(14px, 2cqw, 22px);
-    line-height: 1.1;
+    font-size: clamp(16px, 2.2cqw, 25px);
+    line-height: 1.05;
+    text-wrap: balance;
   }
   .reading-invitation .billboard-detail {
-    margin: 0.8cqw 0 0;
-    font-size: clamp(13px, 1.55cqw, 17px);
+    margin: 0.5cqw 0 0;
+    font-size: clamp(14px, 1.65cqw, 19px);
     line-height: 1.15;
   }
   .reading-invitation a::before,
   .reading-invitation a::after {
     top: calc(100% - 4px);
     width: 1.1cqw;
-    height: 4.2cqw;
+    height: 2.2cqw;
   }
   .reading-invitation a::before {
     left: 18%;
@@ -3597,19 +3692,98 @@ dialog .section-body li {
   }
 }
 
-/* No frame around the play area: keyboard focus on the village lights
-   up the movement keys instead. */
+/* No frame and no controls bar: keyboard focus on the village shows a
+   brief key reminder at the foot of the play area, then lets it fade. */
 #journey-world:has(#world:focus-visible) .world-wrap {
   outline: none;
 }
-.keyboard-hint {
-  transition: color 0.2s steps(2);
-}
-#journey-world:has(#world:focus-visible) .keyboard-hint {
+.walk-hint {
+  position: absolute;
+  z-index: 3;
+  left: 50%;
+  bottom: 1.5%;
+  margin: 0;
+  padding: 1px 10px 3px;
+  transform: translateX(-50%);
+  font-size: 18px;
+  line-height: 1.2;
+  white-space: nowrap;
   color: #ffe08d;
-  text-shadow: 0 0 8px #f2c36a99;
+  background: #1d150ecc;
+  box-shadow: 0 0 0 2px #4c3722;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
 }
-#journey-world:has(#world:focus-visible) .keyboard-hint kbd {
-  border-color: #c9a35a;
+.walk-hint kbd {
+  padding: 0 4px;
+  border: 1px solid #c9a35a;
   color: #fff3cf;
+  font: inherit;
+}
+#journey-world:has(#world:focus-visible) .walk-hint {
+  visibility: visible;
+  animation: walk-hint 5s steps(5, end) forwards;
+}
+@keyframes walk-hint {
+  0%,
+  70% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  #journey-world:has(#world:focus-visible) .walk-hint {
+    animation: none;
+    opacity: 1;
+  }
+}
+
+/* Key phrases: a pixel marker sweeps under each one as its passage scrolls
+   into view. Without scripts (or with reduced motion) they are simply lit. */
+mark.kw {
+  --kw-ink: #e7c46e;
+  padding: 0 0.12em;
+  margin: 0 -0.12em;
+  color: #fff0c2;
+  background: linear-gradient(
+      transparent 42%,
+      color-mix(in srgb, var(--kw-ink) 32%, transparent) 42% 94%,
+      transparent 94%
+    )
+    no-repeat 0 0 / 100% 100%;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+  text-shadow: 0 0 6px #f2c36a40;
+}
+.kw-ready .reading-section mark.kw {
+  color: inherit;
+  background-size: 0% 100%;
+  text-shadow: none;
+}
+.kw-ready .reading-section mark.kw.is-lit,
+#panel mark.kw {
+  animation: kw-sweep 0.7s steps(7, end) var(--kw-delay, 0s) both;
+}
+@keyframes kw-sweep {
+  from {
+    color: inherit;
+    background-size: 0% 100%;
+    text-shadow: none;
+  }
+  to {
+    color: #fff0c2;
+    background-size: 100% 100%;
+    text-shadow: 0 0 6px #f2c36a40;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .kw-ready .reading-section mark.kw.is-lit,
+  #panel mark.kw {
+    animation: none;
+    color: #fff0c2;
+    background-size: 100% 100%;
+  }
 }

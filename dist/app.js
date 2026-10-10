@@ -44,6 +44,8 @@ world.onScene = (id) => {
     ? `Inside ${interiorLabel(id)}. Walk to the lectern and press E to read about ${areas[id].name}, or press Escape to leave.`
     : "Back in the village.";
 };
+world.onSignShade = (behind) =>
+  document.querySelector(".reading-invitation").classList.toggle("is-see-through", behind);
 world.onTransition = (active) =>
   worldWrap.classList.toggle("is-transitioning", active);
 // E acts on whatever is nearby: a cabin door, a lectern or the way out.
@@ -150,6 +152,19 @@ function resizeJourney() {
     world.setLayout(layout);
     layoutSignature = signature;
   }
+  // On desktop the reading sign stands in the village; phones keep it
+  // below the river, where it is no obstacle.
+  const frame = document.querySelector(".game-frame").getBoundingClientRect(),
+    sign = document.querySelector(".reading-invitation a").getBoundingClientRect(),
+    signRect = {
+      x: (sign.left - frame.left) / worldScale,
+      y: (sign.top - frame.top) / worldScale,
+      w: sign.width / worldScale,
+      h: sign.height / worldScale,
+    };
+  world.setReadingSign(
+    sign.width && signRect.y >= 0 && signRect.y + signRect.h <= 540 ? signRect : null,
+  );
   updateViewport();
   world.draw();
 }
@@ -299,6 +314,25 @@ matchMedia("(prefers-reduced-motion: reduce)").addEventListener(
   },
 );
 mountPillars(document.querySelector(".shell"));
+// Key phrases light up one after another as each passage scrolls into view.
+if ("IntersectionObserver" in window) {
+  const reveal = new IntersectionObserver(
+    (entries) => {
+      for (const entry of entries) {
+        if (!entry.isIntersecting) continue;
+        entry.target.classList.add("is-lit");
+        reveal.unobserve(entry.target);
+      }
+    },
+    { rootMargin: "0px 0px -15% 0px" },
+  );
+  document.querySelectorAll(".reading-section mark.kw").forEach((mark) => {
+    const order = [...mark.parentElement.querySelectorAll(":scope > mark.kw")].indexOf(mark);
+    mark.style.setProperty("--kw-delay", `${order * 0.22}s`);
+    reveal.observe(mark);
+  });
+  document.documentElement.classList.add("kw-ready");
+}
 if (shouldPlayIntro())
   runIntro(world, {
     onFinish: () => {

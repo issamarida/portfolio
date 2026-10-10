@@ -335,7 +335,7 @@ test("margin pillars paint deterministically and mirror towards the page", () =>
   assert.equal(alpha(1, 150), 0);
 });
 
-test("temple margins are solid stone from edge to edge, with lit braziers", () => {
+test("each margin is one mossy column running unbroken from top to bottom", () => {
   const surface = (width, height) => {
     let data = null;
     return {
@@ -356,19 +356,24 @@ test("temple margins are solid stone from edge to edge, with lit braziers", () =
     const left = surface(w, h),
       again = surface(w, h),
       right = surface(w, h);
-    const flames = paintTemple(left, false, 17);
+    paintTemple(left, false, 17);
     paintTemple(again, false, 17);
-    const mirrored = paintTemple(right, true, 17);
-    assert.deepEqual(left.pixels(), again.pixels());
-    // No gap anywhere: every pixel of the margin is painted.
-    for (let i = 3; i < left.pixels().length; i += 4) assert.equal(left.pixels()[i], 255);
+    paintTemple(right, true, 17);
+    const px = left.pixels();
+    assert.deepEqual(px, again.pixels());
+    // No gap anywhere, so nothing behind the column can show through.
+    for (let i = 3; i < px.length; i += 4) assert.equal(px[i], 255);
     const row = (canvas, y) =>
       Array.from({ length: w }, (_, x) => canvas.pixels().slice((y * w + x) * 4, (y * w + x) * 4 + 4).join());
-    for (const y of [5, Math.floor(h / 2), h - 2]) assert.deepEqual(row(right, y), row(left, y).reverse());
-    assert.deepEqual(
-      mirrored.map((f) => [w - 1 - f.x, f.y]),
-      flames.map((f) => [f.x, f.y]),
-    );
-    if (w > 100) assert.ok(flames.length >= 2, `${w}px margins carry braziers`);
+    for (const y of [0, Math.floor(h / 2), h - 1]) assert.deepEqual(row(right, y), row(left, y).reverse());
+    // No soil or grass band at the foot: the last rows are carved stone and
+    // moss, like the rest of the shaft.
+    const soil = new Set(["20,23,17", "29,34,25", "38,45,32"]);
+    const bottom = row(left, h - 1).filter((c) => soil.has(c.split(",").slice(0, 3).join(",")));
+    assert.ok(bottom.length < w * 0.2, "the column runs past the bottom edge");
+    // Moss: plenty of green on the shaft.
+    let green = 0;
+    for (let i = 0; i < px.length; i += 4) if (px[i + 1] > px[i] + 12 && px[i + 1] > px[i + 2] + 12) green++;
+    assert.ok(green > (w * h) * 0.08, `mossy enough at ${w}px (${((green / (w * h)) * 100).toFixed(1)}%)`);
   }
 });

@@ -61,6 +61,49 @@ export const destinations = [
     color: "#c5a977",
   },
 ];
+// Rooftop billboards: one wooden board per cabin, lettered in a 5×7 pixel
+// face. Geometry is shared with the DOM labels so both stay aligned.
+const SIGN_TEXT = {
+  projects: "PROJECTS",
+  career: "CAREER",
+  gamedev: "GAME DEV",
+  about: "ABOUT",
+};
+const GLYPHS = {
+  A: [".###.", "#...#", "#...#", "#####", "#...#", "#...#", "#...#"],
+  B: ["####.", "#...#", "#...#", "####.", "#...#", "#...#", "####."],
+  C: [".###.", "#...#", "#....", "#....", "#....", "#...#", ".###."],
+  D: ["####.", "#...#", "#...#", "#...#", "#...#", "#...#", "####."],
+  E: ["#####", "#....", "#....", "####.", "#....", "#....", "#####"],
+  G: [".###.", "#...#", "#....", "#.###", "#...#", "#...#", ".####"],
+  J: ["..###", "...#.", "...#.", "...#.", "...#.", "#..#.", ".##.."],
+  M: ["#...#", "##.##", "#.#.#", "#.#.#", "#...#", "#...#", "#...#"],
+  O: [".###.", "#...#", "#...#", "#...#", "#...#", "#...#", ".###."],
+  P: ["####.", "#...#", "#...#", "####.", "#....", "#....", "#...."],
+  R: ["####.", "#...#", "#...#", "####.", "#.#..", "#..#.", "#...#"],
+  S: [".####", "#....", "#....", ".###.", "....#", "....#", "####."],
+  T: ["#####", "..#..", "..#..", "..#..", "..#..", "..#..", "..#.."],
+  U: ["#...#", "#...#", "#...#", "#...#", "#...#", "#...#", ".###."],
+  V: ["#...#", "#...#", "#...#", "#...#", "#...#", ".#.#.", "..#.."],
+};
+const signTextWidth = (text) =>
+  [...text].reduce((w, ch) => w + (ch === " " ? 3 : 6), -1);
+// The surface the posts stand on: the shingle ridge, or Career's flat tower.
+function roofLine(d, dx) {
+  if (d.id === "career") return d.y - 49;
+  return d.y - 14 + (Math.abs(dx) * 48) / (d.w / 2 + 14);
+}
+export function cabinSign(d) {
+  const text = SIGN_TEXT[d.id],
+    w = (signTextWidth(text) + 10) * 2,
+    h = 30;
+  const center = d.x + d.w / 2,
+    bottom = roofLine(d, 0) - (d.id === "career" ? 8 : 10);
+  const x = Math.round((center - w / 2) / 2) * 2,
+    y = Math.round((bottom - h) / 2) * 2;
+  const post = d.id === "career" ? 22 : w / 2 - 14;
+  return { x, y, w, h, text, posts: [center - post, center + post] };
+}
 export function canWalk(x, y) {
   if (x < 158 || x > 818 || y < 274 || y > 478) return false;
   if (x > 430 && x < 521 && y < 280) return false;
@@ -1226,6 +1269,121 @@ export class World {
       this.rect(x + w + 14, y + h - 17, 4, 11, "#708352");
       this.rect(x - 21, y + h - 14, 12, 16, "#735f45");
       this.rect(x - 24, y + h - 19, 18, 8, "#485e3e");
+    }
+    this.rooftopSign(d);
+  }
+  rooftopSign(d) {
+    if (!this.signSprites) this.signSprites = new Map();
+    const sign = cabinSign(d);
+    let sprite = this.signSprites.get(d.id);
+    if (!sprite) {
+      // Posts reach down to the roof; moss tufts rise above the board.
+      const foot = Math.max(...sign.posts.map((px) => roofLine(d, px - d.x - d.w / 2))) + 4;
+      const left = sign.x - 4,
+        top = sign.y - 4,
+        width = sign.w + 8,
+        height = Math.ceil((foot - top) / 2) * 2 + 2;
+      const canvas = document.createElement("canvas");
+      canvas.width = width / 2;
+      canvas.height = height / 2;
+      const ctx = canvas.getContext("2d");
+      ctx.imageSmoothingEnabled = false;
+      ctx.scale(0.5, 0.5);
+      ctx.translate(-left, -top);
+      const main = this.ctx;
+      this.ctx = ctx;
+      try {
+        this.paintSign(d, sign);
+      } finally {
+        this.ctx = main;
+      }
+      sprite = { canvas, left, top, width, height };
+      this.signSprites.set(d.id, sprite);
+    }
+    // Walking behind a cabin, the player shows through its billboard.
+    const { x: px, y: py } = this.player,
+      behind =
+        py < d.y + d.h &&
+        px + 14 > sign.x &&
+        px - 16 < sign.x + sign.w &&
+        py + 6 > sign.y &&
+        py - 44 < sign.y + sign.h + 6;
+    this.ctx.save();
+    try {
+      if (behind) this.ctx.globalAlpha = 0.45;
+      this.ctx.drawImage(sprite.canvas, sprite.left, sprite.top, sprite.width, sprite.height);
+    } finally {
+      this.ctx.restore();
+    }
+  }
+  paintSign(d, sign) {
+    const { x, y, w, h, text } = sign;
+    const cols = w / 2,
+      rows = h / 2;
+    // One call per art pixel run keeps everything on the native grid.
+    const px = (ax, ay, aw, ah, color) =>
+      this.rect(x + ax * 2, y + ay * 2, aw * 2, ah * 2, color);
+    // Posts first, so the board overlaps their tops.
+    for (const postX of sign.posts) {
+      const foot = roofLine(d, postX - d.x - d.w / 2) + 4,
+        ax = Math.round((postX - x) / 2) - 1;
+      this.rect(x + ax * 2 + 2, y + h, 4, foot - y - h, "#2a2016");
+      this.rect(x + ax * 2, y + h, 4, foot - y - h, "#4a3824");
+      this.rect(x + ax * 2, y + h, 2, foot - y - h, "#6b5234");
+      this.rect(x + ax * 2 - 2, foot - 2, 10, 2, "#2c2722");
+    }
+    // A shadow line where the board meets the posts.
+    px(1, rows, cols - 2, 1, "#1d1710");
+    // Dark outline with notched corners.
+    px(1, 0, cols - 2, 1, "#241b12");
+    px(1, rows - 1, cols - 2, 1, "#241b12");
+    px(0, 1, 1, rows - 2, "#241b12");
+    px(cols - 1, 1, 1, rows - 2, "#241b12");
+    // Bevelled frame: moonlit top edge, darker underside.
+    px(1, 1, cols - 2, 1, "#a07a48");
+    px(1, 2, 1, rows - 3, "#8a6a3e");
+    px(cols - 2, 2, 1, rows - 3, "#5a4128");
+    px(2, rows - 2, cols - 3, 1, "#4c3722");
+    // Plank face with staggered seams and a little grain.
+    px(2, 2, cols - 4, rows - 4, "#6b4f31");
+    const rand = seeded(d.x * 7 + d.y);
+    for (const seam of [5, 9]) {
+      px(2, seam, cols - 4, 1, "#5a4129");
+      const joint = 4 + Math.floor(rand() * (cols - 10));
+      px(joint, seam - 3, 1, 3, "#5a4129");
+    }
+    for (let i = 0; i < cols / 3; i++)
+      px(3 + Math.floor(rand() * (cols - 7)), 3 + Math.floor(rand() * (rows - 6)), 2, 1, "#7a5b39");
+    // Iron nails at the corners.
+    for (const [ax, ay] of [
+      [2, 2],
+      [cols - 3, 2],
+      [2, rows - 3],
+      [cols - 3, rows - 3],
+    ])
+      px(ax, ay, 1, 1, "#c9ad7a");
+    // Painted letters with a dark drop shadow.
+    for (const pass of [0, 1]) {
+      let cursor = 5;
+      for (const ch of text) {
+        const glyph = GLYPHS[ch];
+        if (glyph)
+          glyph.forEach((row, gy) => {
+            for (let gx = 0; gx < 5; gx++)
+              if (row[gx] === "#")
+                pass
+                  ? px(cursor + gx, 4 + gy, 1, 1, gy < 2 ? "#fff3cf" : "#f0dcaa")
+                  : px(cursor + gx + 1, 5 + gy, 1, 1, "#2b1f14");
+          });
+        cursor += ch === " " ? 3 : 6;
+      }
+    }
+    // Moss creeping over the top edge.
+    for (let i = 0; i < cols / 5; i++) {
+      const ax = 1 + Math.floor(rand() * (cols - 4)),
+        span = 1 + Math.floor(rand() * 3);
+      px(ax, 0, span, 1, "#3f5a2e");
+      if (rand() < 0.6) px(ax + (span > 1 ? 1 : 0), -1, 1, 1, "#5d7d3c");
     }
   }
   lantern(x, y) {

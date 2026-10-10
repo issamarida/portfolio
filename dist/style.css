@@ -3274,3 +3274,342 @@ dialog .section-body li {
 .intro:focus {
   outline: none;
 }
+
+/* The hero fits the screen: on desktop the shell scales with the viewport
+   height so the sky and the whole village (and its E prompt) are in view
+   once the opening scene ends. The sky is trimmed to 150 world units and
+   the moon rises with it, keeping its place behind the mountains. */
+#journey-world {
+  container-type: inline-size;
+  --cp: max(2px, calc(100cqw / 480));
+}
+@media (min-width: 741px) {
+  .shell {
+    width: min(1120px, 100%, max(760px, calc((100svh - 6px) * 960 / 690)));
+  }
+  #journey-world > .sky-header {
+    aspect-ratio: 960 / 150;
+    min-height: 0;
+  }
+  .sky-header .moon-clearing {
+    top: -3.42cqw;
+  }
+  .sky-header .controls-slot {
+    top: 8px;
+  }
+}
+
+/* Four moonlit clouds carry the name and contact details. */
+.pillar {
+  position: fixed;
+  top: 0;
+  z-index: 0;
+  image-rendering: pixelated;
+  pointer-events: none;
+}
+.sky-header .header {
+  inset: 0;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  display: block;
+  pointer-events: none;
+}
+.sky-header .contact,
+.sky-header .header .social-links {
+  position: absolute;
+  inset: 0;
+  isolation: auto;
+  align-self: stretch;
+  justify-self: stretch;
+  display: block;
+  padding: 0;
+  margin: 0;
+  pointer-events: none;
+}
+.identity::after,
+.contact::before,
+.contact::after {
+  content: none;
+}
+.sky-header .header .sky-cloud {
+  position: absolute;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  margin: 0;
+  isolation: isolate;
+  color: #fff3d6;
+  text-decoration: none;
+  white-space: nowrap;
+  pointer-events: auto;
+  text-shadow:
+    2px 2px 0 #24323a,
+    0 0 10px #10202880;
+}
+.sky-header .header .sky-cloud::before,
+.sky-header .header .sky-cloud::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: calc(-11 * var(--cp)) calc(-9 * var(--cp)) calc(-6 * var(--cp));
+  border-style: solid;
+  border-width: calc(16 * var(--cp)) calc(16 * var(--cp)) calc(10 * var(--cp));
+  border-image: url("./art/cloud.svg") 16 16 10 fill / calc(16 * var(--cp))
+    calc(16 * var(--cp)) calc(10 * var(--cp)) round;
+  background: none;
+  clip-path: none;
+  image-rendering: pixelated;
+  pointer-events: none;
+}
+/* One loose puff rises from each cloud so no two share a silhouette. */
+.sky-header .header .sky-cloud::after {
+  inset: auto;
+  left: var(--puff-x, 60%);
+  top: calc(-15 * var(--cp));
+  width: calc(22 * var(--cp));
+  height: calc(12 * var(--cp));
+  border: 0;
+  background: url("./art/cloud-puff.svg") center / 100% 100% no-repeat;
+  transform: translateX(-50%);
+}
+.sky-header .identity {
+  --puff-x: 58%;
+}
+.sky-header .contact .email-link {
+  --puff-x: 30%;
+}
+.sky-header .header .social-links a.cloud-github {
+  --puff-x: 64%;
+}
+.sky-header .header .social-links a.cloud-linkedin {
+  --puff-x: 38%;
+}
+.sky-header .identity {
+  left: 2.6cqw;
+  top: max(3.4cqw, 30px);
+  gap: 1.3cqw;
+  padding: 0.5cqw 1.2cqw 0.5cqw 0.6cqw;
+}
+.sky-header .identity img {
+  width: clamp(64px, 9.1cqw, 102px);
+  height: clamp(64px, 9.1cqw, 102px);
+  box-shadow:
+    0 0 0 2px #2e3f46,
+    0 0 0 4px #bccbc4,
+    0 0 18px #dbe9ae55;
+}
+.sky-header .identity h1 {
+  font-size: clamp(26px, 3.5cqw, 40px);
+}
+.sky-header .contact .email-link {
+  right: 2.6cqw;
+  top: 4.2cqw;
+  gap: 0.8cqw;
+  padding: 0.4cqw 0.9cqw;
+  font-size: clamp(18px, 2.35cqw, 26px);
+}
+.sky-header .email-icon {
+  font-size: 1.15em;
+}
+.sky-header .header .social-links {
+  font-size: clamp(18px, 2.2cqw, 25px);
+}
+.sky-header .header .social-links a.sky-cloud {
+  gap: 0.6cqw;
+  padding: 0.3cqw 0.9cqw;
+  font-size: inherit;
+  text-shadow:
+    2px 2px 0 #24323a,
+    0 0 10px #10202880;
+}
+.sky-header .header .social-links a.cloud-github {
+  z-index: 2;
+  left: 31cqw;
+  top: 11.4cqw;
+}
+.sky-header .header .social-links a.cloud-linkedin {
+  z-index: 2;
+  right: 30cqw;
+  top: 10.6cqw;
+}
+.sky-header .sky-cloud:hover,
+.sky-header .sky-cloud:focus-visible {
+  color: #ffe08d;
+  text-decoration: none;
+}
+.sky-header .header .sky-cloud:hover::before,
+.sky-header .header .sky-cloud:hover::after,
+.sky-header .header .sky-cloud:focus-visible::before,
+.sky-header .header .sky-cloud:focus-visible::after {
+  filter: brightness(1.18);
+}
+.sky-header .sky-cloud:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: calc(6 * var(--cp));
+}
+@media (max-width: 740px) {
+  .sky-header .identity {
+    left: 12px;
+    top: 50px;
+    gap: 10px;
+    padding: 4px 10px 4px 4px;
+  }
+  .sky-header .identity img {
+    width: 76px;
+    height: 76px;
+  }
+  .sky-header .identity h1 {
+    font-size: 26px;
+  }
+  .sky-header .contact .email-link {
+    right: 12px;
+    top: 150px;
+    gap: 6px;
+    padding: 2px 8px;
+    font-size: 17px;
+  }
+  .sky-header .header .social-links {
+    font-size: 18px;
+  }
+  .sky-header .header .social-links a.sky-cloud {
+    gap: 5px;
+    padding: 2px 8px;
+  }
+  .sky-header .header .social-links a.cloud-github {
+    left: 12px;
+    top: 214px;
+  }
+  .sky-header .header .social-links a.cloud-linkedin {
+    right: 12px;
+    top: 214px;
+  }
+}
+@media (max-width: 360px) {
+  .sky-header .identity h1 {
+    font-size: 22px;
+  }
+  .sky-header .contact .email-link {
+    font-size: 15px;
+  }
+}
+
+/* The reading sign stands at the forest edge of the village on desktop,
+   so it is part of the opening view; phones keep it below the river. */
+@media (min-width: 741px) {
+  #journey-world > .reading-invitation {
+    position: static;
+    aspect-ratio: 960 / 190;
+    min-height: 0;
+  }
+  .reading-invitation a {
+    position: absolute;
+    z-index: 2;
+    /* Ends at x 140, clear of the player at the village's west edge. */
+    left: 0.4cqw;
+    top: calc(15.625cqw + 30.5cqw);
+    width: 14.2cqw;
+    min-height: 0;
+    margin: 0;
+    padding: max(21px, 2.3cqw) max(11px, 1.1cqw) max(22px, 2.4cqw);
+  }
+  .reading-invitation strong {
+    max-width: none;
+    font-size: clamp(14px, 2cqw, 22px);
+    line-height: 1.1;
+  }
+  .reading-invitation .billboard-detail {
+    margin: 0.8cqw 0 0;
+    font-size: clamp(13px, 1.55cqw, 17px);
+    line-height: 1.15;
+  }
+  .reading-invitation a::before,
+  .reading-invitation a::after {
+    top: calc(100% - 4px);
+    width: 1.1cqw;
+    height: 4.2cqw;
+  }
+  .reading-invitation a::before {
+    left: 18%;
+  }
+  .reading-invitation a::after {
+    right: 18%;
+  }
+}
+
+/* Roof names live on painted billboards; the label is an invisible,
+   clickable twin of the board that only glows on hover or focus. */
+.building-access .house-label.is-billboard {
+  left: var(--sign-left);
+  top: var(--sign-top);
+  width: var(--sign-width);
+  height: var(--sign-height);
+  transform: none;
+  padding: 0;
+  overflow: hidden;
+  color: transparent;
+  text-shadow: none;
+  background: none;
+  box-shadow: none;
+  pointer-events: auto;
+}
+.building-access button:hover .house-label.is-billboard {
+  color: transparent;
+  background: #ffe0a014;
+  box-shadow: 0 0 calc(5 * var(--cp)) #f2c36a55;
+}
+.building-access button:focus-visible {
+  outline: none;
+}
+.building-access button:focus-visible .house-label.is-billboard {
+  color: transparent;
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+}
+@media (max-width: 600px) {
+  /* Too small for painted letters: a plaque of the same wood covers the board. */
+  .building-access .house-label.is-billboard {
+    left: calc(var(--sign-left) + var(--sign-width) / 2);
+    top: calc(var(--sign-top) + var(--sign-height) / 2);
+    width: auto;
+    height: auto;
+    transform: translate(-50%, -50%);
+    padding: 1px 5px 2px;
+    overflow: visible;
+    font-size: 13px;
+    line-height: 1.1;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: #f0dcaa;
+    text-shadow: 1px 1px 0 #2b1f14;
+    background: #6b4f31;
+    box-shadow:
+      inset 0 1px 0 #a07a48,
+      inset 0 -1px 0 #4c3722,
+      0 0 0 1px #241b12;
+  }
+  .building-access button:hover .house-label.is-billboard,
+  .building-access button:focus-visible .house-label.is-billboard {
+    color: #fff3cf;
+    background: #7b5a37;
+  }
+}
+
+/* No frame around the play area: keyboard focus on the village lights
+   up the movement keys instead. */
+#journey-world:has(#world:focus-visible) .world-wrap {
+  outline: none;
+}
+.keyboard-hint {
+  transition: color 0.2s steps(2);
+}
+#journey-world:has(#world:focus-visible) .keyboard-hint {
+  color: #ffe08d;
+  text-shadow: 0 0 8px #f2c36a99;
+}
+#journey-world:has(#world:focus-visible) .keyboard-hint kbd {
+  border-color: #c9a35a;
+  color: #fff3cf;
+}

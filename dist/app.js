@@ -1,7 +1,8 @@
-import { World } from "./world.js";
+import { World, destinations, cabinSign } from "./world.js";
 import { areas } from "./content.js";
 import { interiorLabel } from "./interiors.js";
 import { runIntro, shouldPlayIntro } from "./intro.js";
+import { mountPillars } from "./pillars.js";
 const canvas = document.querySelector("#world"),
   panel = document.querySelector("#panel"),
   interact = document.querySelector("#interact");
@@ -22,6 +23,21 @@ const world = new World(canvas, (near, kind) => {
   status.textContent = label && `Press E to ${label.toLowerCase()}`;
 });
 const worldWrap = document.querySelector(".world-wrap");
+// Each roof label sits exactly over its painted billboard, in the button's
+// own percentage space, so hover, focus and clicks match the art.
+document.querySelectorAll(".building-access button").forEach((button) => {
+  const d = destinations.find((d) => d.id === button.dataset.area),
+    label = button.querySelector(".house-label");
+  if (!d || !label) return;
+  const sign = cabinSign(d),
+    box = (name) => parseFloat(button.style.getPropertyValue(name));
+  const [bx, by, bw, bh] = ["--x", "--y", "--w", "--h"].map(box);
+  label.style.setProperty("--sign-left", `${(((sign.x / 960) * 100 - bx) / bw) * 100}%`);
+  label.style.setProperty("--sign-top", `${(((sign.y / 540) * 100 - by) / bh) * 100}%`);
+  label.style.setProperty("--sign-width", `${((sign.w / 960) * 100 * 100) / bw}%`);
+  label.style.setProperty("--sign-height", `${((sign.h / 540) * 100 * 100) / bh}%`);
+  label.classList.add("is-billboard");
+});
 world.onScene = (id) => {
   worldWrap.classList.toggle("is-inside", Boolean(id));
   status.textContent = id
@@ -282,6 +298,7 @@ matchMedia("(prefers-reduced-motion: reduce)").addEventListener(
     world.reduced = e.matches;
   },
 );
+mountPillars(document.querySelector(".shell"));
 if (shouldPlayIntro())
   runIntro(world, {
     onFinish: () => {

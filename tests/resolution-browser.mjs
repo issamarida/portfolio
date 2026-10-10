@@ -99,12 +99,19 @@ try {
         bounded: canvases.every((c) => c.height <= maxHeight),
       };
     });
-    assert.ok(Math.abs(metrics.width - Math.min(1120, width)) < 0.02);
+    // Desktop shells shrink with the viewport height so the whole opening
+    // (sky and village) fits on screen; phones always use the full width.
+    const fitted =
+      width <= 740
+        ? width
+        : Math.min(1120, width, Math.max(760, ((height - 6) * 960) / 690));
+    assert.ok(Math.abs(metrics.width - fitted) < 0.5, `${metrics.width} vs ${fitted}`);
     assert.ok(Math.abs(metrics.left - (width - metrics.width) / 2) < 0.02);
     assert.equal(metrics.overflow, false);
     {
       const opening = await page.evaluate(() => {
-        const rect = (s) => document.querySelector(s).getBoundingClientRect();
+        const rect = (s) => document.querySelector(s).getBoundingClientRect(),
+          shell = rect(".shell");
         return {
           boardBottom: rect(".reading-invitation").bottom,
           controlsBottom: rect(".keyboard-hint").bottom,
@@ -152,9 +159,30 @@ try {
             );
           }),
           portraitTop: rect(".identity img").top,
-          socialUnderEmail:
-            !!document.querySelector(".header .contact .social-links") &&
-            rect(".header .social-links").top >= rect(".email-link").bottom - 1,
+          gameTop: rect(".game-frame").top,
+          promptBottom: (() => {
+            const frame = rect(".game-frame");
+            return frame.top + frame.height * 0.92 + 40;
+          })(),
+          heroSign: rect(".reading-invitation a"),
+          // Four clouds: name, email, GitHub and LinkedIn, each readable on
+          // its own and clear of the controls.
+          clouds: (() => {
+            const clouds = [...document.querySelectorAll(".sky-header .sky-cloud")].map(
+              (e) => e.getBoundingClientRect(),
+            );
+            const hint = rect(".keyboard-hint");
+            const apart = (a, b) =>
+              a.right <= b.left || a.left >= b.right || a.bottom <= b.top || a.top >= b.bottom;
+            return {
+              count: clouds.length,
+              apart: clouds.every((a, i) => clouds.every((b, j) => i === j || apart(a, b))),
+              clearOfHint: clouds.every((c) => apart(c, hint)),
+              inside: clouds.every(
+                (c) => c.left >= shell.left - 0.5 && c.right <= shell.right + 0.5,
+              ),
+            };
+          })(),
           touchClear: [...document.querySelectorAll(".touch-pad button")].every(
             (button) => {
               if (
@@ -174,13 +202,28 @@ try {
           ),
         };
       });
-      assert.ok(opening.controlsBottom < opening.portraitTop);
+      assert.ok(opening.controlsBottom < opening.portraitTop, `controls overlap portrait at ${width}px`);
       assert.ok(Math.abs(opening.controlsCenter - width / 2) < 1);
       assert.ok(
         opening.boardInset,
         "Reading sign content must stay inset within its wood face",
       );
-      assert.ok(opening.socialUnderEmail);
+      assert.equal(opening.clouds.count, 4);
+      assert.ok(opening.clouds.apart, `Cloud text must not overlap at ${width}px`);
+      assert.ok(opening.clouds.clearOfHint && opening.clouds.inside);
+      if (width > 740) {
+        assert.ok(
+          opening.promptBottom <= height,
+          `The village and its prompt must fit the opening view at ${width}×${height}`,
+        );
+        assert.ok(
+          opening.heroSign.bottom <= opening.promptBottom &&
+            opening.heroSign.top >= opening.gameTop &&
+            // West of the player's sprite at the village's walkable edge.
+            opening.heroSign.right <= metrics.left + (142 * metrics.width) / 960 + 0.5,
+          "The reading sign belongs to the opening view on desktop",
+        );
+      }
       assert.ok(
         opening.boardCentered,
         "Reading lettering must center on both axes",

@@ -14,7 +14,9 @@ import {
   movePlayer,
   nearbyArea,
   destinations,
+  cabinSign,
 } from "../dist/world.js";
+import { paintPillar } from "../dist/pillars.js";
 import { areas } from "../dist/content.js";
 test("every portfolio area has a walkable entrance and matching content", () => {
   assert.equal(destinations.length, 4);
@@ -262,4 +264,73 @@ test("every mountain layer paints in front of the moon and the crest covers its 
   );
   const moon = world.moonPosition();
   assert.equal(center[1][2][1], moon.y + moon.diameter * 0.25);
+});
+
+test("rooftop billboards stand above each roof, clear of one another and the chimneys", () => {
+  const signs = destinations.map((d) => ({ d, sign: cabinSign(d) }));
+  for (const { d, sign } of signs) {
+    // On the native two-unit grid, centred over the ridge and inside the frame.
+    assert.equal(sign.x % 2, 0);
+    assert.equal(sign.y % 2, 0);
+    assert.ok(Math.abs(sign.x + sign.w / 2 - (d.x + d.w / 2)) <= 2);
+    assert.ok(sign.y >= 0 && sign.x >= 0 && sign.x + sign.w <= 960);
+    // Above the roof peak (or Career's tower), with posts landing on the roof.
+    const peak = d.id === "career" ? d.y - 49 : d.y - 14;
+    assert.ok(sign.y + sign.h < peak, d.id);
+    for (const post of sign.posts) assert.ok(post > d.x - 10 && post < d.x + d.w + 10, d.id);
+    if (d.id !== "career") assert.ok(sign.y + sign.h < d.y - 20, "board clears the chimney cap");
+    // The lettering fits inside the frame with room to spare.
+    const letters = [...sign.text].reduce((w, ch) => w + (ch === " " ? 3 : 6), -1);
+    assert.ok(letters * 2 + 16 <= sign.w);
+  }
+  // Standing at any door, the player's body is never behind a billboard.
+  for (const door of destinations)
+    for (const { sign } of signs)
+      assert.ok(
+        door.doorX + 13 <= sign.x ||
+          door.doorX - 16 >= sign.x + sign.w ||
+          door.doorY - 6 <= sign.y ||
+          door.doorY - 44 >= sign.y + sign.h,
+        `${door.id} entrance is hidden by a billboard`,
+      );
+  for (const a of signs)
+    for (const b of signs)
+      if (a !== b)
+        assert.ok(
+          a.sign.x + a.sign.w <= b.sign.x ||
+            b.sign.x + b.sign.w <= a.sign.x ||
+            a.sign.y + a.sign.h <= b.sign.y ||
+            b.sign.y + b.sign.h <= a.sign.y,
+          `${a.d.id} and ${b.d.id} billboards overlap`,
+        );
+});
+
+test("margin pillars paint deterministically and mirror towards the page", () => {
+  const surface = (width, height) => {
+    let data = null;
+    return {
+      width,
+      height,
+      getContext: () => ({
+        createImageData: (w, h) => ({ data: new Uint8ClampedArray(w * h * 4) }),
+        putImageData: (image) => (data = image.data),
+      }),
+      pixels: () => data,
+    };
+  };
+  const left = surface(80, 300),
+    again = surface(80, 300),
+    right = surface(80, 300);
+  paintPillar(left, false, 17);
+  paintPillar(again, false, 17);
+  paintPillar(right, true, 17);
+  assert.deepEqual(left.pixels(), again.pixels());
+  // Mirrored: every row of the right pillar is the left pillar reversed.
+  const row = (canvas, y) =>
+    Array.from({ length: 80 }, (_, x) => canvas.pixels().slice((y * 80 + x) * 4, (y * 80 + x) * 4 + 4).join());
+  for (const y of [20, 150, 290]) assert.deepEqual(row(right, y), row(left, y).reverse());
+  // Stone fills the middle; the outer margins stay transparent above the ground.
+  const alpha = (x, y) => left.pixels()[(y * 80 + x) * 4 + 3];
+  assert.equal(alpha(40, 150), 255);
+  assert.equal(alpha(1, 150), 0);
 });

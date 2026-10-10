@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "node scripts/serve.mjs",
-    "check": "node --check dist/app.js && node --check dist/world.js && node --check dist/content.js && node --check scripts/generate-page-art.mjs && node --check dist/journey.js && node --check dist/ground.js && node --check dist/homestead.js && node --check dist/intro.js && node --check dist/interiors.js",
+    "check": "node --check dist/app.js && node --check dist/world.js && node --check dist/content.js && node --check scripts/generate-page-art.mjs && node --check dist/journey.js && node --check dist/ground.js && node --check dist/homestead.js && node --check dist/intro.js && node --check dist/interiors.js && node --check dist/pillars.js",
     "test": "node --test tests/*.test.mjs",
     "test:browser": "node tests/browser.mjs && node tests/resolution-browser.mjs",
     "generate:art": "node scripts/generate-page-art.mjs"

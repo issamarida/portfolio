@@ -16,7 +16,7 @@ import {
   destinations,
   cabinSign,
 } from "../dist/world.js";
-import { paintPillar } from "../dist/pillars.js";
+import { paintPillar, paintTemple } from "../dist/pillars.js";
 import { areas } from "../dist/content.js";
 test("every portfolio area has a walkable entrance and matching content", () => {
   assert.equal(destinations.length, 4);
@@ -333,4 +333,42 @@ test("margin pillars paint deterministically and mirror towards the page", () =>
   const alpha = (x, y) => left.pixels()[(y * 80 + x) * 4 + 3];
   assert.equal(alpha(40, 150), 255);
   assert.equal(alpha(1, 150), 0);
+});
+
+test("temple margins are solid stone from edge to edge, with lit braziers", () => {
+  const surface = (width, height) => {
+    let data = null;
+    return {
+      width,
+      height,
+      getContext: () => ({
+        createImageData: (w, h) => ({ data: new Uint8ClampedArray(w * h * 4) }),
+        putImageData: (image) => (data = image.data),
+      }),
+      pixels: () => data,
+    };
+  };
+  for (const [w, h] of [
+    [171, 463],
+    [309, 617],
+    [20, 400],
+  ]) {
+    const left = surface(w, h),
+      again = surface(w, h),
+      right = surface(w, h);
+    const flames = paintTemple(left, false, 17);
+    paintTemple(again, false, 17);
+    const mirrored = paintTemple(right, true, 17);
+    assert.deepEqual(left.pixels(), again.pixels());
+    // No gap anywhere: every pixel of the margin is painted.
+    for (let i = 3; i < left.pixels().length; i += 4) assert.equal(left.pixels()[i], 255);
+    const row = (canvas, y) =>
+      Array.from({ length: w }, (_, x) => canvas.pixels().slice((y * w + x) * 4, (y * w + x) * 4 + 4).join());
+    for (const y of [5, Math.floor(h / 2), h - 2]) assert.deepEqual(row(right, y), row(left, y).reverse());
+    assert.deepEqual(
+      mirrored.map((f) => [w - 1 - f.x, f.y]),
+      flames.map((f) => [f.x, f.y]),
+    );
+    if (w > 100) assert.ok(flames.length >= 2, `${w}px margins carry braziers`);
+  }
 });

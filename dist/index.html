@@ -85,12 +85,6 @@
         <div class="sky-header">
           <div class="controls-slot">
             <div class="game-bottom">
-              <div class="keyboard-hint">
-                <span
-                  ><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> /
-                  <kbd>↑</kbd><kbd>←</kbd><kbd>↓</kbd><kbd>→</kbd> walk</span
-                ><span><kbd>E</kbd> enter</span>
-              </div>
               <div class="touch-pad" aria-label="Touch movement controls">
                 <button data-move="up" aria-label="Move up">▲</button
                 ><button data-move="left" aria-label="Move left">◀</button
@@ -167,6 +161,10 @@
                 <span class="house-label" aria-hidden="true">About</span>
               </button>
             </div>
+            <p class="walk-hint" aria-hidden="true">
+              <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> walk ·
+              <kbd>E</kbd> enter
+            </p>
             <button id="interact" class="interact" hidden>
               <kbd>E</kbd> <span>Enter</span>
             </button>
@@ -195,13 +193,13 @@
             </div>
             <div class="section-body">
               <p>
-                Hey! I’m Issam, a Computer Science and AI student at IE University. I’m Jordanian, but I spent most of my life growing up in Dubai, and these days I’m living in Madrid.
+                Hey! I’m Issam, a <mark class="kw">Computer Science and AI</mark> student at <mark class="kw">IE University</mark>. I’m Jordanian, but I spent most of my life growing up in Dubai, and these days I’m living in Madrid.
               </p>
               <p>
-                What really gets me going is full-stack AI engineering, especially building AI workflows and figuring out how all the pieces talk to each other. I like to move fast, and my favourite problems are the ones that need some serious system design to crack.
+                What really gets me going is <mark class="kw">full-stack AI engineering</mark>, especially <mark class="kw">building AI workflows</mark> and figuring out how all the pieces talk to each other. I like to move fast, and my favourite problems are the ones that need some <mark class="kw">serious system design</mark> to crack.
               </p>
               <p class="open-note">
-                I’m looking for work right now, so if you’re building something cool with AI, I’d love to hear about it. Just <a class="text-link" href="mailto:issamaarida@gmail.com">send me an email</a>!
+                I’m <mark class="kw">looking for work right now</mark>, so if you’re building something cool with AI, I’d love to hear about it. Just <a class="text-link" href="mailto:issamaarida@gmail.com">send me an email</a>!
               </p>
               <div class="hobbies">
                 <h3>Hobbies</h3>
@@ -228,7 +226,7 @@
                     <h4>Tzu Chi Foundation</h4>
                     <p class="volunteer-role">Project Officer</p>
                     <p>
-                      I supported refugee families through the Jordan Bank of Clothes and helped deliver supplies to families who needed them. I also tutored Syrian refugees in computer science and math.
+                      I <mark class="kw">supported refugee families</mark> through the Jordan Bank of Clothes and helped deliver supplies to families who needed them. I also <mark class="kw">tutored Syrian refugees</mark> in computer science and math.
                     </p>
                   </article>
                   <article>
@@ -236,7 +234,7 @@
                     <h4>COP28 UAE</h4>
                     <p class="volunteer-role">Coordinator of Volunteers</p>
                     <p>
-                      I built solar lights for a nonprofit initiative, then ran mentoring sessions so other volunteers could learn to assemble them too.
+                      I <mark class="kw">built solar lights</mark> for a nonprofit initiative, then <mark class="kw">ran mentoring sessions</mark> so other volunteers could learn to assemble them too.
                     </p>
                   </article>
                 </div>
@@ -258,49 +256,49 @@
                   <small>FOUNDER · NOW</small>
                   <h3>Pharmable</h3>
                   <p>
-                    I’m building AI that reviews pharmaceutical documents against health regulations before they’re submitted, so teams catch problems long before a regulator does.
+                    I’m building <mark class="kw">AI that reviews pharmaceutical documents against health regulations</mark> before they’re submitted, so teams catch problems long before a regulator does.
                   </p>
                 </article>
                 <article>
                   <small>AWARD · 3RD OF 18 TEAMS</small>
                   <h3>First Claude Hackathon in Madrid</h3>
                   <p>
-                    A 48-hour hackathon where AI agents faced off in a live trading game and every deal had to be negotiated. We built an agent that negotiated on its own and kept learning from rival teams as the game went on. It even ran its own marketplace where other teams came to trade, and we finished 3rd out of 18.
+                    A 48-hour hackathon where AI agents faced off in a live trading game and every deal had to be negotiated. We built an agent that <mark class="kw">negotiated on its own</mark> and kept learning from rival teams as the game went on. It even <mark class="kw">ran its own marketplace</mark> where other teams came to trade, and we finished <mark class="kw">3rd out of 18</mark>.
                   </p>
                 </article>
                 <article>
                   <small>INTERNSHIP</small>
                   <h3>AI Engineer · Optimiza</h3>
                   <p>
-                    I built an AI tool that turns raw meeting transcripts into clear summaries and flags the moments where a client sounds unhappy, which replaced a review process people used to do by hand. Along the way I also configured IIS web services across virtual machines and built a chatbot with Hugging Face Transformers and TensorFlow, served through Flask.
+                    I built an AI tool that <mark class="kw">turns raw meeting transcripts into clear summaries</mark> and flags the moments where a client sounds unhappy, which replaced a review process people used to do by hand. Along the way I also configured IIS web services across virtual machines and built a chatbot with <mark class="kw">Hugging Face Transformers and TensorFlow</mark>, served through Flask.
                   </p>
                 </article>
                 <article>
                   <small>INTERNSHIP</small>
                   <h3>Data Scientist · British Airways</h3>
                   <p>
-                    I built an automated system that collected over 13,000 records of competitor fares and seat availability across six routes over two years. Digging into the data uncovered a 29% rise in winter delays and showed demand falling as fares went up on every route, which directly shaped how the airline scheduled its capacity.
+                    I built an automated system that collected <mark class="kw">over 13,000 records</mark> of competitor fares and seat availability across six routes over two years. Digging into the data uncovered a <mark class="kw">29% rise in winter delays</mark> and showed demand falling as fares went up on every route, which directly <mark class="kw">shaped how the airline scheduled its capacity</mark>.
                   </p>
                 </article>
                 <article>
                   <small>AWARD · 1ST PLACE</small>
                   <h3>EDP × IE Datathon</h3>
                   <p>
-                    The challenge was to run battery energy storage systems more efficiently. The batteries charge when solar panels make more power than the grid needs and release it when demand picks up. We predicted supply and demand with multivariate time series forecasting, and our model came first in accuracy.
+                    The challenge was to run battery energy storage systems more efficiently. The batteries charge when solar panels make more power than the grid needs and release it when demand picks up. We predicted supply and demand with <mark class="kw">multivariate time series forecasting</mark>, and our model <mark class="kw">came first in accuracy</mark>.
                   </p>
                 </article>
                 <article>
                   <small>RESEARCH</small>
                   <h3>IE Tech Lab × Bloomberg</h3>
                   <p>
-                    I co-developed a Bloomberg-sponsored ESG trust score that helps investors judge how companies do on sustainability, along with a simplified Bloomberg Terminal built for everyday investors. I got to work directly with the Bloomberg team the whole way through.
+                    I co-developed a Bloomberg-sponsored <mark class="kw">ESG trust score</mark> that helps investors judge how companies do on sustainability, along with a <mark class="kw">simplified Bloomberg Terminal</mark> built for everyday investors. I got to work directly with the Bloomberg team the whole way through.
                   </p>
                 </article>
                 <article>
                   <small>RESEARCH</small>
                   <h3>IE Econ Data Lab × UNDP</h3>
                   <p>
-                    A comparative study for the United Nations Development Programme on how cities in North America and South Asia invest in resilience against disasters and other shocks, built on years of economic time series data.
+                    A comparative study for the <mark class="kw">United Nations Development Programme</mark> on how cities in North America and South Asia invest in resilience against disasters and other shocks, built on years of economic time series data.
                   </p>
                 </article>
               </div>
@@ -325,7 +323,7 @@
                   <div class="tags"><span>AI</span><span>REGULATORY REVIEW</span><span>FOUNDER</span></div>
                   <h3>Pharmable</h3>
                   <p>
-                    My startup! Pharmable uses AI to check pharmaceutical documents against health regulations before they’re submitted. It points out anything that’s missing and shows exactly which rule applies, so teams can fix problems early and spend far less time on review.
+                    My startup! Pharmable uses AI to <mark class="kw">check pharmaceutical documents against health regulations</mark> before they’re submitted. It points out anything that’s missing and shows <mark class="kw">exactly which rule applies</mark>, so teams can fix problems early and spend far less time on review.
                   </p>
                   <a class="text-link" href="https://pharmable.dev/" target="_blank" rel="noopener noreferrer"
                     >Visit pharmable.dev <span aria-hidden="true">↗</span></a
@@ -335,7 +333,7 @@
                   <div class="tags"><span>C++20</span><span>PYTHON</span><span>QUANT FINANCE</span></div>
                   <h3>Schrödinger Local Vol</h3>
                   <p>
-                    Yes, that Schrödinger. This prices SPX options by solving a Schrödinger equation in imaginary time with a C++ Crank-Nicolson solver. I backtested it on 1.2 million real SPX quotes against SVI, Heston and the practitioner smile, and it came out with zero butterfly arbitrage across 2,019 holdout slices.
+                    Yes, that Schrödinger. This prices SPX options by solving a <mark class="kw">Schrödinger equation in imaginary time</mark> with a <mark class="kw">C++ Crank-Nicolson solver</mark>. I backtested it on <mark class="kw">1.2 million real SPX quotes</mark> against SVI, Heston and the practitioner smile, and it came out with <mark class="kw">zero butterfly arbitrage</mark> across 2,019 holdout slices.
                   </p>
                   <a class="text-link" href="https://github.com/issamarida/schrodinger-local-vol" target="_blank" rel="noopener noreferrer"
                     >View source <span aria-hidden="true">↗</span></a
@@ -345,7 +343,7 @@
                   <div class="tags"><span>TYPESCRIPT</span><span>NEXT.JS</span><span>REACT</span></div>
                   <h3>Vocable</h3>
                   <p>
-                    Point it at any webpage and it reads the whole thing out loud, keeping the speech synced to each sentence so you can follow along. When the writing gets dense, it can translate the page or explain it in simpler words.
+                    Point it at any webpage and it <mark class="kw">reads the whole thing out loud</mark>, keeping the speech synced to each sentence so you can follow along. When the writing gets dense, it can <mark class="kw">translate the page or explain it in simpler words</mark>.
                   </p>
                   <a class="text-link" href="https://github.com/issamarida/vocable" target="_blank" rel="noopener noreferrer"
                     >View source <span aria-hidden="true">↗</span></a
@@ -355,7 +353,7 @@
                   <div class="tags"><span>PYTHON</span><span>NLP</span><span>ML EVALUATION</span></div>
                   <h3>Optimus</h3>
                   <p>
-                    The AI voice meeting assistant I worked on during my internship at Optimiza, published here using the public AMI meeting corpus. It labels dialogue acts across 90,142 segments and writes meeting summaries, with ROUGE scores to keep them honest. It also comes with a CLI and tests that run offline.
+                    The AI voice meeting assistant I worked on during my internship at Optimiza, published here using the public AMI meeting corpus. It labels dialogue acts across <mark class="kw">90,142 segments</mark> and writes meeting summaries, with <mark class="kw">ROUGE scores</mark> to keep them honest. It also comes with a CLI and tests that run offline.
                   </p>
                   <a class="text-link" href="https://github.com/issamarida/optimus" target="_blank" rel="noopener noreferrer"
                     >View source <span aria-hidden="true">↗</span></a
@@ -365,7 +363,7 @@
                   <div class="tags"><span>FLASK</span><span>SQLITE</span><span>WEBSOCKETS</span></div>
                   <h3>Stock Watchlist</h3>
                   <p>
-                    Private watchlists with live streaming stock quotes, so you can keep an eye on the market. Everyone logs in to see their own lists, and price alerts fire exactly once. The whole thing is backed by 240 tests covering every statement in the measured modules.
+                    Private watchlists with <mark class="kw">live streaming stock quotes</mark>, so you can keep an eye on the market. Everyone logs in to see their own lists, and <mark class="kw">price alerts fire exactly once</mark>. The whole thing is backed by <mark class="kw">240 tests</mark> covering every statement in the measured modules.
                   </p>
                   <a class="text-link" href="https://github.com/issamarida/devops-a1-issamarida" target="_blank" rel="noopener noreferrer"
                     >View source <span aria-hidden="true">↗</span></a
@@ -375,7 +373,7 @@
                   <div class="tags"><span>C</span><span>SDL2</span><span>3D GRAPHICS</span></div>
                   <h3>Structural Atlas</h3>
                   <p>
-                    A 3D molecule viewer I wrote in C with SDL2. You can flip between wireframe and ball-and-stick views and fly around the structure however you like.
+                    A <mark class="kw">3D molecule viewer</mark> I wrote in <mark class="kw">C with SDL2</mark>. You can flip between wireframe and ball-and-stick views and fly around the structure however you like.
                   </p>
                   <a class="text-link" href="https://github.com/issamarida/structural_atlas" target="_blank" rel="noopener noreferrer"
                     >View source <span aria-hidden="true">↗</span></a
@@ -400,7 +398,7 @@
                 <article>
                   <h3>Hand-drawn canvas</h3>
                   <p>
-                    Every pixel here is drawn on a 2D canvas with my own code. There’s no game engine and no libraries, just a whole lot of tiny rectangles.
+                    Every pixel here is drawn on a 2D canvas with my own code. There’s <mark class="kw">no game engine and no libraries</mark>, just a whole lot of tiny rectangles.
                   </p>
                 </article>
                 <article>
@@ -412,13 +410,13 @@
                 <article>
                   <h3>Cabins you can enter</h3>
                   <p>
-                    Every cabin has its own cozy room inside. Walk up to the book on the lectern and it opens that part of my portfolio.
+                    Every cabin has its <mark class="kw">own cozy room inside</mark>. Walk up to the book on the lectern and it opens that part of my portfolio.
                   </p>
                 </article>
                 <article>
                   <h3>Opening scene</h3>
                   <p>
-                    When you hit start, the camera swoops down to my cabin and I walk out the door to say hi.
+                    When you hit start, the <mark class="kw">camera swoops down</mark> to my cabin and I walk out the door to say hi.
                   </p>
                 </article>
                 <article>
@@ -430,7 +428,7 @@
                 <article>
                   <h3>Accessibility</h3>
                   <p>
-                    It respects reduced motion and works with just a keyboard. And if you’d rather not play at all, everything is right here to read.
+                    It <mark class="kw">respects reduced motion</mark> and works with <mark class="kw">just a keyboard</mark>. And if you’d rather not play at all, everything is right here to read.
                   </p>
                 </article>
               </div>

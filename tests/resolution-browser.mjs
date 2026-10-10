@@ -114,9 +114,7 @@ try {
           shell = rect(".shell");
         return {
           boardBottom: rect(".reading-invitation").bottom,
-          controlsBottom: rect(".keyboard-hint").bottom,
-          controlsCenter:
-            (rect(".keyboard-hint").left + rect(".keyboard-hint").right) / 2,
+          controlsBar: document.querySelectorAll(".keyboard-hint").length,
           boardCentered: (() => {
             const a = rect(".reading-invitation a"),
               h = rect(".reading-invitation strong"),
@@ -171,13 +169,22 @@ try {
             const clouds = [...document.querySelectorAll(".sky-header .sky-cloud")].map(
               (e) => e.getBoundingClientRect(),
             );
-            const hint = rect(".keyboard-hint");
             const apart = (a, b) =>
               a.right <= b.left || a.left >= b.right || a.bottom <= b.top || a.top >= b.bottom;
             return {
               count: clouds.length,
               apart: clouds.every((a, i) => clouds.every((b, j) => i === j || apart(a, b))),
-              clearOfHint: clouds.every((c) => apart(c, hint)),
+              // Each cloud's painted puffs stay whole on screen.
+              puffsOnScreen: [...document.querySelectorAll(".sky-header .sky-cloud")].every(
+                (e) => {
+                  const r = e.getBoundingClientRect(),
+                    puff = getComputedStyle(e, "::before");
+                  return (
+                    r.left + parseFloat(puff.left) >= -0.5 &&
+                    r.right - parseFloat(puff.right) <= innerWidth + 0.5
+                  );
+                },
+              ),
               inside: clouds.every(
                 (c) => c.left >= shell.left - 0.5 && c.right <= shell.right + 0.5,
               ),
@@ -202,15 +209,15 @@ try {
           ),
         };
       });
-      assert.ok(opening.controlsBottom < opening.portraitTop, `controls overlap portrait at ${width}px`);
-      assert.ok(Math.abs(opening.controlsCenter - width / 2) < 1);
+      assert.equal(opening.controlsBar, 0, "No controls bar above the moon");
       assert.ok(
         opening.boardInset,
         "Reading sign content must stay inset within its wood face",
       );
       assert.equal(opening.clouds.count, 4);
       assert.ok(opening.clouds.apart, `Cloud text must not overlap at ${width}px`);
-      assert.ok(opening.clouds.clearOfHint && opening.clouds.inside);
+      assert.ok(opening.clouds.inside);
+      assert.ok(opening.clouds.puffsOnScreen, `Clouds must not be cut off at ${width}px`);
       if (width > 740) {
         assert.ok(
           opening.promptBottom <= height,
@@ -218,10 +225,14 @@ try {
         );
         assert.ok(
           opening.heroSign.bottom <= opening.promptBottom &&
-            opening.heroSign.top >= opening.gameTop &&
-            // West of the player's sprite at the village's walkable edge.
-            opening.heroSign.right <= metrics.left + (142 * metrics.width) / 960 + 0.5,
-          "The reading sign belongs to the opening view on desktop",
+            // Below the player standing at the fountain (feet at y 355).
+            opening.heroSign.top >= opening.gameTop + (362 * metrics.width) / 960 &&
+            // Centred under the fountain (x 482).
+            Math.abs(
+              (opening.heroSign.left + opening.heroSign.right) / 2 -
+                (metrics.left + (482 * metrics.width) / 960),
+            ) < 2,
+          "The reading sign stands under the fountain in the opening view",
         );
       }
       assert.ok(

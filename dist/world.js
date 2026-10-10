@@ -2028,6 +2028,7 @@ export class World {
         if (this.interior && this.player.y > EXIT_Y) this.leaveCabin();
         else this.updateNear();
         this.updateSignShade();
+        if (this.walking) this.onStep?.(this.player);
       } else this.walking = false;
       this.time += dt;
       this.draw();

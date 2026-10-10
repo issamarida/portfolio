@@ -2696,7 +2696,7 @@ html.intro-open {
   position: fixed;
   inset: 0;
   z-index: 100;
-  background: #050b12;
+  background: none;
   font-family: var(--pixel);
   color: #f3ead2;
 }
@@ -2735,10 +2735,12 @@ html.intro-open {
   padding: 24px 16px;
   overflow: hidden;
 }
+/* The night sea fills the page column; the temple margins frame it. */
 .intro-night {
   position: absolute;
-  inset: 0;
+  inset: 0 var(--gutter, 0px);
   overflow: hidden;
+  background: #050b12;
 }
 .intro-backdrop {
   animation: intro-ink 0.8s ease-out both;
@@ -2772,7 +2774,7 @@ html.intro-open {
 .intro-title-screen::after {
   content: "";
   position: absolute;
-  inset: 0;
+  inset: 0 var(--gutter, 0px);
   background: radial-gradient(ellipse at 50% 50%, transparent 40%, #03070aaa 100%);
   pointer-events: none;
 }
@@ -2788,78 +2790,92 @@ html.intro-open {
   opacity: 0;
 }
 .intro-start {
-  --paper: min(560px, calc(100vw - 104px));
+  --plank-w: min(600px, calc(100vw - 48px));
   position: relative;
   z-index: 1;
-  display: flex;
-  align-items: stretch;
+  display: block;
   padding: 0;
   border: 0;
   background: none;
   cursor: pointer;
-  color: #3b2412;
+  color: #f0dcaa;
   font: 400 clamp(30px, 5.2vw, 50px) / 1.05 var(--pixel);
+  transform-origin: 50% -40vh;
+  animation: plank-drop 1.25s cubic-bezier(0.3, 0.7, 0.4, 1) 0.25s both;
 }
-.intro-paper {
+/* Once it has landed, the board keeps swaying gently on its ropes. */
+.intro-start .intro-plank {
+  transform-origin: 50% -40vh;
+  animation: plank-sway 4.8s ease-in-out 1.5s infinite alternate;
+}
+/* A broken board from the village, painted to size by plank.js. */
+.intro-plank {
   position: relative;
   display: block;
-  width: var(--paper);
-  padding: 34px 28px 38px;
-  background:
-    linear-gradient(90deg, #6e4a2040, transparent 9%, transparent 91%, #6e4a2040),
-    radial-gradient(ellipse at 50% 45%, #f6e7bd 35%, #e6cc92 80%, #d6b475 100%);
-  box-shadow:
-    inset 0 4px 0 #fff3d0,
-    inset 0 -6px 0 #c4a062,
-    0 14px 0 #00000059;
-  clip-path: inset(-10px 0 -20px 0);
-  animation: intro-unfurl 2.2s var(--unroll) 0.4s both;
+  background: var(--plank) center / 100% 100% no-repeat;
+  image-rendering: pixelated;
+  filter: drop-shadow(0 calc(4 * var(--plank-px, 3px)) 0 #00000066);
 }
-/* Ragged, pixel-stepped deckle edges along the top and bottom. */
-.intro-paper::before,
-.intro-paper::after {
+.intro-start .intro-plank {
+  width: var(--plank-w);
+  padding: 40px 34px 44px;
+}
+/* Two ropes run up out of sight. */
+.intro-start .intro-plank::before,
+.intro-start .intro-plank::after {
   content: "";
   position: absolute;
-  left: 0;
-  right: 0;
-  height: 6px;
+  bottom: calc(100% - 3 * var(--plank-px, 3px));
+  left: 16%;
+  width: calc(2 * var(--plank-px, 3px));
+  height: 100vh;
   background: repeating-linear-gradient(
-    90deg,
-    #f3e2b4 0 12px,
-    transparent 12px 16px,
-    #e6cc92 16px 26px,
-    transparent 26px 30px
+    180deg,
+    #a07a48 0 calc(2 * var(--plank-px, 3px)),
+    #5a4128 0 calc(4 * var(--plank-px, 3px))
   );
+  box-shadow: calc(1 * var(--plank-px, 3px)) 0 0 #241b12;
 }
-.intro-paper::before {
-  top: -6px;
-}
-.intro-paper::after {
-  bottom: -6px;
-  background: repeating-linear-gradient(
-    90deg,
-    #d6b475 0 8px,
-    transparent 8px 14px,
-    #d6b475 14px 28px,
-    transparent 28px 32px
-  );
+.intro-start .intro-plank::after {
+  left: auto;
+  right: 16%;
 }
 .intro-start-label {
   display: block;
   text-align: center;
   letter-spacing: 2px;
-  text-shadow: 2px 2px 0 #fff3d080;
-  animation: intro-ink 0.8s steps(8) 1.6s both;
+  text-shadow:
+    3px 3px 0 #2b1f14,
+    0 0 14px #f2c36a33;
+  animation: intro-ink 0.6s steps(6) 1.2s both;
 }
-/* The scroll snaps open quickly, then eases out to its full width.
-   Paper and rollers share one rhythm: a brief closed fade-in first. */
-.intro {
-  --unroll: cubic-bezier(0.12, 0.8, 0.3, 1);
+@keyframes plank-drop {
+  from {
+    opacity: 0;
+    transform: translateY(-110vh) rotate(-5deg);
+  }
+  8% {
+    opacity: 1;
+  }
+  58% {
+    transform: translateY(14px) rotate(2.4deg);
+  }
+  74% {
+    transform: translateY(-6px) rotate(-1.4deg);
+  }
+  88% {
+    transform: translateY(2px) rotate(0.6deg);
+  }
+  to {
+    transform: none;
+  }
 }
-@keyframes intro-unfurl {
-  from,
-  10% {
-    clip-path: inset(-10px 50% -20px 50%);
+@keyframes plank-sway {
+  from {
+    rotate: -0.7deg;
+  }
+  to {
+    rotate: 0.7deg;
   }
 }
 @keyframes intro-ink {
@@ -2867,111 +2883,30 @@ html.intro-open {
     opacity: 0;
   }
 }
-/* Rolled parchment ends with turned wooden handles. */
-.intro-roller {
-  position: relative;
-  z-index: 1;
-  flex: none;
-  width: 30px;
-  margin: -8px 0;
-  background: linear-gradient(
-    90deg,
-    #7a5530 0 4px,
-    #c9a466 4px 8px,
-    #f6e6bb 8px 16px,
-    #e2c68c 16px 22px,
-    #a87c4a 22px 26px,
-    #6e4a20 26px
-  );
-  box-shadow: 0 14px 0 #00000059;
-  animation: intro-roll-left 2.2s var(--unroll) 0.4s both;
-}
-.intro-roller:last-child {
-  animation-name: intro-roll-right;
-}
-.intro-roller::before,
-.intro-roller::after {
-  content: "";
-  position: absolute;
-  left: 7px;
-  width: 16px;
-  height: 22px;
-  background: linear-gradient(
-    90deg,
-    #3a2210 0 3px,
-    #8a5a30 3px 8px,
-    #c08850 8px 11px,
-    #5a3818 11px
-  );
-}
-.intro-roller::before {
-  top: -22px;
-  border-top: 6px solid #d8b064;
-}
-.intro-roller::after {
-  bottom: -22px;
-  border-bottom: 6px solid #d8b064;
-}
-/* The closed scroll fades in, then its rollers part. */
-@keyframes intro-roll-left {
-  from {
-    opacity: 0;
-    transform: translateX(calc(var(--paper) / 2 + 15px));
-  }
-  10% {
-    opacity: 1;
-    transform: translateX(calc(var(--paper) / 2 + 15px));
-  }
-}
-@keyframes intro-roll-right {
-  from {
-    opacity: 0;
-    transform: translateX(calc(var(--paper) / -2 - 15px));
-  }
-  10% {
-    opacity: 1;
-    transform: translateX(calc(var(--paper) / -2 - 15px));
-  }
-}
-.intro-start:hover,
-.intro-start:focus-visible {
-  outline: none;
-  transform: translateY(-4px);
-}
 .intro-start:hover .intro-start-label,
 .intro-start:focus-visible .intro-start-label {
-  color: #7d1f24;
+  color: #fff3cf;
+  text-shadow:
+    3px 3px 0 #2b1f14,
+    0 0 18px #f2c36a99;
 }
-.intro-start:focus-visible .intro-paper {
+.intro-start:focus-visible {
+  outline: none;
+}
+.intro-start:focus-visible .intro-plank {
   outline: 3px dashed #f6cf5a;
   outline-offset: 10px;
 }
-/* Clicking rolls the scroll back up as the camera swoops in. */
+/* Starting yanks the plank back up on its ropes as the camera swoops in. */
 .intro.is-playing .intro-start {
-  opacity: 0;
+  animation: plank-lift 0.45s cubic-bezier(0.5, 0, 0.9, 0.6) both;
 }
-.intro.is-playing .intro-start .intro-paper {
-  animation: intro-furl 0.35s ease-in both;
-}
-.intro.is-playing .intro-start .intro-roller {
-  animation: intro-furl-left 0.35s ease-in both;
-}
-.intro.is-playing .intro-start .intro-roller:last-child {
-  animation-name: intro-furl-right;
-}
-@keyframes intro-furl {
-  to {
-    clip-path: inset(-10px 50% -20px 50%);
+@keyframes plank-lift {
+  from {
+    transform: translateY(10px);
   }
-}
-@keyframes intro-furl-left {
   to {
-    transform: translateX(calc(var(--paper) / 2 + 15px));
-  }
-}
-@keyframes intro-furl-right {
-  to {
-    transform: translateX(calc(var(--paper) / -2 - 15px));
+    transform: translateY(-110vh) rotate(3deg);
   }
 }
 .intro-skip {
@@ -2998,7 +2933,7 @@ html.intro-open {
   outline-offset: 3px;
 }
 .intro-dialog {
-  --paper: min(800px, calc(100vw - 92px));
+  --paper: min(800px, calc(100vw - 32px));
   position: absolute;
   left: 50%;
   bottom: max(36px, 4.5vh);
@@ -3010,19 +2945,30 @@ html.intro-open {
 .intro-dialog[hidden] {
   display: none;
 }
-/* The dialogue is the title scroll again, unrolling a little quicker. */
-.intro-dialog .intro-paper {
+/* The greeting is painted on a broken plank too; it swings up into place. */
+.intro-dialog .intro-plank {
   display: flex;
   gap: 20px;
   align-items: flex-start;
-  padding: 22px 24px 24px;
-  animation: intro-unfurl 0.8s var(--unroll) both;
+  width: var(--paper);
+  padding: 26px 30px 30px;
+  transform-origin: 50% 120%;
+  animation: plank-rise 0.7s cubic-bezier(0.3, 0.75, 0.4, 1.15) both;
 }
-.intro-dialog .intro-roller {
-  animation: intro-roll-left 0.8s var(--unroll) both;
-}
-.intro-dialog .intro-roller:last-child {
-  animation-name: intro-roll-right;
+@keyframes plank-rise {
+  from {
+    opacity: 0;
+    transform: translateY(70%) rotate(3deg);
+  }
+  20% {
+    opacity: 1;
+  }
+  70% {
+    transform: translateY(-6px) rotate(-1deg);
+  }
+  to {
+    transform: none;
+  }
 }
 .intro-dialog img {
   flex: none;
@@ -3054,7 +3000,8 @@ html.intro-open {
   margin: 0;
   font-size: clamp(22px, 3vw, 28px);
   line-height: 1.35;
-  color: #3b2412;
+  color: #f6e7c4;
+  text-shadow: 2px 2px 0 #2b1f14;
 }
 .intro-controls {
   display: flex;
@@ -3064,7 +3011,8 @@ html.intro-open {
   gap: 10px 18px;
   margin: 14px 0 0;
   font-size: 20px;
-  color: #6b4a2a;
+  color: #dcc394;
+  text-shadow: 1px 1px 0 #2b1f14;
 }
 .intro-controls[hidden] {
   display: none;
@@ -3106,10 +3054,13 @@ html.intro-open {
   outline-offset: 4px;
 }
 @media (max-width: 600px) {
-  /* On phones the words wrap round the portrait to keep the scroll short. */
-  .intro-dialog .intro-paper {
+  /* On phones the words wrap round the portrait to keep the plank short. */
+  .intro-dialog .intro-plank {
     display: block;
-    padding: 14px;
+    padding: 18px 18px 20px;
+  }
+  .intro-start .intro-plank {
+    padding: 30px 22px 32px;
   }
   .intro-dialog img {
     float: left;
@@ -3133,14 +3084,20 @@ html.intro-open {
   .intro.is-leaving,
   .intro-night,
   .intro-glints,
-  .intro-paper,
-  .intro-roller,
+  .intro-start,
+  .intro-plank,
   .intro-start-label,
   .intro-skip,
   .intro-continue span,
   .intro-dialog {
     animation: none !important;
   }
+  .intro.is-playing .intro-start {
+    visibility: hidden;
+  }
+}
+.intro.is-playing .intro-start {
+  pointer-events: none;
 }
 .intro-touch {
   display: none;
@@ -3158,6 +3115,13 @@ html.intro-open {
 .world-wrap.is-inside .building-access,
 .world-wrap.is-transitioning .building-access {
   visibility: hidden;
+}
+/* The reading sign belongs to the village green, so it is not in the room. */
+@media (min-width: 741px) {
+  #journey-world:has(.world-wrap.is-inside) .reading-invitation a,
+  #journey-world:has(.world-wrap.is-transitioning) .reading-invitation a {
+    visibility: hidden;
+  }
 }
 
 .open-note {
@@ -3300,8 +3264,8 @@ dialog .section-body li {
 }
 
 /* Four moonlit clouds carry the name and contact details. */
-/* A temple wall fills both margins from edge to edge; only its brazier
-   flames move, and they rest when motion is reduced. */
+/* One moss-grown carved column fills each margin from edge to edge;
+   only a few fireflies move over it, and they rest when motion is reduced. */
 .temple {
   position: fixed;
   inset: 0;
@@ -3319,54 +3283,42 @@ dialog .section-body li {
   height: 100%;
   image-rendering: pixelated;
 }
-.temple-flame {
+.temple-firefly {
   position: absolute;
-  width: calc(11 * var(--px));
-  height: calc(14 * var(--px));
-  background-size: 300% 100%;
-  background-repeat: no-repeat;
-  image-rendering: pixelated;
-  animation: temple-flame 0.48s steps(1, end) infinite;
+  width: var(--px);
+  height: var(--px);
+  background: #e9f5a0;
+  box-shadow:
+    0 0 calc(3 * var(--px)) calc(1 * var(--px)) #d7ef7a66,
+    0 0 calc(9 * var(--px)) #c6e06a33;
+  opacity: 0;
+  animation: temple-firefly 9s steps(36, end) infinite;
 }
-.temple-flame::after {
-  content: "";
-  position: absolute;
-  left: 50%;
-  top: 55%;
-  width: calc(64 * var(--px));
-  height: calc(64 * var(--px));
-  transform: translate(-50%, -50%);
-  background: radial-gradient(
-    closest-side,
-    #ffb45a2e,
-    #ff9a3c14 55%,
-    transparent
-  );
-  animation: temple-glow 1.9s steps(4, end) infinite alternate;
-}
-@keyframes temple-flame {
+@keyframes temple-firefly {
   0% {
-    background-position: 0 0;
+    opacity: 0;
+    transform: translate(0, 0);
   }
-  33.33% {
-    background-position: 50% 0;
-  }
-  66.66% {
-    background-position: 100% 0;
-  }
-}
-@keyframes temple-glow {
-  from {
-    opacity: 0.75;
-  }
-  to {
+  15%,
+  40% {
     opacity: 1;
+  }
+  55% {
+    opacity: 0.2;
+    transform: translate(calc(14 * var(--px)), calc(-22 * var(--px)));
+  }
+  70% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(calc(-6 * var(--px)), calc(-44 * var(--px)));
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  .temple-flame,
-  .temple-flame::after {
+  .temple-firefly {
     animation: none;
+    opacity: 0.7;
   }
 }
 .sky-header .header {
@@ -3426,28 +3378,9 @@ dialog .section-body li {
   image-rendering: pixelated;
   pointer-events: none;
 }
-/* One loose puff rises from each cloud so no two share a silhouette. */
+/* Each cloud is one outline: no loose puff floating on top. */
 .sky-header .header .sky-cloud::after {
-  inset: auto;
-  left: var(--puff-x, 60%);
-  top: calc(-15 * var(--cp));
-  width: calc(22 * var(--cp));
-  height: calc(12 * var(--cp));
-  border: 0;
-  background: url("./art/cloud-puff.svg") center / 100% 100% no-repeat;
-  transform: translateX(-50%);
-}
-.sky-header .identity {
-  --puff-x: 58%;
-}
-.sky-header .contact .email-link {
-  --puff-x: 30%;
-}
-.sky-header .header .social-links a.cloud-github {
-  --puff-x: 64%;
-}
-.sky-header .header .social-links a.cloud-linkedin {
-  --puff-x: 38%;
+  content: none;
 }
 .sky-header .identity {
   left: 2.6cqw;
@@ -3785,5 +3718,40 @@ mark.kw {
     animation: none;
     color: #fff0c2;
     background-size: 100% 100%;
+  }
+}
+
+/* The door prompt follows the player, standing under their feet, and
+   pops up each time they reach a cabin, lectern or doorway. */
+.world-wrap .interact {
+  top: 0;
+  bottom: auto;
+  left: 0;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  max-width: none;
+  animation: prompt-pop 0.28s steps(4, end) both;
+}
+@keyframes prompt-pop {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 8px) scale(0.85);
+  }
+}
+@media (max-width: 700px) {
+  .world-wrap .interact {
+    font-size: 16px;
+    padding: 3px 7px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .world-wrap .interact {
+    animation: none;
+  }
+}
+/* Touch screens walk with the arrow pad, so the key reminder stays away. */
+@media (pointer: coarse), (max-width: 740px) {
+  .walk-hint {
+    display: none;
   }
 }

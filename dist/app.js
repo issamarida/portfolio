@@ -16,12 +16,28 @@ function prompt(near, kind) {
     near === "gamedev" ? "game development" : areas[near].name.toLowerCase();
   return `Enter the ${section} cabin`;
 }
+// The prompt stands just under the player's feet (or over their head when
+// they are near the bottom of the frame), kept inside the play area.
+function placePrompt() {
+  if (interact.hidden) return;
+  const wrap = interact.parentElement,
+    width = wrap.clientWidth,
+    height = wrap.clientHeight,
+    scale = width / 960,
+    { x, y } = world.player,
+    half = interact.offsetWidth / 2,
+    below = (y + 10) * scale + interact.offsetHeight <= height - 4;
+  interact.style.left = `${Math.min(width - half - 4, Math.max(half + 4, x * scale))}px`;
+  interact.style.top = `${below ? (y + 10) * scale : (y - 52) * scale - interact.offsetHeight}px`;
+}
 const world = new World(canvas, (near, kind) => {
   interact.hidden = !near;
   const label = near ? prompt(near, kind) : "";
   interact.querySelector("span").textContent = label;
   status.textContent = label && `Press E to ${label.toLowerCase()}`;
+  placePrompt();
 });
+world.onStep = placePrompt;
 const worldWrap = document.querySelector(".world-wrap");
 // Each roof label sits exactly over its painted billboard, in the button's
 // own percentage space, so hover, focus and clicks match the art.
@@ -167,6 +183,7 @@ function resizeJourney() {
   );
   updateViewport();
   world.draw();
+  placePrompt();
 }
 resizeJourney();
 function scheduleResize() {

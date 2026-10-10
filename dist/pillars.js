@@ -45,7 +45,9 @@ function shade(t) {
 }
 
 // One carved column with its forest floor, as packed RGBA pixels (0 = clear).
-export function pillarPixels(W, H, seed) {
+// As a `shaft`, the column fills the whole width and simply runs on past
+// the top and bottom: no capital, no base and no ground, only stone and moss.
+export function pillarPixels(W, H, seed, shaft = false) {
   const rand = seeded(seed);
   const stone = new Int8Array(W * H).fill(-1),
     special = new Map(),
@@ -76,8 +78,8 @@ export function pillarPixels(W, H, seed) {
     }
   };
 
-  const PW = Math.max(14, Math.min(66, Math.round(W * 0.48))) & ~1,
-    x0 = Math.floor(W / 2) - PW / 2,
+  const PW = shaft ? W : Math.max(14, Math.min(66, Math.round(W * 0.48))) & ~1,
+    x0 = shaft ? 0 : Math.floor(W / 2) - PW / 2,
     groundH = Math.max(7, Math.round(H * 0.04)),
     groundY = H - groundH;
 
@@ -105,17 +107,24 @@ export function pillarPixels(W, H, seed) {
     if (rand() < 0.7) stone[y * W + x + w - 1] = -1;
   };
 
+  // Panels repeat down the shaft at a height that suits its width.
+  const panelTarget = Math.round(Math.min(PW, 88) * 1.25) + 5,
+    overrun = Math.round(panelTarget * 0.4);
+  let capitalTop = -overrun,
+    shaftTop = -overrun,
+    shaftBottom = H + overrun;
+  if (!shaft) {
   // Capital: abacus, step frieze and a narrow collar.
   let y = 3;
   slab(x0 - 7, y, PW + 14, 4);
-  const capitalTop = y;
+  capitalTop = y;
   y += 4;
   block(x0 - 5, y, PW + 10, 8);
   frieze(x0 - 5, y, PW + 10);
   y += 8;
   slab(x0 - 2, y, PW + 4, 3);
   y += 3;
-  const shaftTop = y;
+  shaftTop = y;
 
   // Base: collar, frieze plinth and a wide footing slab.
   let by = groundY;
@@ -126,15 +135,28 @@ export function pillarPixels(W, H, seed) {
   by -= 8;
   slab(x0 - 2, by - 3, PW + 4, 3);
   by -= 3;
-  const shaftBottom = by;
+  shaftBottom = by;
+  }
 
   // The shaft itself, shaded like a rounded drum.
   block(x0, shaftTop, PW, shaftBottom - shaftTop);
+  if (shaft) {
+    // A broad shaft sits deeper in shadow, and vertical flutes run down the
+    // stone on either side of the carved panels.
+    for (let i = 0; i < W * H; i++) if (stone[i] > 1) stone[i]--;
+    const side = (PW - Math.min(PW - 6, 88)) / 2;
+    for (let xx = x0 + 3; xx < x0 + PW - 3; xx += 6)
+      if (xx < x0 + side - 2 || xx > x0 + PW - side + 1)
+        for (let yy = 0; yy < H; yy++) {
+          nudge(xx, yy, -2);
+          nudge(xx + 1, yy, 1);
+        }
+  }
 
   // Panels separated by bands of round chalchihuitl studs.
   const band = 5,
     span = shaftBottom - shaftTop,
-    target = Math.round(PW * 1.2) + band,
+    target = shaft ? panelTarget : Math.round(PW * 1.2) + band,
     count = Math.max(1, Math.round((span - band) / target)),
     panelH = (span - band) / count - band;
   const motifs = ["sun", "scales", "mask", "diamonds"];
@@ -153,7 +175,7 @@ export function pillarPixels(W, H, seed) {
     if (i === count) break;
     const py = top + band,
       ph = Math.round(panelH),
-      inset = 3;
+      inset = shaft ? Math.max(3, Math.round((PW - Math.min(PW - 6, 88)) / 2)) : 3;
     const mask = new Set(),
       px = x0 + inset,
       pw = PW - inset * 2;
@@ -182,7 +204,7 @@ export function pillarPixels(W, H, seed) {
             mask.add(`${xx},${yy}`);
           const ray = Math.abs(((a / (Math.PI / 4)) % 1 + 1) % 1 - 0.5) > 0.38;
           if (ray && d > R + 1 && d < R + 3.4) mask.add(`${xx},${yy}`);
-          if (d < Math.max(1.2, R - 5)) jade.push([xx, yy, d < R - 6.5 ? 2 : 1]);
+          if (d < Math.max(1.2, Math.min(R - 5, 5))) jade.push([xx, yy, d < 2.5 ? 2 : 1]);
         }
     } else if (motif === "scales") {
       // Feathered-serpent scales: stacked chevrons down the drum.
@@ -192,7 +214,7 @@ export function pillarPixels(W, H, seed) {
             mask.add(`${xx},${yy}`);
     } else if (motif === "mask") {
       // A goggle-eyed rain mask: ringed eyes, curled lip and fangs.
-      const eye = Math.max(2, Math.floor(pw / 7)),
+      const eye = Math.max(2, Math.min(7, Math.floor(pw / 7))),
         eyeY = py + Math.round(ph * 0.34),
         eyes = [cx - pw * 0.22, cx + pw * 0.22];
       for (const ex of eyes)
@@ -261,10 +283,43 @@ export function pillarPixels(W, H, seed) {
       yy = (i / W) | 0;
     // Moss settles on ledges and in shaded recesses.
     const ledge = yy > 0 && stone[i - W] < 0,
-      recess = stone[i] <= 1 && rand() < 0.18;
+      recess = stone[i] <= 1 && rand() < (shaft ? 0.42 : 0.18);
     if ((ledge && rand() < 0.65) || recess)
       special.set(i, MOSS[ledge ? (rand() < 0.5 ? 2 : 3) : rand() < 0.5 ? 0 : 1]);
     if (ledge && rand() < 0.4 && yy > 1) special.set(i - W, MOSS[2]);
+  }
+
+  if (shaft) {
+    // Thick moss: cushions on the shaded side and along every stud band,
+    // with strands hanging from the bands below.
+    const cushion = (cx, cy, r) => {
+      for (let yy = Math.floor(cy - r); yy <= cy + r; yy++)
+        for (let xx = Math.floor(cx - r * 1.4); xx <= cx + r * 1.4; xx++) {
+          if (!inside(xx, yy)) continue;
+          const d = Math.hypot((xx - cx) / 1.4, yy - cy) / r;
+          if (d > 1 || rand() < d * 0.6) continue;
+          const lit = Math.min(3, Math.floor(((xx - x0) / PW) * 2.2 + (cy - yy > r * 0.3 ? 1 : 0)));
+          special.set(yy * W + xx, MOSS[Math.max(0, lit)]);
+        }
+    };
+    for (let i = 0; i < Math.round((W * H) / 260); i++)
+      cushion(
+        x0 + PW * Math.pow(rand(), 1.8),
+        Math.floor(rand() * H),
+        1.5 + rand() * 4.5,
+      );
+    for (let i = 0; i <= count; i++) {
+      const top = Math.round(shaftTop + i * (panelH + band));
+      for (let xx = x0; xx < x0 + PW; xx++) {
+        if (rand() < 0.5) cushion(xx, top + 1, 1 + rand() * 2.2);
+        if (rand() < 0.12) {
+          const length = 2 + Math.floor(rand() * 9);
+          for (let k = 0; k < length; k++)
+            if (inside(xx, top + band + k))
+              special.set((top + band + k) * W + xx, k < length - 1 ? MOSS[1] : MOSS[2]);
+        }
+      }
+    }
   }
 
   // Compose stone, then a dark outline around the silhouette.
@@ -288,13 +343,18 @@ export function pillarPixels(W, H, seed) {
       put(x, yy, special.has(i) ? special.get(i) : RAMP[0]);
   }
 
-  // A vine trails from the capital down the shaded side of the column.
-  const vineLength = (shaftBottom - shaftTop) * (0.45 + rand() * 0.25),
-    amp = PW * 0.22,
-    vineX = x0 + PW * 0.18;
+  // A vine trails from the capital down the shaded side of the column;
+  // a shaft carries several, wandering its whole height.
+  for (const [vineX, amp, vineLength] of shaft
+    ? [0.12, 0.47, 0.83].map((f, k) => [
+        x0 + PW * f,
+        Math.min(PW * 0.12, 14),
+        (shaftBottom - shaftTop) * (k === 1 ? 0.55 + rand() * 0.3 : 1),
+      ])
+    : [[x0 + PW * 0.18, PW * 0.22, (shaftBottom - shaftTop) * (0.45 + rand() * 0.25)]]) {
   let last = null;
   for (let vy = capitalTop + 2; vy < shaftTop + vineLength; vy++) {
-    const vx = Math.round(vineX + Math.sin(vy * 0.11 + seed) * amp);
+    const vx = Math.round(vineX + Math.sin(vy * 0.11 + seed + vineX) * amp);
     put(vx, vy, LEAF[0]);
     if (last !== null && Math.abs(vx - last) > 1)
       put((vx + last) / 2, vy, LEAF[0]);
@@ -308,6 +368,8 @@ export function pillarPixels(W, H, seed) {
       if (rand() < 0.5) put(vx + dir * 2, vy + 1, LEAF[1]);
     }
   }
+  }
+  if (shaft) return pixels;
   // Leaves spill over the capital's top edge.
   for (let lx = x0 - 6; lx < x0 + PW + 6; lx++)
     if (rand() < 0.45) {
@@ -371,434 +433,43 @@ export function paintPillar(canvas, mirror, seed) {
 }
 
 
-// The temple wall behind the columns: darker than the pillars so they stand
-// forward, with faded red pigment in the carvings and firelit braziers.
-const WALL = [
-  "#0b0d0b",
-  "#141612",
-  "#1b1d18",
-  "#22241e",
-  "#2b2c25",
-  "#35352d",
-  "#424037",
-  "#535045",
-];
-const OCHRE = ["#2e1915", "#45231b", "#5e2f23", "#7a3d2b"];
-const TURQUOISE = ["#1a3532", "#25504a", "#367064"];
-const FIRE = ["#6b2210", "#b4451a", "#e7802a", "#ffc65c", "#fff1b8"];
-// A hooked step-fret (xicalcoliuhqui): raised stone "#", carved and painted ".".
-const FRET = [
-  "#######",
-  "#.....#",
-  "#.###.#",
-  "#.#.#.#",
-  "#.#...#",
-  "#.#####",
-  "#......",
-  "######.",
-  ".......",
-  "#####.#",
-  "#...#.#",
-  "#.#.#.#",
-  "#.#...#",
-  "#.#####",
-];
-// Glyph stones set into the wall: sun, stepped pyramid, spiral and serpent eye.
-const GLYPHS = [
-  [
-    "....####....",
-    "..##....##..",
-    ".#..####..#.",
-    ".#.#....#.#.",
-    "#.#..##..#.#",
-    "#.#.#..#.#.#",
-    "#.#.#..#.#.#",
-    "#.#..##..#.#",
-    ".#.#....#.#.",
-    ".#..####..#.",
-    "..##....##..",
-    "....####....",
-  ],
-  [
-    "............",
-    ".....##.....",
-    ".....##.....",
-    "....####....",
-    "....#..#....",
-    "...######...",
-    "...#.##.#...",
-    "..########..",
-    "..#..##..#..",
-    ".##########.",
-    ".#...##...#.",
-    "############",
-  ],
-  [
-    "############",
-    "#..........#",
-    "#.########.#",
-    "#.#......#.#",
-    "#.#.####.#.#",
-    "#.#.#..#.#.#",
-    "#.#.#.##.#.#",
-    "#.#.#....#.#",
-    "#.#.######.#",
-    "#.#........#",
-    "#.##########",
-    "#...........",
-  ],
-  [
-    "..########..",
-    ".#........#.",
-    "#..######..#",
-    "#.#......#.#",
-    "#.#.####.#.#",
-    "#.#.#..#.#.#",
-    "#.#.#..#.#.#",
-    "#.#.####.#.#",
-    "#.#......#.#",
-    "#..######..#",
-    ".#..#..#..#.",
-    "..##.##.##..",
-  ],
-];
-const BAYER = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5];
-
-// Paints a whole margin: a carved lintel, coursed masonry, a step-fret band
-// along the page, a stepped platform and as many columns as fit. Authored
-// with the page on the right; `mirror` flips it for the right-hand margin.
-// Returns the brazier flames in canvas pixels for the animated overlay.
+// Each margin is one carved, moss-grown column running from the top of the
+// screen to the bottom and past both, mirrored so its lit side faces the page.
 export function paintTemple(canvas, mirror, seed) {
-  const W = canvas.width,
-    H = canvas.height,
-    rand = seeded(seed * 7919 + 1);
-  const shade = new Int8Array(W * H).fill(2),
-    paint = new Map(),
-    inside = (x, y) => x >= 0 && y >= 0 && x < W && y < H;
-  const setShade = (x, y, v) => {
-    if (inside(x, y)) shade[y * W + x] = Math.max(0, Math.min(7, v));
-  };
-  const nudge = (x, y, d) => {
-    if (inside(x, y)) setShade(x, y, shade[y * W + x] + d);
-  };
-  const tint = (x, y, hex) => {
-    if (inside(x, y)) paint.set(y * W + x, hex);
-  };
-
-  const border = W >= 22 ? 9 : 0,
-    wallW = W - border,
-    lintel = Math.min(13, Math.max(8, Math.round(H * 0.025))),
-    groundH = Math.max(7, Math.round((H - lintel) * 0.04)),
-    groundY = H - groundH;
-
-  // Coursed masonry: staggered blocks, lit from the page, mortar in shadow.
-  const course = 10;
-  for (let cy = lintel; cy < groundY; cy += course) {
-    let x = -Math.floor(rand() * 16);
-    const depth = cy < lintel + course ? -1 : 0;
-    while (x < wallW) {
-      const bw = 12 + Math.floor(rand() * 14),
-        base = 3 + (rand() < 0.3 ? 1 : 0) - (rand() < 0.15 ? 1 : 0) + depth,
-        h = Math.min(course, groundY - cy);
-      for (let yy = 0; yy < h; yy++)
-        for (let xx = 0; xx < bw; xx++) {
-          const px = x + xx,
-            py = cy + yy;
-          if (!inside(px, py) || px >= wallW) continue;
-          let v = base;
-          if (xx === bw - 1 || yy === course - 1) v = 0;
-          else if (xx === 0 || yy === course - 2) v = base - 1;
-          else if (yy === 0 || xx === bw - 2) v = base + 1;
-          if (rand() < 0.07) v += rand() < 0.5 ? 1 : -1;
-          shade[py * W + px] = Math.max(0, v);
-        }
-      // Chipped corners.
-      if (rand() < 0.4) setShade(x, cy, 0);
-      if (rand() < 0.4) setShade(x + bw - 2, cy + course - 2, 1);
-      x += bw;
-    }
-  }
-  // Hairline cracks wander down a few blocks.
-  for (let i = 0; i < Math.round((wallW * H) / 2600); i++) {
-    let cx = Math.floor(rand() * wallW),
-      cy = lintel + Math.floor(rand() * (groundY - lintel));
-    for (let step = 0; step < 4 + rand() * 10; step++) {
-      setShade(cx, cy, 1);
-      cy++;
-      cx += rand() < 0.3 ? -1 : rand() < 0.45 ? 1 : 0;
-    }
-  }
-
-  // Where the columns stand, and the open bays of wall between them.
-  const count = wallW >= 26 ? Math.max(1, Math.round(wallW / 120)) : 0,
-    slots = [],
-    bays = [];
-  for (let i = 0; i < count; i++) {
-    const left = Math.round((i * wallW) / count),
-      width = Math.round(((i + 1) * wallW) / count) - left,
-      PW = Math.max(14, Math.min(66, Math.round(width * 0.48))) & ~1,
-      x0 = left + Math.floor(width / 2) - PW / 2;
-    slots.push({ left, width, from: x0 - 9, to: x0 + PW + 9 });
-  }
-  let edge = 0;
-  for (const slot of slots) {
-    bays.push([edge, slot.from]);
-    edge = slot.to;
-  }
-  bays.push([edge, wallW]);
-
-  // Carved glyph stones and a brazier in every bay wide enough for them.
-  const flames = [],
-    braziers = [];
-  const carveMask = (ox, oy, rows, painted) => {
-    rows.forEach((row, yy) =>
-      [...row].forEach((ch, xx) => {
-        const x = ox + xx,
-          y = oy + yy;
-        if (ch === ".") {
-          nudge(x, y, -2);
-          if (painted) tint(x, y, painted[(x + y) % 3 ? 1 : 0]);
-        } else if (!rows[yy + 1] || rows[yy + 1][xx] === ".") nudge(x, y, 1);
-      }),
-    );
-  };
-  const glyphStone = (cx, top, kind) => {
-    const size = 16,
-      left = cx - size / 2;
-    for (let yy = 0; yy < size; yy++)
-      for (let xx = 0; xx < size; xx++) {
-        let v = 4;
-        if (xx === 0 || yy === 0) v = 6;
-        if (xx === size - 1 || yy === size - 1) v = 1;
-        else if (xx === 1 || yy === 1) v = 5;
-        setShade(left + xx, top + yy, v);
-      }
-    setShade(left - 1, top + size, 0);
-    for (let xx = 0; xx <= size; xx++) setShade(left + xx, top + size, 0);
-    for (let yy = 0; yy <= size; yy++) setShade(left + size, top + yy, 0);
-    const pigment = kind % 2 ? TURQUOISE : OCHRE;
-    carveMask(left + 2, top + 2, GLYPHS[kind % GLYPHS.length], pigment);
-  };
-  bays.forEach(([from, to], b) => {
-    const width = to - from,
-      cx = Math.round((from + to) / 2);
-    if (width < 18) return;
-    const flameY = Math.round(lintel + (groundY - lintel) * (0.44 + (b % 2) * 0.08));
-    braziers.push({ x: cx, y: flameY });
-    const spacing = 46;
-    let kind = Math.floor(rand() * GLYPHS.length);
-    for (let top = lintel + 14; top + 16 < groundY - 24; top += spacing) {
-      if (top + 16 > flameY - 30 && top < flameY + 22) continue;
-      glyphStone(cx, top, kind++);
-    }
-  });
-
-  // The lintel: mouldings around a band of step-frets, moss along the top.
-  for (let y = 0; y < lintel; y++)
-    for (let x = 0; x < wallW; x++) {
-      let v = 4;
-      if (y === 0) v = 6;
-      else if (y === 1) v = 5;
-      else if (y === lintel - 2) v = 3;
-      else if (y === lintel - 1) v = 0;
-      setShade(x, y, v);
-    }
-  {
-    const band = lintel - 5;
-    for (let x = 0; x < wallW; x++)
-      for (let k = 0; k < band; k++) {
-        const motif = FRET[(x + seed) % FRET.length],
-          ch = motif[Math.round((k * 6) / Math.max(1, band - 1))];
-        if (ch === ".") {
-          nudge(x, 2 + k, -2);
-          tint(x, 2 + k, OCHRE[2]);
-        }
-      }
-  }
-  // Step-fret band along the page edge, framed by two raised fillets.
-  if (border)
-    for (let y = 0; y < H; y++) {
-      const row = FRET[(y + seed) % FRET.length];
-      for (let k = 0; k < border; k++) {
-        const x = wallW + k;
-        if (k === 0) {
-          setShade(x, y, 0);
-          continue;
-        }
-        if (k === 1) {
-          setShade(x, y, 3);
-          continue;
-        }
-        if (k === border - 1) {
-          setShade(x, y, 6);
-          continue;
-        }
-        const ch = row[k - 2];
-        if (ch === ".") {
-          setShade(x, y, 2);
-          tint(x, y, OCHRE[y % 7 ? 2 : 3]);
-        } else setShade(x, y, k === border - 2 ? 6 : 5);
-      }
-    }
-
-  // A low stepped platform the columns stand on.
-  for (let y = groundY - 6; y < groundY; y++)
-    for (let x = 0; x < wallW; x++) {
-      const step = y < groundY - 3 ? 0 : 1;
-      let v = step ? 4 : 3;
-      if (y === groundY - 6 || y === groundY - 3) v = 6;
-      if (y === groundY - 4 || y === groundY - 1) v = 1;
-      if ((x + step * 7) % 23 === 0) v = 0;
-      setShade(x, y, v);
-    }
-
-  // Compose the stone, pigments and moss into colour.
-  const pixels = new Uint32Array(W * H);
-  for (let i = 0; i < W * H; i++) {
-    const y = (i / W) | 0,
-      x = i % W;
-    let hex = paint.get(i) ?? WALL[shade[i]];
-    // Moss creeps up from the ground and gathers in the mortar.
-    const damp = Math.pow(y / H, 2.2);
-    if (x < wallW && shade[i] <= 1 && rand() < 0.04 + damp * 0.45)
-      hex = MOSS[rand() < 0.6 ? 0 : 1];
-    else if (y === 0 && rand() < 0.7) hex = MOSS[rand() < 0.5 ? 2 : 3];
-    pixels[i] = rgba(hex);
-  }
-  const put = (x, y, hex) => {
-    x = Math.round(x);
-    y = Math.round(y);
-    if (inside(x, y)) pixels[y * W + x] = rgba(hex);
-  };
-
-  // Vines and roots hang from the lintel into the open bays.
-  bays.forEach(([from, to]) => {
-    for (let v = 0; v < Math.max(1, Math.round((to - from) / 28)); v++) {
-      const vx = from + 3 + Math.floor(rand() * Math.max(1, to - from - 6)),
-        length = 20 + Math.floor(rand() * (H * 0.22));
-      let x = vx;
-      for (let y = lintel - 1; y < lintel + length; y++) {
-        x += rand() < 0.15 ? (rand() < 0.5 ? -1 : 1) : 0;
-        put(x, y, LEAF[0]);
-        if (y % 5 === 0) {
-          const dir = (y / 5) % 2 ? 1 : -1;
-          put(x + dir, y, LEAF[2]);
-          put(x + dir * 2, y - 1, LEAF[3]);
-          put(x + dir, y - 1, LEAF[1]);
-        }
-      }
-      put(x, lintel + length, LEAF[2]);
-    }
-  });
-
-  // Braziers: a stepped stone stand, a bowl and a bed of embers. The flame
-  // itself is an animated overlay so the stone never has to repaint.
-  for (const { x, y } of braziers) {
-    const bowl = y + 4;
-    for (let k = -6; k <= 6; k++) {
-      put(x + k, bowl, WALL[Math.abs(k) === 6 ? 2 : k > 2 ? 7 : 5]);
-      if (Math.abs(k) <= 5) put(x + k, bowl + 1, WALL[k > 1 ? 6 : 4]);
-      if (Math.abs(k) <= 4) put(x + k, bowl + 2, WALL[k > 1 ? 5 : 3]);
-      if (Math.abs(k) <= 2) put(x + k, bowl + 3, WALL[2]);
-    }
-    for (let k = -5; k <= 5; k++) put(x + k, bowl - 1, k % 2 ? FIRE[1] : FIRE[2]);
-    for (let yy = bowl + 4; yy < bowl + 14; yy++)
-      for (let k = -2; k <= 1; k++) put(x + k, yy, WALL[k === 1 ? 6 : k === -2 ? 2 : 4]);
-    for (let k = -4; k <= 3; k++) {
-      put(x + k, bowl + 14, WALL[k > 1 ? 6 : 4]);
-      put(x + k, bowl + 15, WALL[1]);
-    }
-    // Soot darkens the stone above the flame.
-    for (let yy = y - 22; yy < y - 6; yy++)
-      for (let k = -3; k <= 3; k++)
-        if (inside(x + k, yy) && (rand() < 0.5 || Math.abs(k) < 2))
-          pixels[yy * W + x + k] = rgba(WALL[1]);
-    flames.push({ x, y });
-  }
-
-  // The columns, each painted over its slot of wall.
-  slots.forEach((slot, i) => {
-    const column = pillarPixels(slot.width, H - lintel, seed + i * 13);
-    for (let y = 0; y < H - lintel; y++)
-      for (let x = 0; x < slot.width; x++) {
-        const value = column[y * slot.width + x];
-        if (value) pixels[(y + lintel) * W + slot.left + x] = value;
-      }
-  });
-
-  // Warm firelight falls on everything near a brazier, dithered in steps.
-  for (const { x: fx, y: fy } of flames) {
-    const R = 54;
-    for (let y = Math.max(0, fy - R); y < Math.min(H, fy + R); y++)
-      for (let x = Math.max(0, fx - R); x < Math.min(W, fx + R); x++) {
-        const d = Math.hypot(x - fx, (y - fy) * 1.15) / R;
-        if (d >= 1) continue;
-        const level =
-          Math.floor((1 - d) * (1 - d) * 4 + BAYER[(y % 4) * 4 + (x % 4)] / 16) / 4;
-        if (level <= 0) continue;
-        const i = y * W + x,
-          v = pixels[i],
-          k = level * 0.4;
-        const r = v & 255,
-          g = (v >> 8) & 255,
-          b = (v >> 16) & 255;
-        pixels[i] =
-          ((255 << 24) |
-            (Math.round(b + (40 - b) * k) << 16) |
-            (Math.round(g + (150 - g) * k) << 8) |
-            Math.round(r + (255 - r) * k)) >>>
-          0;
-      }
-  }
-
-  blit(canvas, pixels, mirror);
-  return flames.map(({ x, y }) => ({ x: mirror ? W - 1 - x : x, y }));
+  blit(canvas, pillarPixels(canvas.width, canvas.height, seed, true), mirror);
 }
 
-// Three frames of brazier fire, side by side, on the village's pixel grid.
-function flameSheet() {
-  const w = 11,
-    h = 14,
-    sheet = document.createElement("canvas");
-  sheet.width = w * 3;
-  sheet.height = h;
-  const ctx = sheet.getContext("2d");
-  for (let f = 0; f < 3; f++) {
-    const sway = [0, 1, -1][f],
-      tall = [12, 13, 11][f];
-    for (let y = 0; y < h; y++)
-      for (let x = 0; x < w; x++) {
-        const t = (h - 1 - y) / tall;
-        if (t > 1) continue;
-        const half = Math.max(0, (1 - t) * 4.6 * Math.sqrt(Math.min(1, t * 3 + 0.25))),
-          dx = Math.abs(x - 5 - sway * t * 1.6);
-        if (dx > half + 0.25) continue;
-        const heat = (1 - dx / (half + 0.8)) * (1 - t * 0.55);
-        ctx.fillStyle = FIRE[Math.min(4, Math.floor(heat * 5.2))];
-        ctx.fillRect(f * w + x, y, 1, 1);
-      }
-    // A spark lifts off each frame at a different height.
-    ctx.fillStyle = FIRE[3];
-    ctx.fillRect(f * w + [3, 7, 5][f], [1, 0, 2][f], 1, 1);
-  }
-  return sheet.toDataURL();
-}
+// Fireflies drifting over the moss; deterministic positions, CSS motion.
+const FIREFLIES = [
+  [0.22, 0.18, 0],
+  [0.68, 0.34, 1.7],
+  [0.35, 0.57, 3.1],
+  [0.8, 0.71, 0.9],
+  [0.15, 0.86, 2.4],
+];
 
 export function mountPillars(shell) {
   const temple = document.createElement("div");
   temple.className = "temple";
   temple.setAttribute("aria-hidden", "true");
   document.body.prepend(temple);
-  const sides = ["left", "right"].map((side) => {
+  const sides = ["left", "right"].map((side, i) => {
     const element = document.createElement("div"),
       canvas = document.createElement("canvas");
     element.className = `temple-side temple-${side}`;
     canvas.className = "pillar";
     element.append(canvas);
+    FIREFLIES.forEach(([x, y, delay]) => {
+      const fly = document.createElement("span");
+      fly.className = "temple-firefly";
+      fly.style.left = `${(i ? 1 - x : x) * 100}%`;
+      fly.style.top = `${y * 100}%`;
+      fly.style.animationDelay = `${-delay - i * 1.3}s`;
+      element.append(fly);
+    });
     temple.append(element);
     return { element, canvas };
   });
-  const sheet = flameSheet();
   let signature = "",
     pending = false;
   function layout() {
@@ -809,6 +480,8 @@ export function mountPillars(shell) {
       // Round up so the stone always reaches the screen edge.
       cols = gutter > 0.5 ? Math.ceil(gutter / pixel) : 0,
       rows = Math.ceil(innerHeight / pixel);
+    // The opening scenes frame themselves with the same margins.
+    document.documentElement.style.setProperty("--gutter", `${Math.max(0, gutter)}px`);
     const next = `${cols}|${rows}|${pixel.toFixed(3)}|${box.left.toFixed(1)}`;
     if (next === signature) return;
     signature = next;
@@ -823,17 +496,7 @@ export function mountPillars(shell) {
         left: `${i ? box.right : box.left - cols * pixel}px`,
       });
       element.style.setProperty("--px", `${pixel}px`);
-      const flames = paintTemple(canvas, i === 1, i ? 41 : 17);
-      element.querySelectorAll(".temple-flame").forEach((flame) => flame.remove());
-      flames.forEach(({ x, y }, k) => {
-        const flame = document.createElement("span");
-        flame.className = "temple-flame";
-        flame.style.left = `${(x - 5) * pixel}px`;
-        flame.style.top = `${(y + 3 - 14) * pixel}px`;
-        flame.style.backgroundImage = `url(${sheet})`;
-        flame.style.animationDelay = `${-((k * 0.37 + i * 0.21) % 1).toFixed(2)}s`;
-        element.append(flame);
-      });
+      paintTemple(canvas, i === 1, i ? 41 : 17);
     });
   }
   const schedule = () => {

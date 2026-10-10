@@ -1,17 +1,18 @@
-// Opening sequence: a still, blurred night ocean behind a single unrolling
-// scroll, then a camera swoop onto the
+// Opening sequence: a still, blurred night ocean behind a broken wooden
+// plank that drops in on its ropes, then a camera swoop onto the
 // About cabin where the player steps outside to greet the visitor. It only
 // borrows the live world canvases, so the final frame matches the page.
 import { destinations } from "./world.js";
+import { mountPlank } from "./plank.js";
 
 const GREETING =
   "Hey, I’m Issam! Welcome to my little corner of the internet. Walk into any cabin and read the book on the lectern to get to know me a bit better.";
 const about = destinations.find((d) => d.id === "about");
 const START = { x: about.doorX, y: about.y + about.h - 2 },
   STOP = { x: about.doorX, y: about.y + about.h + 34 };
-// Letters per second, and the dialogue scroll's unroll time in seconds.
+// Letters per second, and the time the dialogue plank takes to settle.
 const TYPE_RATE = 38,
-  UNROLL = 0.8;
+  SETTLE = 0.7;
 const ease = (t) => (t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2);
 const clamp01 = (t) => Math.min(1, Math.max(0, t));
 
@@ -118,15 +119,12 @@ export function runIntro(world, { onFinish } = {}) {
       </div>
       <h2 id="intro-title" class="sr-only">Issam Arida’s portfolio</h2>
       <button class="intro-start" type="button">
-        <span class="intro-roller" aria-hidden="true"></span>
-        <span class="intro-paper"><span class="intro-start-label">Click to explore my portfolio</span></span>
-        <span class="intro-roller" aria-hidden="true"></span>
+        <span class="intro-plank"><span class="intro-start-label">Click to explore my portfolio</span></span>
       </button>
       <button class="intro-skip" type="button">Skip intro <span aria-hidden="true">▸▸</span></button>
     </div>
     <div class="intro-dialog" hidden>
-      <span class="intro-roller" aria-hidden="true"></span>
-      <div class="intro-paper">
+      <div class="intro-plank">
         <img src="./photo.jpg" alt="" width="88" height="88" />
         <div class="intro-dialog-body">
           <p class="intro-speaker">Issam Arida</p>
@@ -138,7 +136,6 @@ export function runIntro(world, { onFinish } = {}) {
           </p>
         </div>
       </div>
-      <span class="intro-roller" aria-hidden="true"></span>
     </div>
 `;
   // The page behind stays alive but out of reach until the intro ends.
@@ -154,6 +151,8 @@ export function runIntro(world, { onFinish } = {}) {
     line = root.querySelector(".intro-line"),
     controls = root.querySelector(".intro-controls"),
     proceed = root.querySelector(".intro-continue");
+  mountPlank(start.querySelector(".intro-plank"), 7);
+  mountPlank(dialog.querySelector(".intro-plank"), 23);
   start.focus({ preventScroll: true });
 
   let phase = "title",
@@ -198,11 +197,14 @@ export function runIntro(world, { onFinish } = {}) {
       target.height = height;
     }
     ctx.imageSmoothingEnabled = false;
-    ctx.fillStyle = "#17242b";
-    ctx.fillRect(0, 0, width, height);
     const s = view.scale * ratio,
       left = view.cx - innerWidth / 2 / view.scale,
       top = view.cy - innerHeight / 2 / view.scale;
+    // Only the village column is painted: the temple margins behind the
+    // intro stay in view the whole way through.
+    ctx.clearRect(0, 0, width, height);
+    ctx.fillStyle = "#17242b";
+    ctx.fillRect(Math.round(-left * s), 0, Math.round(960 * s), height);
     for (const surface of world.surfaces) {
       const y = (surface.top - top) * s;
       if (y > height || y + surface.height * s < 0) continue;
@@ -254,8 +256,8 @@ export function runIntro(world, { onFinish } = {}) {
     phase = "talk";
     world.talking = true;
     dialog.hidden = false;
-    // Writing starts once the scroll has unrolled.
-    typed = -UNROLL * TYPE_RATE;
+    // Writing starts once the plank has swung into place.
+    typed = -SETTLE * TYPE_RATE;
     if (reduced()) finishTyping();
   }
   function finishTyping() {

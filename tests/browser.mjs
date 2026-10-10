@@ -345,6 +345,14 @@ try {
   });
   intro.on("pageerror", (error) => errors.push(error.message));
   await intro.goto(process.env.TEST_URL || "http://localhost:5173");
+  // The title and greeting are painted wooden planks, and the temple
+  // margins are already standing behind the title screen.
+  assert.equal(await intro.locator(".intro-paper, .intro-roller").count(), 0);
+  assert.match(
+    await intro.locator(".intro-start .intro-plank").evaluate((el) => el.style.getPropertyValue("--plank")),
+    /^url\(data:image\/png/,
+  );
+  assert.equal(await intro.locator(".temple").isVisible(), true);
   await intro.keyboard.press("Enter");
   await intro.locator(".intro-dialog").waitFor({ state: "visible" });
   await intro.locator(".intro-controls").waitFor({ state: "visible" });
@@ -363,6 +371,31 @@ try {
     await intro.locator("#interact span").textContent(),
     "Enter the about cabin",
   );
+  // The prompt stands just under the player at the About door.
+  {
+    const { prompt, door, frame } = await intro.evaluate(async () => {
+      const { destinations } = await import("./world.js");
+      const about = destinations.find((d) => d.id === "about"),
+        frame = document.querySelector(".world-wrap").getBoundingClientRect();
+      return {
+        prompt: document.querySelector("#interact").getBoundingClientRect().toJSON(),
+        frame: frame.toJSON(),
+        door: {
+          x: frame.left + (about.doorX * frame.width) / 960,
+          y: frame.top + ((about.y + about.h) * frame.height) / 540,
+        },
+      };
+    });
+    assert.ok(Math.abs((prompt.left + prompt.right) / 2 - door.x) < 40, "prompt is centred on the player");
+    assert.ok(prompt.top > door.y && prompt.bottom <= frame.bottom, "prompt sits below the player");
+  }
+  // Inside a cabin the village's reading sign is not shown.
+  await intro.keyboard.press("e");
+  await intro.locator(".world-wrap.is-inside").waitFor();
+  assert.equal(await intro.locator(".reading-invitation a").isVisible(), false);
+  await intro.keyboard.press("Escape");
+  await intro.locator(".world-wrap.is-inside").waitFor({ state: "detached" });
+  assert.equal(await intro.locator(".reading-invitation a").isVisible(), true);
   await intro.close();
   const linked = await browser.newPage();
   await linked.goto(`${process.env.TEST_URL || "http://localhost:5173"}#career`);

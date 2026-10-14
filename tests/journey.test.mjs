@@ -124,7 +124,7 @@ test("the camper toasts, burns, blows out, eats and reloads in one loop", () => 
 test("the lakeside campsite keeps its parts apart and inside the clearing", () => {
   const area = layout.stable,
     parts = campsiteGeometry(area);
-  const boxes = [parts.lodge, parts.woodpile, ...parts.tents, parts.fire, parts.dock];
+  const boxes = [parts.bellTent, parts.kitchen, parts.woodpile, ...parts.tents, parts.fire, parts.dock];
   for (const box of boxes) {
     assert.ok(box.left >= 0 && box.right <= 960);
     assert.ok(box.top >= area.y && box.bottom <= area.y + 600);

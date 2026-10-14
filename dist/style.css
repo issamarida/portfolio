@@ -4197,3 +4197,193 @@ dialog {
     font-size: 21px;
   }
 }
+
+/* The greeting sits in a carved walnut panel from the same workshop as the
+   hanging boards: an iron-studded frame, a quiet dark field, a name plaque,
+   the portrait in its blue ring and wooden keycaps. */
+.intro-dialog {
+  --dp: 3px;
+  bottom: max(28px, 4vh);
+}
+.intro-dialog .intro-plank {
+  --plank: none;
+  position: relative;
+  gap: 22px;
+  align-items: flex-start;
+  width: min(840px, calc(100vw - 24px));
+  /* The carved frame is 12 art pixels deep; the content starts inside it. */
+  padding: calc(12 * var(--dp) + 12px) calc(12 * var(--dp) + 16px) calc(12 * var(--dp) + 10px);
+  background: none;
+  border: 0;
+  border-image: url("./art/dialog-panel.svg") 16 fill / calc(16 * var(--dp)) stretch;
+  filter: drop-shadow(0 calc(3 * var(--dp)) 0 #0a0f22aa);
+  image-rendering: pixelated;
+}
+.intro-dialog img {
+  width: 84px;
+  height: 84px;
+  margin-top: 4px;
+  background: #2a4c8a;
+  box-shadow:
+    0 0 0 3px #22120c,
+    0 0 0 7px #3d68b0,
+    0 0 0 10px #22120c,
+    0 0 0 13px #6e3622;
+}
+.intro-dialog-body {
+  padding-top: 2px;
+}
+.intro-speaker {
+  margin: 0 0 12px;
+  padding: 4px 18px 6px;
+  font: 400 26px / 1 var(--pixel);
+  letter-spacing: 0.02em;
+  color: #3a2112;
+  background: none;
+  border-image: url("./art/plank-sign.svg") 8 fill / 9px stretch;
+  box-shadow: none;
+  text-shadow: 0 1px 0 #f2c58a66;
+}
+.intro-line {
+  min-height: 4.8em;
+  font-family: var(--reading);
+  font-size: clamp(17px, 2.1vw, 20px);
+  line-height: 1.65;
+  letter-spacing: 0.01em;
+  word-spacing: 0.12em;
+  color: #f1e3c4;
+  text-shadow: 0 2px 0 #120a0c;
+}
+.intro-controls {
+  margin: 16px 0 0;
+  padding-top: 14px;
+  border-top: 2px solid #120a0c;
+  box-shadow: inset 0 2px 0 #6e362266;
+  font: 400 19px / 1.2 var(--pixel);
+  color: #d8c09a;
+  text-shadow: 0 2px 0 #120a0c;
+}
+.intro-controls kbd {
+  min-width: 24px;
+  margin: 0 1px;
+  padding: 1px 5px 3px;
+  color: #3a2112;
+  background: none;
+  border-image: url("./art/plank-sign.svg") 8 fill / 6px stretch;
+  box-shadow: none;
+  text-shadow: none;
+}
+.intro-continue {
+  padding: 8px 20px 10px;
+  font: 400 24px / 1 var(--pixel);
+  color: #3a2112;
+  background: none;
+  border: 0;
+  border-image: url("./art/plank-sign.svg") 8 fill / 9px stretch;
+  box-shadow: none;
+  filter: drop-shadow(0 3px 0 #0a0f22aa);
+  cursor: pointer;
+}
+.intro-continue:hover,
+.intro-continue:focus-visible {
+  color: #6b2c0e;
+  filter: brightness(1.1) drop-shadow(0 3px 0 #0a0f22aa);
+  outline: 2px solid #ffe3a0;
+  outline-offset: 4px;
+}
+@media (max-width: 600px) {
+  .intro-dialog {
+    --dp: 2px;
+  }
+  .intro-dialog .intro-plank {
+    padding: calc(12 * var(--dp) + 8px) calc(12 * var(--dp) + 6px) calc(12 * var(--dp) + 6px);
+  }
+  .intro-dialog img {
+    width: 56px;
+    height: 56px;
+    margin: 2px 16px 8px 2px;
+  }
+  .intro-speaker {
+    font-size: 22px;
+  }
+  .intro-line {
+    font-size: 16px;
+    min-height: 0;
+  }
+  .intro-controls {
+    font-size: 17px;
+  }
+}
+
+/* Chains hang from two iron eyelets set symmetrically into each board's top
+   edge; app.js measures how far each must reach. */
+.sky-header .header .sky-cloud::after {
+  z-index: 0;
+  inset: auto calc(4 * var(--cp)) calc(100% + 1 * var(--cp)) calc(4 * var(--cp));
+  height: var(--chain, 0px);
+  background:
+    url("./art/eyelet.svg") left bottom / calc(6 * var(--cp)) calc(6 * var(--cp)) no-repeat,
+    url("./art/eyelet.svg") right bottom / calc(6 * var(--cp)) calc(6 * var(--cp)) no-repeat,
+    url("./art/chain.svg") calc(1 * var(--cp)) calc(100% - 4 * var(--cp)) / calc(4 * var(--cp)) calc(8 * var(--cp)) repeat-y,
+    url("./art/chain.svg") calc(100% - 1 * var(--cp)) calc(100% - 4 * var(--cp)) / calc(4 * var(--cp)) calc(8 * var(--cp)) repeat-y;
+  width: auto;
+  min-width: 0;
+  margin: 0;
+  transform: none;
+}
+/* Name and email boards share one width and a centred, even inset. */
+@media (min-width: 741px) {
+  .sky-header .header .identity.sky-cloud,
+  .sky-header .header .email-link.sky-cloud {
+    min-width: 31cqw;
+    justify-content: center;
+  }
+  .sky-header .identity {
+    gap: 1.4cqw;
+    padding: 0.6cqw 1.4cqw;
+  }
+  .sky-header .contact .email-link {
+    padding: 0.5cqw 1.4cqw;
+    top: calc(max(3.4cqw, 30px) + clamp(64px, 9.1cqw, 102px) + 4.4cqw);
+  }
+}
+@media (max-width: 740px) {
+  .sky-header .identity {
+    padding: 4px 12px;
+  }
+  .sky-header .contact .email-link {
+    top: 158px;
+  }
+  .sky-header .header .identity h1 {
+    font-size: 22px;
+  }
+}
+@media (min-width: 380px) and (max-width: 740px) {
+  .sky-header .header .identity.sky-cloud,
+  .sky-header .header .email-link.sky-cloud {
+    min-width: 226px;
+    justify-content: center;
+  }
+  .sky-header .header .social-links a.sky-cloud {
+    min-width: 92px;
+  }
+}
+@media (min-width: 346px) and (max-width: 379px) {
+  .sky-header .contact .email-link {
+    font-size: 15px;
+  }
+  .sky-header .header .social-links a.sky-cloud {
+    min-width: 92px;
+  }
+  .sky-header .header .social-links a.cloud-github {
+    top: 138px;
+  }
+  .sky-header .header .social-links a.cloud-linkedin {
+    top: 174px;
+  }
+}
+@media (max-width: 360px) {
+  .sky-header .header .identity h1 {
+    font-size: 20px;
+  }
+}

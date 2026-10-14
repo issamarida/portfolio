@@ -89,6 +89,31 @@ function updateViewport() {
     world.viewport.top < world.layout.skyHeight + 500;
   if (!world.gameVisible) world.keys.clear();
 }
+// Every hanging board's chains run from its own eyelets up to the board it
+// hangs from (or out of the sky): lengths are measured, never guessed, so
+// they stay attached at every width.
+const boardAnchors = () => {
+  const phone = matchMedia("(max-width: 740px)").matches;
+  return [
+    [".sky-header .identity", null],
+    [".sky-header .email-link", ".sky-header .identity"],
+    [".sky-header .cloud-github", null],
+    [".sky-header .cloud-linkedin", phone ? ".sky-header .cloud-github" : null],
+  ];
+};
+function hangBoards() {
+  const sky = document.querySelector(".sky-header");
+  if (!sky) return;
+  const top = sky.getBoundingClientRect().top,
+    cp = Math.max(2, journey.getBoundingClientRect().width / 480);
+  for (const [selector, anchor] of boardAnchors()) {
+    const board = document.querySelector(selector);
+    if (!board) continue;
+    const from = board.getBoundingClientRect().top - cp,
+      to = anchor ? document.querySelector(anchor).getBoundingClientRect().bottom + cp : top - 12;
+    board.style.setProperty("--chain", `${Math.max(0, Math.round(from - to))}px`);
+  }
+}
 function resizeJourney() {
   const box = journey.getBoundingClientRect();
   if (box.width <= 0 || box.height <= 0) return;
@@ -181,6 +206,7 @@ function resizeJourney() {
   world.setReadingSign(
     sign.width && signRect.y >= 0 && signRect.y + signRect.h <= 540 ? signRect : null,
   );
+  hangBoards();
   updateViewport();
   world.draw();
   placePrompt();

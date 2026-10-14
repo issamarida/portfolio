@@ -180,7 +180,6 @@ export function runIntro(world, { onFinish } = {}) {
     controls = root.querySelector(".intro-controls"),
     proceed = root.querySelector(".intro-continue");
   mountPlank(start.querySelector(".intro-plank"), 7);
-  mountPlank(dialog.querySelector(".intro-plank"), 23);
   start.focus({ preventScroll: true });
 
   let phase = "title",

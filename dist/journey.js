@@ -85,40 +85,72 @@ function camper(p, x, y, time, reduced) {
   const lean = state.phase === "blowing" || state.phase === "eating" ? 2 : 0;
   const chew =
     state.phase === "eating" && !reduced ? (Math.floor(time * 7) % 2) * 2 : 0;
+  const blink = !reduced && time % 4.3 < 0.16;
   const glow = reduced ? 0 : Math.floor(time * 6) % 3;
   const warm = ["#f2b676", "#f6c588", "#eaa866"][glow];
-  // Legs folded over the log, boots planted in the dirt.
-  p.ellipse(x - 76, y + 44, 34, 7, "#2c241b");
-  p.rect(x - 88, y + 18, 22, 8, "#3b4658");
-  p.rect(x - 70, y + 20, 8, 20, "#3b4658");
-  p.rect(x - 72, y + 38, 12, 6, "#33271d");
-  p.rect(x - 70, y + 20, 3, 18, "#56637a");
-  // Plaid flannel torso with a firelit edge.
-  const ty = y - 4 + breathe / 2 - lean / 2;
-  p.rect(x - 96, ty, 18, 26, "#9c4f37");
-  for (const dy of [4, 12, 20]) p.rect(x - 96, ty + dy, 18, 2, "#6f3326");
-  for (const dx of [-92, -85]) p.rect(x + dx, ty, 2, 26, "#7c3b2b");
-  p.rect(x - 80, ty + 2, 2, 22, warm);
-  // Head in a knitted beanie; it leans in to blow and to eat.
-  const hx = x - 94 + lean,
-    hy = ty - 15 + chew / 2;
-  p.rect(hx - 2, hy + 2, 4, 9, "#4f3424");
-  p.rect(hx, hy, 14, 14, "#d6ab84");
-  p.rect(hx + 12, hy + 2, 2, 10, warm);
-  p.rect(hx - 2, hy - 6, 18, 8, "#3f6e7a");
-  p.rect(hx - 2, hy - 1, 18, 2, "#2c5059");
-  p.rect(hx + 4, hy - 9, 6, 4, "#e5dcc6");
-  p.rect(hx + 9, hy + 4, 2, 3, "#2b2621");
-  p.rect(hx + 7, hy + 9, 3, 2, "#c98463");
-  if (state.phase === "blowing") {
-    p.rect(hx + 12, hy + 9, 3, 3, "#5a3125");
+  // Knees up on the log, laced boots in the dirt.
+  p.ellipse(x - 80, y + 44, 44, 8, "#1e1814");
+  p.rect(x - 92, y + 14, 26, 10, "#3a4a6a");
+  p.rect(x - 92, y + 14, 26, 2, "#5a6a8a");
+  p.rect(x - 70, y + 16, 10, 22, "#3a4a6a");
+  p.rect(x - 62, y + 18, 2, 18, warm);
+  p.rect(x - 73, y + 34, 15, 8, "#6a4026");
+  p.rect(x - 73, y + 40, 15, 2, "#2a1a10");
+  p.rect(x - 70, y + 35, 6, 2, "#c8a070");
+  // A round plaid jacket with a mustard scarf.
+  const ty = y - 6 + breathe / 2 - lean / 2;
+  p.rect(x - 98, ty + 2, 22, 24, "#a8402e");
+  p.rect(x - 96, ty, 18, 2, "#a8402e");
+  for (const dx of [-93, -86]) p.rect(x + dx, ty, 2, 26, "#6e2a20");
+  for (const dy of [8, 16]) p.rect(x - 98, ty + dy, 22, 2, "#d0703a");
+  p.rect(x - 78, ty + 3, 2, 22, warm);
+  p.rect(x - 97, ty - 2, 20, 5, "#e8b84a");
+  p.rect(x - 95, ty + 3, 5, 11, "#e8b84a");
+  for (const dy of [5, 9]) p.rect(x - 95, ty + dy, 5, 1, "#b08030");
+  // A big round head under a red bobble beanie.
+  const hx = x - 98 + lean,
+    hy = ty - 22 + chew / 2;
+  p.rect(hx + 2, hy, 18, 20, "#f0c49a");
+  p.rect(hx, hy + 2, 22, 15, "#f0c49a");
+  p.rect(hx + 19, hy + 4, 3, 12, warm);
+  p.rect(hx, hy + 2, 4, 7, "#6a4026");
+  p.rect(hx - 1, hy - 6, 24, 9, "#c83a3a");
+  for (let k = 0; k < 5; k++) p.rect(hx + 1 + k * 5, hy - 5, 2, 7, "#9a2a2a");
+  p.rect(hx - 1, hy + 1, 24, 3, "#f0e2c8");
+  p.rect(hx + 8, hy - 11, 7, 6, "#f4ecdc");
+  p.rect(hx + 9, hy - 11, 3, 2, "#ffffff");
+  // Eyes, cheeks and mouth follow what is happening on the stick.
+  const eye = (ex2) => {
+    if (state.burning) {
+      p.rect(ex2 - 1, hy + 6, 4, 4, "#2b2621");
+      p.rect(ex2, hy + 7, 2, 2, "#ffffff");
+    } else if (state.phase === "eating" || blink) {
+      p.rect(ex2 - 1, hy + 8, 4, 1, "#2b2621");
+      p.rect(ex2 - 1, hy + 7, 1, 1, "#2b2621");
+      p.rect(ex2 + 2, hy + 7, 1, 1, "#2b2621");
+    } else {
+      p.rect(ex2, hy + 6, 2, 4, "#2b2621");
+      p.rect(ex2, hy + 6, 1, 1, "#ffffff");
+    }
+  };
+  eye(hx + 11);
+  eye(hx + 17);
+  const puffed = state.phase === "blowing";
+  p.rect(hx + 8, hy + 11, puffed ? 5 : 3, puffed ? 4 : 2, "#f08a7a");
+  p.rect(hx + 18, hy + 11, puffed ? 4 : 3, puffed ? 4 : 2, "#f08a7a");
+  if (puffed) {
+    p.rect(hx + 21, hy + 12, 3, 3, "#6a2a20");
     for (let i = 0; i < 3; i++) {
       const drift = ((state.s - 8) * 22 + i * 7) % 26;
-      p.ctx.globalAlpha = Math.max(0, 0.7 - drift / 30);
-      p.rect(hx + 16 + drift, hy + 8 - i * 2, 4 + i * 2, 3, "#e7e2d4");
-      p.ctx.globalAlpha = 1;
+      if (drift < 18) p.rect(hx + 25 + drift, hy + 11 - i * 2, 4 - Math.floor(drift / 7), 3 - Math.floor(drift / 9), "#e7e2d4");
     }
-  } else p.rect(hx + 11, hy + 10, 3, 1 + chew / 2, "#7b4434");
+  } else if (state.phase === "eating") {
+    p.rect(hx + 13, hy + 14, 4, 2 + chew / 2, "#7b3434");
+  } else {
+    p.rect(hx + 13, hy + 14, 4, 1, "#7b3434");
+    p.rect(hx + 12, hy + 13, 1, 1, "#7b3434");
+    p.rect(hx + 17, hy + 13, 1, 1, "#7b3434");
+  }
   // Arms follow the stick; the hand stays a fixed reach from the shoulder.
   const handX = Math.max(x - 73, x - 70 + (ex - -21) * 0.18),
     handY = y + 4 + (ey - -6) * 0.25;
@@ -129,9 +161,10 @@ function camper(p, x, y, time, reduced) {
       [handX, handY + 4],
       [x - 86, ty + 11],
     ],
-    "#b5634a",
+    "#a8402e",
   );
-  p.rect(handX - 2, handY - 2, 6, 6, "#d6ab84");
+  p.rect(handX - 3, handY - 3, 8, 7, "#3a7a6a");
+  p.rect(handX - 3, handY - 3, 8, 2, "#5aa08a");
   // The stick: tail tucked under the arm, tip held at the marshmallow.
   const tipX = x + ex,
     tipY = y + ey,
@@ -170,16 +203,17 @@ function camper(p, x, y, time, reduced) {
     }
   }
   if (state.phase === "eating" && state.s > 10.3 && !reduced) {
-    // A small happy heart rises after the last bite.
+    // A small happy heart floats up after the last bite and pops.
     const rise = (state.s - 10.3) * 24;
-    p.ctx.globalAlpha = Math.max(0, 1 - rise / 20);
-    const cx = hx + 6,
-      cy = hy - 14 - rise;
-    p.rect(cx - 4, cy, 3, 3, "#e0707a");
-    p.rect(cx + 1, cy, 3, 3, "#e0707a");
-    p.rect(cx - 4, cy + 2, 8, 3, "#e0707a");
-    p.rect(cx - 2, cy + 5, 4, 2, "#e0707a");
-    p.ctx.globalAlpha = 1;
+    if (rise < 18) {
+      const cx = hx + 10,
+        cy = hy - 16 - rise;
+      p.rect(cx - 4, cy, 3, 3, "#e0707a");
+      p.rect(cx + 1, cy, 3, 3, "#e0707a");
+      p.rect(cx - 4, cy + 2, 8, 3, "#e0707a");
+      p.rect(cx - 2, cy + 5, 4, 2, "#e0707a");
+      p.rect(cx - 3, cy, 1, 1, "#ffc0c8");
+    }
   }
 }
 
@@ -344,8 +378,9 @@ function campfire(p, x, y, includeActors = false) {
   p.ellipse(x + 25, y + 101, 15, 8, "#d0ad7e");
 }
 
-// The lakeside campsite at the bottom of the page: a timber lodge, two
-// canvas tents around a campfire, and a lamplit dock reaching into a cove.
+// The lakeside campsite at the bottom of the page: a bell tent and two
+// ridge tents around a lived-in campfire, a camp kitchen, and a lamplit
+// dock reaching into a cove.
 // Coordinates are logical units from the clearing's top edge (960 × 600).
 const COVE = [
   [990, 584],
@@ -363,8 +398,9 @@ export function campsiteGeometry(area) {
   const top = area.y;
   const box = (left, t, right, bottom) => ({ left, right, top: top + t, bottom: top + bottom });
   return {
-    lodge: box(60, 60, 280, 240),
-    woodpile: box(292, 196, 344, 236),
+    bellTent: box(64, 96, 244, 236),
+    kitchen: box(252, 206, 342, 268),
+    woodpile: box(84, 248, 160, 290),
     tents: [box(330, 120, 430, 196), box(500, 96, 600, 172)],
     fire: box(390, 270, 500, 360),
     dock: box(684, 360, 770, 530),
@@ -416,66 +452,108 @@ function tent(p, x, y, lit) {
     for (let i = 0; i < 6; i++) p.rect(x + side * (10 + i * 8), y - 50 + i * 8, 2, 2, "#d0c0a0");
   }
 }
-function lodge(p, x, y) {
-  // A low timber lodge on a stone footing, its chimney on the gable end.
-  p.ellipse(x + 110, y + 184, 250, 26, "#141810");
-  p.rect(x + 176, y + 6, 22, 70, "#2a2a36");
-  for (let yy = y + 8; yy < y + 74; yy += 7)
-    for (let xx = x + 178; xx < x + 196; xx += 7) p.rect(xx + ((yy / 7) % 2 ? 2 : 0), yy, 6, 5, (xx + yy) % 3 ? "#6a6474" : "#827c8c");
-  p.rect(x + 174, y + 2, 26, 6, "#9a94a4");
-  p.rect(x + 6, y + 150, 208, 24, "#4a4658");
-  for (let xx = x + 8; xx < x + 212; xx += 16) {
-    p.rect(xx, y + 152, 14, 9, "#6a6474");
-    p.rect(xx + 8, y + 163, 14, 9, "#5a5666");
-  }
-  p.rect(x + 10, y + 80, 200, 72, "#6a3120");
-  for (let yy = y + 84; yy < y + 150; yy += 8) {
-    p.rect(x + 10, yy, 200, 2, "#3c201e");
-    p.rect(x + 10, yy + 2, 200, 1, "#844024");
-    p.rect(x + 6, yy, 6, 6, "#a0613b");
-    p.rect(x + 208, yy + 3, 6, 6, "#a0613b");
-  }
-  p.path([[x - 12, y + 88], [x + 40, y + 34], [x + 180, y + 34], [x + 232, y + 88]], "#24151a");
-  p.path([[x - 6, y + 84], [x + 42, y + 38], [x + 178, y + 38], [x + 226, y + 84]], "#4a3434");
-  for (let yy = y + 44; yy < y + 84; yy += 6) {
-    const t = (yy - y - 38) / 46,
-      left = x + 42 - 48 * t,
-      right = x + 178 + 48 * t;
-    p.rect(left, yy, right - left, 2, "#24151a");
-    for (let xx = left + ((yy / 6) % 2 ? 6 : 1); xx < right - 6; xx += 12) p.rect(xx, yy + 2, 8, 2, "#655048");
-  }
-  p.rect(x - 8, y + 84, 236, 4, "#a0613b");
-  p.rect(x - 8, y + 88, 236, 3, "#24151a");
-  // Two lit windows and a plank door with its own lantern.
-  for (const wx of [x + 28, x + 150]) {
-    p.rect(wx - 3, y + 100, 32, 28, "#3c201e");
-    p.rect(wx, y + 103, 26, 22, "#ffb347");
-    p.rect(wx + 2, y + 105, 10, 18, "#ffd77a");
-    p.rect(wx + 12, y + 103, 2, 22, "#3c201e");
-    p.rect(wx, y + 113, 26, 2, "#3c201e");
-    p.rect(wx - 5, y + 128, 36, 3, "#a0613b");
-    p.light({ kind: "emit", x: wx, y: y + 103, w: 26, h: 22 });
-    p.light({ kind: "spill", x: wx + 13, y: y + 131, w: 30, h: 22, reach: 56, color: "#ffc070" });
-  }
-  p.rect(x + 92, y + 98, 36, 52, "#24151a");
-  p.rect(x + 95, y + 101, 30, 49, "#5c2d1f");
-  for (let xx = x + 98; xx < x + 124; xx += 6) p.rect(xx, y + 103, 2, 45, "#3c201e");
-  p.rect(x + 119, y + 124, 3, 3, "#f0c060");
-  p.rect(x + 82, y + 150, 56, 6, "#8a7464");
-  p.lantern(x + 140, y + 128);
-  // Split logs stacked under a little lean-to.
-  p.rect(x + 232, y + 140, 54, 36, "#2c181b");
+function bellTent(p, cx, base) {
+  // A round canvas bell tent: a tall centre pole, a scalloped skirt and a
+  // doorway glowing with the lamp inside. Pennants run from its peak.
+  p.ellipse(cx, base + 6, 200, 24, "#141810");
+  p.path([[cx - 88, base], [cx - 74, base - 54], [cx - 20, base - 104], [cx + 20, base - 104], [cx + 74, base - 54], [cx + 88, base]], "#8a7458");
+  p.path([[cx - 80, base], [cx - 66, base - 52], [cx - 16, base - 98], [cx, base - 98], [cx, base]], "#d2bc90");
+  p.path([[cx, base - 98], [cx + 16, base - 98], [cx + 66, base - 52], [cx + 80, base], [cx, base]], "#b09a70");
+  for (let i = -3; i <= 3; i++) p.rect(cx + i * 22, base - 50 + Math.abs(i) * 6, 2, 50 - Math.abs(i) * 6, "#9a8460");
+  for (let i = 0; i < 9; i++) p.rect(cx - 84 + i * 21, base - 4, 14, 4, "#a08a64");
+  p.rect(cx - 2, base - 118, 4, 20, "#5c2d1f");
+  p.path([[cx - 26, base], [cx - 16, base - 54], [cx + 16, base - 54], [cx + 26, base]], "#ffb347");
+  p.path([[cx - 16, base], [cx - 8, base - 40], [cx + 8, base - 40], [cx + 16, base]], "#ffd77a");
+  p.path([[cx - 30, base], [cx - 20, base - 58], [cx - 30, base - 30]], "#d2bc90");
+  p.path([[cx + 30, base], [cx + 20, base - 58], [cx + 30, base - 30]], "#b09a70");
+  p.rect(cx - 30, base + 4, 60, 12, "#8a3a3a");
+  for (let k = 0; k < 6; k++) p.rect(cx - 28 + k * 10, base + 6, 6, 2, "#d8a060");
+  p.light({ kind: "emit", x: cx - 20, y: base - 54, w: 40, h: 54 });
+  p.light({ kind: "spill", x: cx, y: base, w: 52, h: 50, reach: 70, color: "#ffb860" });
+  const colors = ["#c84a3a", "#e0a040", "#4a7ab0", "#5a9a5a", "#e07ab0"];
+  for (const [ex, ey] of [[cx - 96, base - 2], [cx + 96, base - 2]])
+    for (let i = 1; i < 8; i++) {
+      const t = i / 8,
+        fx = cx + (ex - cx) * t,
+        fy = base - 116 + (ey - base + 116) * t + Math.sin(t * Math.PI) * 8;
+      p.rect(fx - 1, fy, 2, 1, "#2a1a14");
+      p.rect(fx - 2, fy + 1, 5, 3, colors[i % colors.length]);
+      p.rect(fx - 1, fy + 4, 2, 2, colors[i % colors.length]);
+    }
+}
+function campKitchen(p, x, y) {
+  // A folding table: a pot, a lantern and a cooler beneath.
+  p.ellipse(x + 44, y + 58, 96, 10, "#141810");
+  p.rect(x + 6, y + 22, 76, 6, "#5c2d1f");
+  p.rect(x + 6, y + 22, 76, 2, "#a0613b");
+  for (const lx of [10, 74]) p.rect(x + lx, y + 28, 3, 28, "#3c201e");
+  p.rect(x + 14, y + 10, 18, 12, "#2a2a36");
+  p.rect(x + 12, y + 8, 22, 3, "#4a4a5a");
+  p.rect(x + 40, y + 14, 10, 8, "#c0b8a8");
+  p.rect(x + 42, y + 12, 6, 2, "#e8e0d0");
+  p.rect(x + 58, y + 6, 10, 16, "#24151a");
+  p.rect(x + 60, y + 8, 6, 12, "#ffb347");
+  p.rect(x + 62, y + 10, 2, 6, "#fff1b8");
+  p.light({ kind: "emit", x: x + 58, y: y + 6, w: 10, h: 16 });
+  p.light({ kind: "point", x: x + 62, y: y + 36, r: 62, color: "#ffc070", power: 0.9 });
+  cooler(p, x + 26, y + 56);
+}
+function woodpile(p, x, y) {
+  p.rect(x - 4, y + 30, 80, 6, "#141810");
   for (let row = 0; row < 3; row++)
     for (let i = 0; i < 5 - row; i++) {
-      const lx = x + 238 + i * 10 + row * 5,
-        ly = y + 166 - row * 9;
-      p.ellipse(lx, ly, 10, 9, "#844024");
-      p.ellipse(lx, ly, 6, 5, "#c48a52");
+      const lx = x + 8 + i * 14 + row * 7,
+        ly = y + 26 - row * 11;
+      p.ellipse(lx, ly, 14, 12, "#3c201e");
+      p.ellipse(lx, ly, 10, 8, "#c48a52");
+      p.ellipse(lx, ly, 4, 3, "#8a5a30");
     }
-  p.path([[x + 226, y + 140], [x + 256, y + 126], [x + 292, y + 140]], "#4a3434");
-  p.rect(x + 296, y + 168, 14, 10, "#6a3622");
-  p.rect(x + 302, y + 156, 2, 14, "#8a6a4a");
-  p.rect(x + 296, y + 154, 10, 4, "#9a9cb4");
+  p.rect(x + 74, y + 18, 12, 14, "#6a3622");
+  p.rect(x + 80, y + 4, 2, 16, "#8a6a4a");
+  p.rect(x + 76, y + 2, 8, 4, "#9a9cb4");
+}
+// The heart of the camp: a wide stone ring, four log benches, a blanket,
+// a guitar against a log, mugs on a stump and the kettle on its tripod.
+function campfireCircle(p, fx, fy) {
+  for (const [dx, dy, w, h] of [[0, 4, 230, 92], [0, 2, 190, 72]])
+    p.ellipse(fx + dx, fy + dy, w, h, dy === 4 ? "#4a3424" : "#7a5434");
+  for (let i = 0; i < 40; i++) {
+    const angle = i * 2.4,
+      d = 30 + ((i * 37) % 60);
+    p.rect(fx + Math.cos(angle) * d, fy + 2 + Math.sin(angle) * d * 0.38, 4, 2, i % 3 ? "#8a6a44" : "#5a3e26");
+  }
+  p.ellipse(fx, fy + 2, 50, 26, "#5a5050");
+  p.ellipse(fx, fy + 1, 38, 18, "#1a120e");
+  for (let k = 0; k < 12; k++) {
+    const angle = (k / 12) * Math.PI * 2;
+    p.rect(fx + Math.cos(angle) * 21 - 3, fy + Math.sin(angle) * 10 - 2, 7, 6, k % 2 ? "#8a8078" : "#a09888");
+  }
+  for (const [ex, ey] of [[-6, 4], [4, 6], [8, 2], [-2, 8]]) p.rect(fx + ex, fy + ey, 3, 2, "#ff7a30");
+  for (const [dx, dy] of [[-70, -2], [70, -2], [-42, 40], [44, 42]]) log(p, fx + dx, fy + dy);
+  // A plaid blanket thrown over the west bench.
+  p.rect(fx - 90, fy - 10, 30, 16, "#8a3a3a");
+  for (const k of [0, 8, 16, 24]) p.rect(fx - 90 + k, fy - 10, 2, 16, "#c86a5a");
+  for (const k of [4, 10]) p.rect(fx - 90, fy - 10 + k, 30, 2, "#5a2424");
+  // A guitar leans on the east bench.
+  p.ellipse(fx + 96, fy - 6, 16, 18, "#3c201e");
+  p.ellipse(fx + 96, fy - 6, 13, 15, "#c07a3a");
+  p.ellipse(fx + 96, fy - 6, 4, 4, "#24151a");
+  p.rect(fx + 94, fy - 40, 4, 26, "#5c2d1f");
+  p.rect(fx + 93, fy - 44, 6, 6, "#3c201e");
+  // Mugs and the marshmallow bag on a stump.
+  p.ellipse(fx - 4, fy + 72, 26, 10, "#5c2d1f");
+  p.ellipse(fx - 4, fy + 70, 22, 8, "#c48a52");
+  for (const [mx, color] of [[-12, "#4a7ab0"], [0, "#c84a3a"]]) {
+    p.rect(fx + mx, fy + 60, 7, 8, color);
+    p.rect(fx + mx + 7, fy + 62, 2, 4, color);
+  }
+  p.rect(fx + 18, fy + 46, 12, 14, "#e8e0d0");
+  p.rect(fx + 18, fy + 46, 12, 3, "#c84a3a");
+  // The kettle tripod over the flames.
+  for (const side of [-1, 1]) p.path([[fx + side * 18, fy + 6], [fx + side * 2, fy - 36], [fx + side * 4, fy - 36], [fx + side * 20, fy + 6]], "#4b241e");
+  p.rect(fx - 1, fy - 36, 2, 14, "#2a2228");
+  p.light({ kind: "point", x: fx, y: fy, r: 200, color: "#ff9440", power: 1.5, flatten: 1.7 });
+  p.light({ kind: "emit", x: fx - 14, y: fy - 26, w: 28, h: 30 });
 }
 function cove(p, area) {
   const top = area.y;
@@ -571,66 +649,22 @@ function duck(p, x, y, facing) {
 }
 function campsite(p, area, includeActors) {
   const top = area.y;
-  // A worn path runs down from the drift glade to the camp and the dock.
-  const trail = [[480, -10], [470, 80], [452, 180], [446, 280], [520, 330], [610, 352], [690, 362]];
-  for (let i = 0; i < trail.length - 1; i++) {
-    const [ax, ay] = trail[i],
-      [bx, by] = trail[i + 1];
-    for (let t = 0; t < 1; t += 0.12) {
-      const x = ax + (bx - ax) * t,
-        y = ay + (by - ay) * t;
-      p.ellipse(x, top + y, 34, 20, "#6a4a2c");
-      p.ellipse(x, top + y - 1, 26, 14, "#8a5e36");
-    }
-  }
   cove(p, area);
   dock(p, area);
-  lodge(p, 60, top + 60);
+  bellTent(p, 154, top + 230);
+  campKitchen(p, 252, top + 206);
+  woodpile(p, 84, top + 252);
   tent(p, 380, top + 192, true);
   tent(p, 550, top + 168, false);
-  // The camp fire: a stone ring, three log seats and a kettle on a tripod.
-  const fx = 445,
-    fy = top + 318;
-  for (const [dx, dy, w] of [[-30, 10, 60], [26, -6, 54], [0, 22, 80], [-8, -16, 40]]) {
-    p.ellipse(fx + dx, fy + dy, w, 22, "#6a4a2c");
-    p.ellipse(fx + dx, fy + dy - 2, w - 14, 14, "#8a6038");
-  }
-  p.ellipse(fx, fy + 2, 42, 22, "#5a5050");
-  p.ellipse(fx, fy + 1, 32, 15, "#1a120e");
-  for (let k = 0; k < 10; k++) {
-    const angle = (k / 10) * Math.PI * 2;
-    p.rect(fx + Math.cos(angle) * 18 - 3, fy + Math.sin(angle) * 9 - 2, 6, 5, "#8a8078");
-  }
-  for (const [dx, dy] of [[-54, 6], [54, 6], [0, 34]]) {
-    log(p, fx + dx, fy + dy);
-  }
-  for (const side of [-1, 1]) p.path([[fx + side * 16, fy + 6], [fx + side * 2, fy - 34], [fx + side * 4, fy - 34], [fx + side * 18, fy + 6]], "#4b241e");
-  p.rect(fx - 1, fy - 34, 2, 14, "#2a2228");
-  p.rect(fx - 8, fy - 22, 16, 11, "#2a2a36");
-  p.rect(fx - 6, fy - 24, 12, 3, "#4a4a5a");
-  p.light({ kind: "point", x: fx, y: fy, r: 185, color: "#ff9a40", power: 1.4, flatten: 1.7 });
-  p.light({ kind: "emit", x: fx - 12, y: fy - 22, w: 24, h: 24 });
-  // A lantern post where the trail meets the dock.
+  campfireCircle(p, 445, top + 318);
+  // A lantern post lights the way down to the dock.
   p.lantern(620, top + 346);
-  for (const [x, y] of [[300, 330], [560, 250], [180, 300], [600, 210]]) {
+  for (const [x, y] of [[560, 250], [600, 210], [330, 400], [250, 330]]) {
     p.ellipse(x, top + y, 22, 12, "#4a4e6c");
     p.rect(x - 6, top + y - 4, 10, 2, "#80859f");
     paintFern(p, x + 12, top + y + 6, 0.7);
   }
-  for (const [x, y] of [[250, 380], [330, 420], [520, 420]]) mushroom(p, x, top + y);
-  // A picnic table with a lantern, a rod rack by the dock and a hammock
-  // slung between two pines.
-  p.rect(276, top + 276, 56, 10, "#3c201e");
-  p.rect(278, top + 276, 52, 3, "#a0613b");
-  for (const lx of [282, 322]) p.rect(lx, top + 286, 4, 16, "#3c201e");
-  for (const by of [top + 262, top + 300]) {
-    p.rect(272, by, 64, 6, "#5c2d1f");
-    p.rect(272, by, 64, 2, "#8a4c2a");
-  }
-  p.rect(300, top + 266, 8, 10, "#24151a");
-  p.rect(301, top + 267, 6, 8, "#ffb347");
-  p.light({ kind: "emit", x: 300, y: top + 266, w: 8, h: 10 });
-  p.light({ kind: "point", x: 304, y: top + 284, r: 56, color: "#ffc070", power: 0.85 });
+  for (const [x, y] of [[250, 380], [300, 420], [560, 420], [180, 320]]) mushroom(p, x, top + y);
   for (const rx of [636, 668]) p.rect(rx, top + 300, 4, 34, "#3c201e");
   p.rect(632, top + 306, 42, 4, "#5c2d1f");
   for (let k = 0; k < 3; k++)
@@ -640,26 +674,17 @@ function campsite(p, area, includeActors) {
       sag = Math.sin(t * Math.PI) * 16;
     p.rect(782 + t * 80, top + 236 + t * 6 + sag, 4, 6, i % 4 < 2 ? "#b8605a" : "#e0c890");
   }
-  // String lights sag between the two tents.
-  for (let i = 0; i <= 16; i++) {
-    const t = i / 16,
-      x = 424 + t * 86,
-      y = top + 128 - t * 22 + Math.sin(t * Math.PI) * 14;
-    p.rect(x, y, 2, 2, "#2a2228");
-    if (i % 2 === 0) {
-      p.rect(x, y + 2, 2, 4, ["#ffd27a", "#ff9a6a", "#a8d8ff", "#ffe9a0"][(i / 2) % 4]);
-      p.light({ kind: "emit", x, y: y + 2, w: 2, h: 4 });
-    }
-  }
-  p.light({ kind: "point", x: 468, y: top + 150, r: 60, color: "#ffc070", power: 0.5 });
+  // String lights loop from the bell tent's peak over both ridge tents.
+  stringLights(p, 160, top + 114, 380, top + 128, 18);
+  stringLights(p, 384, top + 128, 548, top + 104, 14);
   // The woods close in around the camp in clumps, deepest at the edges.
   const geometry = campsiteGeometry({ y: 0 });
   const busy = [
-    geometry.lodge,
+    geometry.bellTent,
+    geometry.kitchen,
     geometry.woodpile,
     ...geometry.tents,
-    { left: 360, right: 540, top: 250, bottom: 380 },
-    { left: 260, right: 350, top: 250, bottom: 320 },
+    { left: 320, right: 570, top: 250, bottom: 400 },
     { left: 620, right: 690, top: 290, bottom: 350 },
     { left: 770, right: 870, top: 220, bottom: 270 },
     { left: 400, right: 500, top: 100, bottom: 250 },
@@ -677,9 +702,8 @@ function campsite(p, area, includeActors) {
       const half = 42 * tree.s + 8,
         box = { left: tree.x - half, right: tree.x + half, top: tree.y - 70 * tree.s - 10, bottom: tree.y + 10 };
       const wet = [-half, 0, half].some((dx) => inCove(tree.x + dx, tree.y + 20) || inCove(tree.x + dx, tree.y - 20));
-      const trail = Math.abs(tree.x - (tree.y < 300 ? 470 - tree.y * 0.05 : 520 + (tree.y - 300) * 2)) < 60 && tree.y < 380;
-      const open = tree.x > 150 && tree.x < 640 && tree.y > 120 && tree.y < 470;
-      if (wet || trail || open || busy.some((b) => intersects(box, b))) continue;
+      const open = tree.x > 60 && tree.x < 640 && tree.y > 120 && tree.y < 470;
+      if (wet || open || busy.some((b) => intersects(box, b))) continue;
       trees.push({ ...tree, y: top + tree.y });
     }
   for (const tree of trees.sort((a, b) => a.y - b.y)) p.tree(tree);
@@ -690,18 +714,19 @@ function animateCampsite(p, area, time, reduced) {
     fx = 445,
     fy = top + 318,
     frame = reduced ? 1 : Math.floor(time * 8) % 4;
-  p.rect(fx - 9, fy - 12 - (frame % 2) * 2, 18, 12, "#d8501c");
-  p.rect(fx - 7, fy - 18 + (frame % 3) * 2, 14, 14, "#f08a28");
-  p.rect(fx - 4 + (frame % 2) * 2, fy - 22 + frame, 8, 16, "#ffb347");
-  p.rect(fx - 2, fy - 12, 5, 10, "#ffe9a0");
+  p.rect(fx - 13, fy - 10 - (frame % 2) * 2, 26, 12, "#d8501c");
+  p.rect(fx - 10, fy - 20 + (frame % 3) * 2, 20, 18, "#f08a28");
+  p.rect(fx - 6 + (frame % 2) * 2, fy - 28 + frame, 11, 22, "#ffb347");
+  p.rect(fx - 3, fy - 14, 6, 12, "#ffe9a0");
+  p.rect(fx + 6 - (frame % 2) * 12, fy - 22 - (frame % 3), 4, 8, "#f08a28");
   p.rect(fx - 8, fy - 22, 16, 11, "#2a2a36");
   if (!reduced)
     for (let i = 0; i < 4; i++) {
       const rise = (time * 16 + i * 11) % 40;
       if (rise < 30) p.rect(fx - 4 + Math.sin(time * 3 + i * 2) * 8, fy - 30 - rise, 2, 2, i % 2 ? "#ffd27a" : "#ff9a40");
     }
-  // Steam from the kettle and smoke from the lodge chimney.
-  for (const [sx, sy, spread] of [[fx + 6, fy - 26, 4], [247, top + 56, 9]])
+  // Steam curls from the kettle spout.
+  for (const [sx, sy, spread] of [[fx + 6, fy - 26, 4]])
     for (let i = 0; i < 4; i++) {
       const phase = reduced ? i * 0.24 : (time * 0.14 + i * 0.24) % 1;
       if (phase > 0.85) continue;
@@ -1063,106 +1088,68 @@ function forestFloor(p, top, bottom, seed, avoid = []) {
     }
   }
 }
-// The forest road that winds from the drift glade down to the campsite.
-export function forestRoad(layout) {
-  if (!layout.drift || !layout.stable) return [];
-  const a = [480, layout.drift.y + 322],
-    d = [480, layout.stable.y - 6],
-    mid = (a[1] + d[1]) / 2;
-  const b = [560, mid - 30],
-    c = [400, mid + 30];
-  return Array.from({ length: 25 }, (_, i) => {
-    const t = i / 24,
-      u = 1 - t;
-    return [
-      u * u * u * a[0] + 3 * u * u * t * b[0] + 3 * u * t * t * c[0] + t * t * t * d[0],
-      u * u * u * a[1] + 3 * u * u * t * b[1] + 3 * u * t * t * c[1] + t * t * t * d[1],
-    ];
-  });
+// Small camping props shared by the pit camp and the lakeside campsite.
+function campChair(p, x, y, color, facing = 1) {
+  p.ellipse(x, y + 2, 22, 5, "#141810");
+  p.rect(x - 8, y - 4, 2, 8, "#2a2a30");
+  p.rect(x + 6, y - 4, 2, 8, "#2a2a30");
+  p.rect(x - 8, y - 8, 16, 5, color);
+  p.rect(x - 8 + (facing > 0 ? -2 : 14), y - 20, 4, 14, color);
+  p.rect(x - 8, y - 8, 16, 1, "#ffffff33");
 }
-function road(p, layout) {
-  const points = forestRoad(layout);
-  if (!points.length) return;
-  for (const [x, y] of points) p.ellipse(x, y, 64, 34, "#3a2c1e");
-  for (const [x, y] of points) p.ellipse(x, y, 54, 26, "#6a4c30");
-  const rand = random(4409);
-  for (let i = 0; i < points.length - 1; i++) {
-    const [ax, ay] = points[i],
-      [bx, by] = points[i + 1],
-      angle = Math.atan2(by - ay, bx - ax),
-      nx = -Math.sin(angle),
-      ny = Math.cos(angle);
-    for (let t = 0; t < 1; t += 0.2) {
-      const x = ax + (bx - ax) * t,
-        y = ay + (by - ay) * t;
-      for (const side of [-11, 11]) p.rect(x + nx * side - 2, y + ny * side, 5, 2, "#4a3420");
-      if (rand() < 0.5) {
-        p.rect(x - 1, y - 2, 2, 4, "#4e6a34");
-        p.rect(x + 2, y, 2, 2, "#3e5a2e");
-      }
-      if (rand() < 0.25) p.rect(x + nx * (22 + rand() * 6), y + ny * 22, 4, 2, "#6e7282");
-      if (rand() < 0.2) p.rect(x + (rand() - 0.5) * 30, y + (rand() - 0.5) * 12, 2, 2, "#8a7458");
+function cooler(p, x, y) {
+  p.rect(x, y - 12, 20, 12, "#1a3a5a");
+  p.rect(x + 1, y - 11, 18, 10, "#3a6a9a");
+  p.rect(x, y - 14, 20, 3, "#e8e8e0");
+  p.rect(x + 7, y - 16, 6, 2, "#c8c8c0");
+}
+function smallTent(p, x, y, canvas, lit) {
+  p.ellipse(x, y + 4, 92, 16, "#141810");
+  p.path([[x - 42, y], [x, y - 52], [x + 44, y]], canvas[0]);
+  p.path([[x - 36, y], [x - 2, y - 46], [x - 2, y]], canvas[1]);
+  p.path([[x + 2, y - 46], [x + 38, y], [x + 2, y]], canvas[2]);
+  p.path([[x - 12, y], [x, y - 28], [x + 12, y]], lit ? "#ffb347" : "#241c18");
+  if (lit) {
+    p.path([[x - 6, y], [x, y - 18], [x + 6, y]], "#ffd77a");
+    p.light({ kind: "emit", x: x - 8, y: y - 18, w: 16, h: 18 });
+    p.light({ kind: "point", x, y: y + 8, r: 60, color: "#ffb860", power: 0.85 });
+  }
+  for (const side of [-1, 1]) p.rect(x + side * 52, y - 3, 2, 5, "#5c2d1f");
+}
+function stringLights(p, ax, ay, bx, by, sag, colors = ["#ffd27a", "#ff9a6a", "#a8d8ff", "#ffe9a0"]) {
+  const steps = Math.max(8, Math.round(Math.hypot(bx - ax, by - ay) / 6));
+  for (let i = 0; i <= steps; i++) {
+    const t = i / steps,
+      x = ax + (bx - ax) * t,
+      y = ay + (by - ay) * t + Math.sin(t * Math.PI) * sag;
+    p.rect(x, y, 2, 2, "#2a2228");
+    if (i % 2 === 0 && i > 0 && i < steps) {
+      p.rect(x, y + 2, 2, 4, colors[(i / 2) % colors.length]);
+      p.light({ kind: "emit", x, y: y + 2, w: 2, h: 4 });
     }
   }
-  // A rain puddle holds a lantern's reflection, and a finger-post points
-  // the way at the top.
-  const [px, py] = points[9];
-  p.ellipse(px + 8, py + 2, 26, 8, "#1c2650");
-  p.rect(px + 2, py, 10, 2, "#c08a4a");
-  for (const i of [6, 17]) {
-    const [lx, ly] = points[i];
-    p.lantern(lx + (i % 2 ? -36 : 36), ly + 6);
-  }
-  const [sx, sy] = points[2];
-  p.rect(sx + 38, sy - 30, 4, 34, "#3c201e");
-  p.path([[sx + 26, sy - 30], [sx + 56, sy - 30], [sx + 62, sy - 25], [sx + 56, sy - 20], [sx + 26, sy - 20]], "#8a4c2a");
-  p.path([[sx + 22, sy - 16], [sx + 52, sy - 16], [sx + 52, sy - 6], [sx + 22, sy - 6], [sx + 16, sy - 11]], "#7a4224");
-  p.rect(sx + 30, sy - 26, 20, 2, "#3c201e");
-  p.rect(sx + 26, sy - 12, 20, 2, "#3c201e");
+  p.light({ kind: "point", x: (ax + bx) / 2, y: (ay + by) / 2 + sag + 16, r: Math.hypot(bx - ax, by - ay) * 0.45, color: "#ffc070", power: 0.45 });
 }
-
-function garage(p, x, y) {
-  // A timber workshop with its wide door open on a lit bench.
-  p.ellipse(x + 78, y + 140, 190, 22, "#141810");
-  p.rect(x, y + 50, 156, 92, "#4a2a20");
-  for (let yy = y + 54; yy < y + 140; yy += 7) {
-    p.rect(x, yy, 156, 2, "#2c181b");
-    p.rect(x, yy + 2, 156, 1, "#6a3a24");
-  }
-  p.path([[x - 12, y + 56], [x + 78, y + 6], [x + 168, y + 56]], "#24151a");
-  p.path([[x - 6, y + 52], [x + 78, y + 12], [x + 162, y + 52]], "#4a3434");
-  for (let yy = y + 20; yy < y + 52; yy += 6) {
-    const half = ((yy - y - 12) / 40) * 84;
-    p.rect(x + 78 - half, yy, half * 2, 2, "#2c1c1e");
-    for (let xx = x + 78 - half + ((yy / 6) % 2 ? 4 : 0); xx < x + 78 + half - 6; xx += 12) p.rect(xx, yy + 2, 8, 2, "#655048");
-  }
-  p.rect(x - 8, y + 52, 172, 4, "#a0613b");
-  // The open door and the workshop inside.
-  p.rect(x + 34, y + 72, 88, 70, "#24151a");
-  p.rect(x + 38, y + 76, 80, 66, "#c07038");
-  p.rect(x + 38, y + 76, 80, 14, "#a05a2c");
-  for (const [tx, h] of [[48, 16], [58, 12], [66, 18], [76, 10]]) p.rect(x + tx, y + 80, 2, h, "#4a4048");
-  p.rect(x + 44, y + 112, 68, 6, "#5c2d1f");
-  p.rect(x + 46, y + 118, 4, 22, "#3c201e");
-  p.rect(x + 106, y + 118, 4, 22, "#3c201e");
-  p.rect(x + 54, y + 104, 12, 8, "#c84a3a");
-  p.rect(x + 74, y + 106, 18, 6, "#6a6474");
-  p.rect(x + 96, y + 100, 6, 12, "#3a6a9a");
-  p.light?.({ kind: "emit", x: x + 38, y: y + 76, w: 80, h: 66 });
-  p.light?.({ kind: "spill", x: x + 78, y: y + 142, w: 90, h: 60, reach: 80, color: "#ffb860" });
-  p.lantern(x + 140, y + 100);
-  // Barrels, a jerrycan and a stack of worn tyres by the wall.
-  for (const [bx, color, band] of [[x + 6, "#2a4a7a", "#5a7aaa"], [x + 20, "#8a2a24", "#c05040"]]) {
-    p.rect(bx, y + 114, 13, 26, "#141018");
-    p.rect(bx + 1, y + 115, 11, 24, color);
-    for (const yy of [y + 119, y + 132]) p.rect(bx + 1, yy, 11, 2, band);
-  }
-  for (let i = 0; i < 3; i++) {
-    p.ellipse(x + 176, y + 136 - i * 8, 30, 12, "#141418");
-    p.ellipse(x + 176, y + 135 - i * 8, 14, 5, "#2a2a30");
-  }
-  p.rect(x + 160, y + 122, 10, 14, "#b03a2a");
-  p.rect(x + 162, y + 120, 4, 2, "#141018");
+// Where the drivers sit out between laps: a tent, chairs, a cooler, a
+// radio on a folding table and lights strung to a pole.
+function pitCamp(p, x, y) {
+  smallTent(p, x + 70, y + 110, ["#6a4a3a", "#c8875a", "#9a5a3a"], true);
+  p.rect(x + 160, y + 40, 4, 74, "#3c201e");
+  stringLights(p, x + 70, y + 58, x + 162, y + 42, 10);
+  p.rect(x + 120, y + 128, 34, 4, "#8a7a5a");
+  p.rect(x + 122, y + 132, 2, 12, "#4a4048");
+  p.rect(x + 150, y + 132, 2, 12, "#4a4048");
+  p.rect(x + 126, y + 120, 14, 8, "#3a3a44");
+  p.rect(x + 128, y + 122, 6, 4, "#8a8a9a");
+  p.rect(x + 142, y + 118, 7, 10, "#24151a");
+  p.rect(x + 143, y + 119, 5, 8, "#ffb347");
+  p.light({ kind: "emit", x: x + 142, y: y + 118, w: 7, h: 10 });
+  p.light({ kind: "point", x: x + 140, y: y + 136, r: 54, color: "#ffc070", power: 0.85 });
+  campChair(p, x + 110, y + 168, "#3a6a5a");
+  campChair(p, x + 150, y + 172, "#a04a3a");
+  cooler(p, x + 20, y + 168);
+  p.rect(x + 46, y + 160, 6, 8, "#c84a3a");
+  p.rect(x + 54, y + 162, 6, 6, "#e0c060");
 }
 
 function drift(p, area, includeActors) {
@@ -1189,7 +1176,7 @@ function drift(p, area, includeActors) {
     p.rect(x - w * 0.2, top + y - 1, w * 0.3, 2, "#c08a4a");
     p.rect(x + w * 0.1, top + y + 2, w * 0.2, 2, "#3a4a88");
   }
-  garage(p, 20, top + 40);
+  pitCamp(p, 10, top + 30);
   // A log stack, a burning brazier and a bench for whoever is watching.
   for (let row = 0; row < 4; row++)
     for (let i = 0; i < 6 - row; i++) {
@@ -1230,118 +1217,131 @@ function drift(p, area, includeActors) {
   if (includeActors) animateDrift(p, area, 0, true);
 }
 
+// The moonstone dolmen: an old landmark deep in the grove. Two great
+// runed uprights carry a mossy capstone over a crystal that floats in
+// their shadow; small standing stones ring a flagstone circle, and votive
+// candles burn at its edge. Runes, ground circle and crystal glow in
+// glowJourney, after the light map, so they truly shine.
+const RUNES = [
+  ["#.#", "###", "#.#", "#..", "#.."],
+  ["###", "#..", "##.", "#..", "###"],
+  [".#.", "#.#", ".#.", "#.#", ".#."],
+  ["#..", "##.", "#.#", "##.", "#.."],
+];
+const STONE = ["#1c2028", "#2e3440", "#3e4656", "#566072", "#7a8698"];
+function menhir(p, x, y, h, w = 12) {
+  p.ellipse(x, y + 2, w + 10, 6, "#141810");
+  p.path([[x - w / 2, y], [x - w / 2 + 1, y - h * 0.8], [x - 1, y - h], [x + w / 2 - 1, y - h * 0.85], [x + w / 2, y]], STONE[1]);
+  p.path([[x - w / 2 + 2, y - 2], [x - w / 2 + 3, y - h * 0.78], [x - 1, y - h + 2], [x, y - 2]], STONE[2]);
+  p.rect(x - 2, y - h + 2, 4, 3, "#3d5a34");
+  p.rect(x - w / 2 + 3, y - h * 0.5, 2, 2, STONE[3]);
+}
 function relics(p, x, y) {
-  p.ellipse(x, y + 60, 194, 50, "#364b35");
-  // Original geometric forest-beast sculptures, weathered into their clearing.
-  p.path(
-    [
-      [x - 35, y + 52],
-      [x - 32, y - 29],
-      [x - 42, y - 58],
-      [x - 30, y - 92],
-      [x - 14, y - 74],
-      [x + 14, y - 74],
-      [x + 31, y - 94],
-      [x + 43, y - 57],
-      [x + 30, y - 31],
-      [x + 35, y + 52],
-    ],
-    "#6e7a68",
-  );
-  p.path(
-    [
-      [x - 24, y + 45],
-      [x - 22, y - 26],
-      [x - 30, y - 52],
-      [x - 23, y - 70],
-      [x - 9, y - 56],
-      [x + 12, y - 56],
-      [x + 23, y - 72],
-      [x + 31, y - 50],
-      [x + 21, y - 27],
-      [x + 24, y + 45],
-    ],
-    "#929a7f",
-  );
-  for (const side of [-1, 1]) {
-    p.rect(x + side * 17 - 6, y - 44, 12, 8, "#3f5747");
-    p.rect(x + side * 17 - 4, y - 41, 8, 3, "#b0b396");
-    p.path(
-      [
-        [x + side * 6, y - 5],
-        [x + side * 20, y + 6],
-        [x + side * 7, y + 13],
-      ],
-      "#516554",
-    );
+  // A clearing of moss and a ring of worn flagstones.
+  p.ellipse(x, y + 52, 214, 76, "#1e2a1c");
+  p.ellipse(x, y + 50, 186, 60, "#3a4440");
+  for (let k = 0; k < 18; k++) {
+    const angle = (k / 18) * Math.PI * 2;
+    const sx = x + Math.cos(angle) * 78,
+      sy = y + 50 + Math.sin(angle) * 24;
+    p.ellipse(sx, sy, 22, 9, k % 2 ? STONE[2] : STONE[3]);
+    p.rect(sx - 6, sy - 3, 8, 2, STONE[4]);
   }
-  p.path(
-    [
-      [x, y - 35],
-      [x - 9, y - 19],
-      [x + 9, y - 19],
-    ],
-    "#4c6350",
-  );
-  for (const dy of [19, 34]) p.rect(x - 19, y + dy, 38, 3, "#586e56");
-  p.path(
-    [
-      [x - 24, y - 10],
-      [x - 14, y + 1],
-      [x - 17, y + 12],
-      [x - 10, y + 21],
-    ],
-    "#657661",
-  );
-  p.ellipse(x - 66, y + 41, 46, 26, "#85917a");
-  p.path(
-    [
-      [x - 84, y + 33],
-      [x - 82, y + 20],
-      [x - 72, y + 29],
-      [x - 65, y + 19],
-      [x - 59, y + 34],
-    ],
-    "#85917a",
-  );
-  p.rect(x - 78, y + 35, 5, 2, "#4a6050");
-  p.ellipse(x + 63, y + 32, 31, 67, "#8b957c");
-  for (const side of [-1, 1])
-    p.path(
-      [
-        [x + 63 + side * 8, y + 6],
-        [x + 63 + side * 15, y - 17],
-        [x + 63 + side * 24, y - 19],
-        [x + 63 + side * 17, y - 10],
-        [x + 63 + side * 17, y - 25],
-      ],
-      "#a4ad90",
+  p.ellipse(x, y + 50, 120, 36, "#28322e");
+  p.ellipse(x, y + 50, 100, 28, "#222a28");
+  // Standing stones around the ring, smaller toward the back.
+  for (const [dx, dy, h] of [[-88, 34, 30], [-64, 18, 22], [64, 18, 24], [90, 36, 32], [-92, 70, 26], [92, 72, 24]])
+    menhir(p, x + dx, y + dy, h);
+  // The great uprights, each carved with a column of runes.
+  for (const side of [-1, 1]) {
+    const ux = x + side * 35;
+    p.path([[ux - 12, y + 46], [ux - 13, y - 50], [ux - 8, y - 58], [ux + 9, y - 58], [ux + 13, y - 48], [ux + 12, y + 46]], STONE[0]);
+    p.path([[ux - 10, y + 44], [ux - 11, y - 48], [ux - 7, y - 55], [ux + 8, y - 55], [ux + 11, y - 46], [ux + 10, y + 44]], STONE[2]);
+    p.path([[ux - side * 10, y + 44], [ux - side * 11, y - 48], [ux - side * 7, y - 55], [ux - side * 3, y - 55], [ux - side * 4, y + 44]], STONE[3]);
+    p.rect(ux - 10, y + 40, 20, 4, STONE[1]);
+    RUNES.forEach((rune, i) =>
+      rune.forEach((row, ry) =>
+        [...row].forEach((c, rx) => {
+          if (c === "#") p.rect(ux - 3 + rx * 2, y - 40 + i * 20 + ry * 2, 2, 2, STONE[0]);
+        }),
+      ),
     );
-  p.rect(x + 54, y + 21, 5, 3, "#526a50");
-  p.rect(x + 68, y + 21, 5, 3, "#526a50");
-  for (const [dx, dy] of [
-    [-27, -59],
-    [17, 42],
-    [61, 56],
-    [-74, 51],
-  ]) {
-    p.ellipse(x + dx, y + dy, 20, 9, "#526e42");
+    for (let k = 0; k < 7; k++) p.rect(ux + side * 8, y - 50 + k * 9, 2, 6, "#2f4a2c");
+  }
+  // The capstone, moss on its back and ivy trailing from its ends.
+  p.path([[x - 66, y - 56], [x - 60, y - 74], [x - 20, y - 82], [x + 26, y - 80], [x + 62, y - 72], [x + 68, y - 56], [x + 40, y - 50], [x - 40, y - 50]], STONE[0]);
+  p.path([[x - 62, y - 58], [x - 57, y - 72], [x - 20, y - 79], [x + 25, y - 77], [x + 59, y - 70], [x + 64, y - 58]], STONE[2]);
+  p.path([[x - 57, y - 72], [x - 20, y - 79], [x + 25, y - 77], [x + 59, y - 70], [x + 40, y - 66], [x - 30, y - 68]], STONE[3]);
+  for (let k = 0; k < 14; k++) {
+    p.rect(x - 52 + k * 8, y - 80 + (k % 3), 6, 3, k % 2 ? "#3d5a34" : "#4e6e3a");
+    if (k % 4 === 1) p.rect(x - 50 + k * 8, y - 84, 3, 4, "#5e7e40");
+  }
+  for (const [vx, len] of [[-60, 26], [-50, 14], [58, 30], [48, 12]])
+    for (let k = 0; k < len; k += 3) {
+      p.rect(x + vx + Math.round(Math.sin(k * 0.4) * 2), y - 54 + k, 2, 3, "#24391f");
+      if (k % 6 === 0) p.rect(x + vx - 2, y - 54 + k, 4, 2, "#4e6e3a");
+    }
+  // An offering bowl of flowers between the uprights.
+  p.ellipse(x, y + 40, 22, 8, STONE[1]);
+  p.ellipse(x, y + 38, 16, 5, STONE[3]);
+  for (const [fx, color] of [[-4, "#e8d8a0"], [2, "#d08aa8"], [6, "#a8b8e8"]]) p.rect(x + fx, y + 33, 2, 2, color);
+  for (const [dx, dy] of [[-27, 70], [17, 82], [-74, 80], [70, 84]]) {
+    p.ellipse(x + dx, y + dy, 20, 9, "#2a4426");
     paintFern(p, x + dx + 9, y + dy + 5, 0.7);
   }
+  p.light?.({ kind: "point", x, y: y + 10, r: 150, color: "#7ae8e0", power: 1.05, flatten: 1.4 });
+  p.light?.({ kind: "emit", x: x - 10, y: y - 34, w: 20, h: 34 });
   relicCandles(p, x, y);
+}
+// The crystal bobs and breathes; runes and the ground circle pulse in turn.
+function relicGlow(p, x, y, time, reduced) {
+  const t = reduced ? 0 : time;
+  const bob = reduced ? 0 : Math.round(Math.sin(t * 1.4) * 2) * 2,
+    pulse = (Math.sin(t * 1.8) + 1) / 2;
+  const cy = y - 16 + bob;
+  p.rect(x - 4, cy - 16, 8, 4, "#d8fff8");
+  p.rect(x - 7, cy - 12, 14, 18, "#7ae8e0");
+  p.rect(x - 5, cy - 10, 4, 14, "#d8fff8");
+  p.rect(x + 2, cy - 10, 3, 14, "#3aa8b0");
+  p.rect(x - 4, cy + 6, 8, 4, "#3aa8b0");
+  p.rect(x - 2, cy + 10, 4, 3, "#2a7a88");
+  if (pulse > 0.6) {
+    p.rect(x - 11, cy - 4, 2, 2, "#d8fff8");
+    p.rect(x + 9, cy - 8, 2, 2, "#d8fff8");
+  }
+  for (const side of [-1, 1]) {
+    const ux = x + side * 35;
+    RUNES.forEach((rune, i) => {
+      const lit = (Math.sin(t * 1.8 - i * 0.9 + side) + 1) / 2;
+      if (lit < 0.35) return;
+      const color = lit > 0.75 ? "#a8fff4" : "#4ac8c0";
+      rune.forEach((row, ry) =>
+        [...row].forEach((c, rx) => {
+          if (c === "#") p.rect(ux - 3 + rx * 2, y - 40 + i * 20 + ry * 2, 2, 2, color);
+        }),
+      );
+    });
+  }
+  for (let k = 0; k < 24; k++) {
+    const angle = (k / 24) * Math.PI * 2 + t * 0.25;
+    if ((k + Math.floor(t * 3)) % 3 === 0) continue;
+    p.rect(x + Math.cos(angle) * 44, y + 50 + Math.sin(angle) * 12, 3, 2, pulse > 0.5 ? "#4ac8c0" : "#2a8a8a");
+  }
+  for (let k = 0; k < 6; k++) {
+    const angle = t * 0.7 + (k / 6) * Math.PI * 2;
+    p.rect(x + Math.cos(angle) * (24 + k * 3), cy - 6 + Math.sin(angle * 1.3) * 18, 2, 2, k % 2 ? "#a8fff4" : "#f6e08a");
+  }
 }
 
 // Votive candles ring the shrine: [dx, dy, height] from the relic centre.
 const RELIC_CANDLES = [
-  [-40, 56, 22],
-  [40, 56, 20],
-  [-96, 70, 12],
-  [-66, 82, 18],
-  [-32, 90, 10],
-  [0, 92, 16],
-  [32, 90, 12],
-  [66, 82, 20],
-  [96, 70, 10],
+  [-22, 46, 14],
+  [22, 46, 12],
+  [-60, 66, 10],
+  [-34, 74, 16],
+  [0, 78, 12],
+  [34, 74, 14],
+  [60, 66, 10],
 ];
 
 function relicCandles(p, x, y) {
@@ -1443,12 +1443,6 @@ export function paintJourney(painter, layout, includeActors = true) {
       bottom: s.y + s.height,
     })),
   );
-  road(p, layout);
-  const roadPoints = forestRoad(layout);
-  const onRoad = (box) =>
-    roadPoints.some(([x, y]) =>
-      intersects(box, { left: x - 40, right: x + 40, top: y - 22, bottom: y + 22 }),
-    );
   const trees = [];
   for (let y = start + 35; y < layout.height + 90; y += 62) {
     for (let x = 25; x < WIDTH; x += 54) {
@@ -1456,7 +1450,7 @@ export function paintJourney(painter, layout, includeActors = true) {
         ty = y + (rand() - 0.5) * 34;
       const tree = { x: tx, y: ty, s: 0.75 + rand() * 0.45, tone: rand() };
       const footprint = treeFootprint(tree);
-      const scenicOpening = onRoad(footprint) || scenery.some((scene) =>
+      const scenicOpening = scenery.some((scene) =>
         intersects(footprint, {
           left: scene.x - scene.rx,
           right: scene.x + scene.rx,
@@ -1662,6 +1656,10 @@ export function glowJourney(p, layout) {
       const [tx, ty] = at(-47, side, 22);
       p.rect(tx - 2, ty - 2, 4, 5, "#ff5a3a");
     }
+  }
+  if (layout.invitation) {
+    const ry = layout.invitation.y + layout.invitation.height / 2;
+    if (visible(ry, 110)) relicGlow(p, 800, ry, time, p.reduced);
   }
   const flies = [];
   if (layout.divider && visible(layout.divider.y + layout.divider.height / 2, layout.divider.height))

@@ -4014,40 +4014,163 @@ body {
 }
 .sky-header .identity img {
   border-radius: 50%;
-  image-rendering: pixelated;
   background: #2a4c8a;
   box-shadow:
     0 0 0 calc(1 * var(--cp)) #22120c,
     0 0 0 calc(2.5 * var(--cp)) #3d68b0,
     0 0 0 calc(3.5 * var(--cp)) #22120c;
 }
+/* Name and email hang together on the left; the two profile boards hang
+   side by side on the right, matched in size. */
+.sky-header .header .social-links a.sky-cloud {
+  justify-content: center;
+}
 @media (min-width: 741px) {
+  .sky-header .contact .email-link {
+    left: 2.6cqw;
+    right: auto;
+    top: calc(max(3.4cqw, 30px) + clamp(64px, 9.1cqw, 102px) + 2.8cqw);
+  }
+  .sky-header .header .email-link.sky-cloud {
+    --chain: 3.6cqw;
+    z-index: 2;
+  }
+  .sky-header .header .social-links a.sky-cloud {
+    top: 4.4cqw;
+    min-width: 13cqw;
+    --chain: 120px;
+  }
   .sky-header .header .social-links a.cloud-github {
-    left: 17cqw;
-    top: 14.8cqw;
-    --chain: 4cqw;
+    left: auto;
+    right: 19cqw;
   }
   .sky-header .header .social-links a.cloud-linkedin {
-    right: 9cqw;
-    top: 10.4cqw;
-    --chain: 4cqw;
+    right: 2.6cqw;
   }
 }
 @media (max-width: 740px) {
-  .sky-header .header .social-links a.cloud-github {
-    --chain: 82px;
-  }
-  .sky-header .header .social-links a.cloud-linkedin {
-    --chain: 38px;
+  .sky-header .contact .email-link {
+    left: 12px;
+    right: auto;
+    top: 146px;
   }
   .sky-header .header .email-link.sky-cloud {
-    --chain: 26px;
+    --chain: 14px;
     z-index: 2;
+  }
+  .sky-header .header .social-links a.sky-cloud {
+    left: auto;
+    right: 12px;
+    min-width: 100px;
+  }
+  .sky-header .header .social-links a.cloud-github {
+    top: 120px;
+    --chain: 70px;
+  }
+  .sky-header .header .social-links a.cloud-linkedin {
+    top: 162px;
+    --chain: 18px;
+  }
+  .sky-header .contact .email-link {
+    margin: 0 0 0 calc(10 * var(--cp) - 8px);
+  }
+  .sky-header .header .social-links a.cloud-github,
+  .sky-header .header .social-links a.cloud-linkedin {
+    margin: 0 calc(10 * var(--cp) - 8px) 0 0;
   }
 }
 .sky-header .email-icon {
   color: transparent;
 }
-.intro-dialog img {
+
+/* The lakeside campsite closes the page on a 960 × 600 clearing. */
+.stable-clearing {
+  aspect-ratio: 960 / 600;
+}
+
+/* The title backdrop is crisp pixel art: scaled up with hard edges, glints
+   stepping rather than gliding, and no soft vignette over the scene. */
+.intro-backdrop,
+.intro-glints {
   image-rendering: pixelated;
+}
+.intro-glints {
+  animation-timing-function: steps(6, end);
+}
+@keyframes intro-swell {
+  from {
+    opacity: 0.2;
+    transform: translate3d(-4px, 0, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(4px, 0, 0);
+  }
+}
+.intro-title-screen::after {
+  content: none;
+}
+.intro-night {
+  background: #0d1636;
+}
+/* The narrowest phones keep the email and the profile column side by side. */
+@media (max-width: 345px) {
+  .sky-header .contact .email-link {
+    font-size: 13px;
+    gap: 4px;
+  }
+  .sky-header .header .social-links a.sky-cloud {
+    min-width: 98px;
+  }
+  .sky-header .header .social-links a.cloud-github {
+    top: 138px;
+    --chain: 30px;
+  }
+  .sky-header .header .social-links a.cloud-linkedin {
+    top: 174px;
+  }
+}
+
+/* Reading panels and dialogs sit in the same dark timber as the margins and
+   the hanging boards: an iron-cornered frame with plank lintels above and
+   below, replacing the earlier woven bands. */
+.reading-section,
+dialog {
+  border-image: url("./art/timber-frame.svg") 24 / 24px / 0 stretch;
+  image-rendering: pixelated;
+}
+.reading-section::before,
+.reading-section::after {
+  height: 24px;
+  left: -20px;
+  right: -20px;
+  background: url("./art/timber-beam.svg") left top / 64px 24px repeat-x;
+  clip-path: none;
+  filter: none;
+  image-rendering: pixelated;
+}
+.reading-section::before {
+  top: -20px;
+}
+.reading-section::after {
+  bottom: -20px;
+}
+@media (max-width: 700px) {
+  .reading-section,
+  dialog {
+    border-image-width: 16px;
+  }
+  .reading-section::before,
+  .reading-section::after {
+    left: -12px;
+    right: -12px;
+    height: 16px;
+    background-size: 43px 16px;
+  }
+  .reading-section::before {
+    top: -14px;
+  }
+  .reading-section::after {
+    bottom: -14px;
+  }
 }

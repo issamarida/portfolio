@@ -336,7 +336,7 @@ test("margin pillars paint deterministically and mirror towards the page", () =>
   assert.equal(alpha(1, 150), 0);
 });
 
-test("each margin is one mossy column running unbroken from top to bottom", () => {
+test("each margin is one dark timber frame running unbroken from top to bottom", () => {
   const surface = (width, height) => {
     let data = null;
     return {
@@ -372,9 +372,10 @@ test("each margin is one mossy column running unbroken from top to bottom", () =
     const soil = new Set(["20,23,17", "29,34,25", "38,45,32"]);
     const bottom = row(left, h - 1).filter((c) => soil.has(c.split(",").slice(0, 3).join(",")));
     assert.ok(bottom.length < w * 0.2, "the column runs past the bottom edge");
-    // Moss: plenty of green on the shaft.
+    // Ivy is an accent, not a wall of leaves.
     let green = 0;
     for (let i = 0; i < px.length; i += 4) if (px[i + 1] > px[i] + 12 && px[i + 1] > px[i + 2] + 12) green++;
-    assert.ok(green > (w * h) * 0.08, `mossy enough at ${w}px (${((green / (w * h)) * 100).toFixed(1)}%)`);
+    assert.ok(green < w * h * 0.04, `ivy stays sparse at ${w}px (${((green / (w * h)) * 100).toFixed(1)}%)`);
+    if (w > 100) assert.ok(green > 0, "some ivy remains");
   }
 });

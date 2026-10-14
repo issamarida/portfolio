@@ -5,22 +5,14 @@ import {
   journeyGeometry,
   driftGeometry,
   driftState,
-  farmGeometry,
-  chickenState,
-  pigState,
-  pigPenGeometry,
-  henGeometry,
-  farmFenceGeometry,
   treeFootprint,
   intersects,
   camperState,
   CAMPER_LOOP,
-  farmYard,
-  HOMESTEAD_BAND,
-  farmerState,
-  dogState,
-  crowState,
-  homesteadGeometry,
+  campsiteGeometry,
+  campsiteState,
+  inCove,
+  glowJourney,
 } from "../dist/journey.js";
 
 const layout = {
@@ -73,7 +65,7 @@ test("each visible scene changes with the animation clock", () => {
     );
   }
 });
-test("reduced motion freezes lower scenery, farm animals and river", () => {
+test("reduced motion freezes lower scenery, campsite and river", () => {
   assert.deepEqual(render(0, true), render(20, true));
 });
 test("offscreen scenery has no animated draw calls", () => {
@@ -88,7 +80,7 @@ test("fixed scene compositions are identical at every resolution", () => {
   const scenes = journeyGeometry(layout);
   assert.deepEqual(
     scenes.map((s) => s.kind),
-    ["campfire", "relics", "farm", "river", "drift"],
+    ["campfire", "relics", "campsite", "river", "drift"],
   );
   assert.ok(
     !scenes.some((s) => ["pond", "pod", "cave", "sleepers"].includes(s.kind)),
@@ -108,69 +100,9 @@ test("pickup loops continuously inside the dirt clearing and parks under reduced
   }
   assert.deepEqual(driftState(0, true), driftState(30, true));
 });
-test("ten running chickens keep separate routes within the fenced pasture", () => {
-  assert.equal(farmGeometry(layout.stable).cows.length, 6);
-  for (let i = 0; i < 10; i++) {
-    assert.notDeepEqual(chickenState(0, false, i), chickenState(2, false, i));
-    assert.deepEqual(chickenState(0, true, i), chickenState(20, true, i));
-  }
-  for (let t = 0; t < 30; t += 0.2) {
-    const chickens = Array.from({ length: 10 }, (_, i) =>
-      chickenState(t, false, i),
-    );
-    chickens.forEach((state, i) => {
-      assert.ok(state.x > 30 && state.x < 940);
-      assert.ok(state.y > 190 && state.y < 470);
-      chickens
-        .slice(i + 1)
-        .forEach((other) =>
-          assert.ok(Math.hypot(state.x - other.x, state.y - other.y) > 30),
-        );
-    });
-  }
-});
-test("wallowing pigs stay inside their mud pen and freeze under reduced motion", () => {
-  for (let i = 0; i < 2; i++) {
-    assert.deepEqual(pigState(0, true, i), pigState(30, true, i));
-    assert.notDeepEqual(pigState(0, false, i), pigState(2, false, i));
-    for (let t = 0; t < 30; t += 0.2) {
-      const state = pigState(t, false, i);
-      assert.ok(state.x - 45 > 590 && state.x + 45 < 940);
-      assert.ok(state.y - 30 > 354 && state.y + 20 < 474);
-      assert.ok(state.roll >= 0 && state.roll < 4);
-    }
-  }
-});
 test("tree exclusion tests canopies instead of just trunk centers", () => {
   const box = treeFootprint({ x: 300, y: 100, s: 1 });
   assert.ok(intersects(box, { left: 250, right: 350, top: 30, bottom: 50 }));
-});
-
-test("organic pasture surrounds the enlarged right pig pen and left hen shelter", () => {
-  const pen = pigPenGeometry(layout.stable),
-    hen = henGeometry(layout.stable);
-  assert.ok(pen.right - pen.left >= 350 && pen.bottom - pen.top >= 120);
-  assert.ok(pen.left > 480 && hen.right < 480);
-  const { points } = farmFenceGeometry(layout.stable);
-  assert.equal(points.length, 16);
-  assert.ok(points.slice(0, 5).some((p) => p[1] !== points[0][1]));
-  const inside = ([x, y]) => {
-    let result = false;
-    for (let i = 0, j = points.length - 1; i < points.length; j = i++) {
-      const [ax, ay] = points[i],
-        [bx, by] = points[j];
-      if (ay > y !== by > y && x < ((bx - ax) * (y - ay)) / (by - ay) + ax)
-        result = !result;
-    }
-    return result;
-  };
-  for (let time = 0; time < 30; time += 0.2)
-    for (let i = 0; i < 10; i++) {
-      const state = chickenState(time, false, i);
-      for (const dx of [-16, 16])
-        for (const dy of [-15, 15])
-          assert.ok(inside([state.x + dx, layout.stable.y + state.y + dy]));
-    }
 });
 
 test("the camper toasts, burns, blows out, eats and reloads in one loop", () => {
@@ -189,39 +121,43 @@ test("the camper toasts, burns, blows out, eats and reloads in one loop", () => 
   assert.deepEqual(camperState(2), camperState(2 + CAMPER_LOOP));
 });
 
-test("the homestead band sits above the paddock fence without overlaps", () => {
-  const yard = farmYard(layout.stable);
-  assert.equal(yard.y, layout.stable.y + HOMESTEAD_BAND);
-  const fenceTop = Math.min(...farmFenceGeometry(yard).points.map((p) => p[1]));
-  const parts = Object.entries(homesteadGeometry(layout.stable)).filter(
-    ([name]) => name !== "lane",
-  );
-  for (const [name, box] of parts) {
-    assert.ok(box.top >= layout.stable.y, name);
-    assert.ok(box.bottom < fenceTop - 18, name);
-    assert.ok(box.left >= 0 && box.right <= 960, name);
+test("the lakeside campsite keeps its parts apart and inside the clearing", () => {
+  const area = layout.stable,
+    parts = campsiteGeometry(area);
+  const boxes = [parts.lodge, parts.woodpile, ...parts.tents, parts.fire, parts.dock];
+  for (const box of boxes) {
+    assert.ok(box.left >= 0 && box.right <= 960);
+    assert.ok(box.top >= area.y && box.bottom <= area.y + 600);
   }
-  for (let i = 0; i < parts.length; i++)
-    for (let j = i + 1; j < parts.length; j++)
-      assert.ok(!intersects(parts[i][1], parts[j][1]), `${parts[i][0]} ${parts[j][0]}`);
+  for (let i = 0; i < boxes.length; i++)
+    for (let j = i + 1; j < boxes.length; j++)
+      assert.ok(!intersects(boxes[i], boxes[j]), `${i} ${j}`);
+  // The dock reaches from the shore into the cove; the fire stays on land.
+  assert.ok(inCove(727, 520) && !inCove(727, 362));
+  assert.ok(!inCove(445, 318));
 });
 
-test("farmer, dog and crow keep to the lane and sky and freeze under reduced motion", () => {
-  const actions = new Set();
-  for (let t = 0; t < 40; t += 0.1) {
-    const farmer = farmerState(t),
-      dog = dogState(t),
-      crow = crowState(t);
-    actions.add(farmer.action);
-    for (const actor of [farmer, dog]) {
-      assert.ok(actor.x > 100 && actor.x < 500);
-      assert.ok(actor.y > 150 && actor.y + 12 < HOMESTEAD_BAND - 8);
+test("ducks paddle and the float bobs inside the cove, frozen under reduced motion", () => {
+  for (let t = 0; t < 60; t += 0.25) {
+    const state = campsiteState(t);
+    assert.ok(inCove(state.bobber.x, state.bobber.y));
+    for (const duck of state.ducks) {
+      for (const dx of [-10, 10]) assert.ok(inCove(duck.x + dx, duck.y + 4), `duck at ${t}`);
+      assert.ok(duck.x < 684 || duck.x > 790 || duck.y > 540 || duck.y < 350, "ducks keep off the dock");
     }
-    assert.ok(crow.y > 30 && crow.y < 100);
   }
-  for (const action of ["walk", "crank", "carry", "water", "rest"])
-    assert.ok(actions.has(action), action);
-  assert.deepEqual(farmerState(3, true), farmerState(17, true));
-  assert.deepEqual(dogState(3, true), dogState(17, true));
-  assert.deepEqual(crowState(3, true), crowState(17, true));
+  assert.deepEqual(campsiteState(3, true), campsiteState(40, true));
+  assert.notDeepEqual(campsiteState(3), campsiteState(9));
+});
+
+test("headlights and fireflies are drawn after the light map and only when visible", () => {
+  const draws = [];
+  const painter = { time: 4, reduced: false, viewport: { top: 4700, bottom: 5100 } };
+  painter.rect = (...args) => draws.push(args);
+  glowJourney(painter, layout);
+  assert.ok(draws.length > 20);
+  draws.length = 0;
+  painter.viewport = { top: 0, bottom: 400 };
+  glowJourney(painter, layout);
+  assert.equal(draws.length, 0);
 });

@@ -498,108 +498,139 @@ export function paintPillar(canvas, mirror, seed) {
 }
 
 
-// A giant oak trunk: vertical bark ridges, wrapped timber bands, ivy and
-// hanging lanterns whose light warms the side facing the page. Painted once
-// at the margin's native pixel resolution; resizing and mirroring are unchanged.
+// The margin is the timber frame of a lodge we look out from: a deep, dark
+// board wall, one heavy post on the page side and crossbeams at uneven
+// heights. Ivy is sparse and lanterns are few; each lantern only warms the
+// wood within reach. Positions are seeded along the height, never tiled.
+const BEAM = ["#120a0c", "#1c0f12", "#2a171a", "#3a1f1c", "#4a2a20", "#5e3624", "#77462c"];
 function timberPixels(W, H, seed) {
-  const pixels = new Uint32Array(W * H), rand = seeded(seed);
+  const pixels = new Uint32Array(W * H),
+    rand = seeded(seed);
   const put = (x, y, color) => {
-    x = Math.round(x); y = Math.round(y);
+    x = Math.round(x);
+    y = Math.round(y);
     if (x >= 0 && y >= 0 && x < W && y < H) pixels[y * W + x] = rgba(color);
   };
   const rect = (x, y, w, h, color) => {
     for (let yy = Math.round(y); yy < y + h; yy++)
       for (let xx = Math.round(x); xx < x + w; xx++) put(xx, yy, color);
   };
-  const bark = ["#1c0f12", "#2c181b", "#3c201e", "#4b241e", "#5c2d1f", "#6e3622", "#844024", "#97502b", "#b0663a"];
-  // Bark ridges of uneven width; each catches light on its page-facing edge.
-  const ridges = [];
-  for (let x = 0; x < W;) {
-    const w = Math.max(4, Math.round(5 + rand() * Math.max(4, W / 12)));
-    ridges.push([x, w, rand()]);
-    x += w;
+  // The back wall: wide, nearly black boards that recede behind the frame.
+  const board = Math.max(10, Math.min(26, Math.round(W / 4)));
+  for (let x = 0; x < W; x++) {
+    const u = x % board;
+    const tone = u === 0 ? BEAM[0] : u === 1 ? BEAM[2] : BEAM[1];
+    for (let y = 0; y < H; y++) put(x, y, tone);
   }
-  for (const [x0, w, tone] of ridges) {
-    for (let x = x0; x < Math.min(W, x0 + w); x++) {
-      const u = (x - x0) / w,
-        // The trunk is rounder toward the page, so it brightens that way.
-        lit = Math.min(1, x / Math.max(1, W - 1)) * 2.2 + tone * 1.4;
-      const level = u < 0.14 ? 1 : u > 0.82 ? 2 + Math.round(lit * 0.6) : 3 + Math.round(lit);
-      for (let y = 0; y < H; y++) put(x, y, bark[Math.min(7, level)]);
+  for (let i = 0; i < (W * H) / 260; i++)
+    rect(Math.floor(rand() * W), Math.floor(rand() * H), 1, 4 + Math.floor(rand() * 14), BEAM[0]);
+  // The heavy post facing the page, lit along its inner edge.
+  const P = Math.max(8, Math.min(44, Math.round(W * 0.42))),
+    px = W - P;
+  const post = (x0, w, light) => {
+    for (let x = x0; x < x0 + w; x++) {
+      const u = (x - x0) / w;
+      const tone = u < 0.1 ? 2 : u > 0.86 ? (light ? 6 : 4) : u > 0.7 ? 4 : 3;
+      for (let y = 0; y < H; y++) put(x, y, BEAM[tone]);
     }
-  }
-  // Long grain streaks and knots.
-  for (let i = 0; i < (W * H) / 30; i++) {
-    const x = Math.floor(rand() * W), y = Math.floor(rand() * H);
-    rect(x, y, 1, 3 + Math.floor(rand() * 10), rand() > 0.5 ? "#5a2c20" : "#2c181b");
-  }
-  for (let i = 0; i < H / 70; i++) {
-    const x = Math.floor(rand() * W), y = Math.floor(rand() * H);
-    rect(x - 2, y - 3, 5, 7, "#2c181b");
-    rect(x - 1, y - 2, 3, 5, "#4b241e");
-    rect(x, y - 1, 1, 3, "#1c0f12");
-  }
-  // Wrapped timber bands, bevelled and nailed, every few hundred pixels.
-  const band = Math.max(120, Math.round(W * 1.4));
-  for (let y = 60; y < H; y += band) {
-    rect(0, y, W, 9, "#2c181b");
-    rect(0, y + 1, W, 2, "#c27a44");
-    rect(0, y + 3, W, 4, "#8a4a28");
-    rect(0, y + 7, W, 1, "#5a2c20");
-    for (let x = 4; x < W; x += 14) {
-      rect(x, y + 4, 2, 2, "#2c181b");
-      rect(x, y + 4, 1, 1, "#e0a060");
+    for (let i = 0; i < (w * H) / 90; i++) {
+      const gx = x0 + 1 + Math.floor(rand() * (w - 2)),
+        gy = Math.floor(rand() * H);
+      rect(gx, gy, 1, 6 + Math.floor(rand() * 20), rand() < 0.5 ? BEAM[2] : BEAM[4]);
     }
-  }
-  // Ivy: dark stems with broad stepped leaves; lit tips toward the page.
-  const leaf = (x, y, side) => {
-    rect(x - 1, y - 1, 7, 7, "#13241a");
-    rect(x, y, 5, 5, "#2f4a2c");
-    rect(x + 1, y + 1, 4, 3, "#46663a");
-    rect(x + (side > 0 ? 2 : 0), y, 3, 2, "#6c8a46");
-    rect(x + 2, y + 2, 1, 1, "#9bb062");
+    // A few deep seasoning checks run down the grain.
+    for (let i = 0; i < Math.max(1, H / 300); i++) {
+      let cx = x0 + 2 + Math.floor(rand() * Math.max(1, w - 4)),
+        cy = Math.floor(rand() * H);
+      for (let k = 0; k < 20 + rand() * 50; k++, cy++) {
+        put(cx, cy, BEAM[0]);
+        if (rand() < 0.15) cx += rand() < 0.5 ? -1 : 1;
+      }
+    }
   };
-  const vines = Math.max(2, Math.round(W / 22));
-  for (let v = 0; v < vines; v++) {
-    const anchor = ((v + 0.5) * W) / vines + (rand() - 0.5) * 6;
-    let last = anchor;
-    for (let y = -4; y < H; y += 2) {
-      const x = Math.round(anchor + Math.sin(y * 0.035 + v * 2.3 + seed) * 5);
-      rect(Math.min(last, x), y, Math.abs(last - x) + 1, 3, "#1d3324");
-      if ((y + v * 4) % 10 === 0) {
-        leaf(x - 6, y, -1);
-        leaf(x + 1, y + 4, 1);
-      }
-      last = x;
+  post(px, P, true);
+  const outer = W > 80 ? Math.round(P * 0.6) : 0;
+  if (outer) post(2, outer, false);
+  // Crossbeams at uneven heights, pinned with iron straps, some braced.
+  const beams = [];
+  for (let y = Math.round(40 + rand() * 80); y < H + 20; y += Math.round(170 + rand() * 170)) beams.push(y);
+  const lanternBeams = new Set();
+  for (let i = 0; i < beams.length; i++) if (i % 2 === (seed % 2) && rand() < 0.85) lanternBeams.add(i);
+  beams.forEach((y, i) => {
+    const h = Math.max(6, Math.min(14, Math.round(W * 0.09)));
+    rect(0, y, px, h, BEAM[3]);
+    rect(0, y, px, 1, BEAM[5]);
+    rect(0, y + h - 2, px, 2, BEAM[1]);
+    for (let k = 0; k < px / 6; k++) rect(Math.floor(rand() * px), y + 2 + Math.floor(rand() * (h - 4)), 3 + Math.floor(rand() * 8), 1, BEAM[2]);
+    // Iron strap where the beam meets the post.
+    const sx = px - Math.min(10, Math.round(P * 0.3));
+    rect(sx, y - 2, Math.min(10, Math.round(P * 0.3)) + Math.round(P * 0.4), h + 4, "#26232b");
+    rect(sx + 1, y - 1, 2, 2, "#8a8494");
+    rect(sx + 1, y + h - 1, 2, 2, "#8a8494");
+    rect(px + Math.round(P * 0.4) - 3, y + h / 2 - 1, 2, 2, "#8a8494");
+    if (rand() < 0.5 && px > 24) {
+      // A knee brace under the beam, stepped on the pixel grid.
+      const len = Math.min(px - 6, 18 + Math.floor(rand() * 16));
+      for (let k = 0; k < len; k++) rect(px - 1 - k - 4, y + h + k, 5, 2, k % 4 ? BEAM[3] : BEAM[2]);
     }
-  }
-  // Iron lanterns hang from short brackets on the page side; their light
-  // pools on the bark.
-  if (W >= 16) for (let index = 0, y = 70; y < H + 40; y += 150, index++) {
-    const x = Math.round(index % 2 ? W - 10 : Math.max(8, W - 26));
-    for (let yy = y - 40; yy <= y + 40; yy++)
-      for (let xx = x - 40; xx <= x + 40; xx++) {
-        if (xx < 0 || yy < 0 || xx >= W || yy >= H) continue;
-        const raw = Math.max(0, 1 - Math.hypot(xx - x, (yy - y) * 0.9) / 40);
-        const a = Math.round(raw * raw * 5) / 5 * 0.7;
-        if (!a) continue;
-        const i = yy * W + xx, old = pixels[i];
-        const r = Math.round((old & 255) * (1 - a) + 255 * a),
-          g = Math.round(((old >>> 8) & 255) * (1 - a) + 168 * a),
-          b = Math.round(((old >>> 16) & 255) * (1 - a) + 70 * a);
-        pixels[i] = ((255 << 24) | (b << 16) | (g << 8) | r) >>> 0;
+    // Sparse ivy: an occasional sprig hangs from a beam.
+    if (rand() < 0.45) {
+      const vx = Math.floor(rand() * Math.max(1, px - 8)) + 3,
+        length = 12 + Math.floor(rand() * 46);
+      for (let k = 0; k < length; k++) {
+        const x = vx + Math.round(Math.sin(k * 0.25 + i) * 2);
+        put(x, y + h + k, "#1d3324");
+        if (k % 6 === 3) {
+          const side = k % 12 === 3 ? -1 : 1;
+          rect(x + (side < 0 ? -4 : 1), y + h + k - 1, 4, 3, "#2f4a2c");
+          put(x + side * 2, y + h + k - 1, "#5e7a40");
+        }
       }
-    rect(x - 7, y - 22, 14, 5, "#3c201e");
-    rect(x - 6, y - 22, 12, 2, "#b0663a");
-    rect(x - 1, y - 17, 2, 6, "#1b1418");
-    rect(x - 5, y - 11, 10, 3, "#2a1a14");
-    rect(x - 4, y - 12, 8, 1, "#c48848");
-    rect(x - 5, y - 8, 10, 13, "#1b1418");
-    rect(x - 4, y - 7, 8, 11, "#f08a28");
-    rect(x - 3, y - 6, 6, 9, "#ffd25a");
-    rect(x - 1, y - 5, 2, 7, "#fff4b8");
-    rect(x - 5, y + 5, 10, 2, "#2a1a14");
-    rect(x - 1, y + 7, 2, 1, "#b0663a");
+    }
+    if (lanternBeams.has(i) && W >= 16) {
+      // An iron arm holds a lantern out over the page edge.
+      const lx = W - Math.max(5, Math.round(P * 0.35)),
+        ly = y + h + 14;
+      for (let yy = ly - 24; yy <= ly + 26; yy++)
+        for (let xx = lx - 26; xx <= lx + 26; xx++) {
+          if (xx < 0 || yy < 0 || xx >= W || yy >= H) continue;
+          const reach = Math.hypot(xx - lx, (yy - ly) * 1.1) / 26;
+          if (reach >= 1) continue;
+          // Dithered falloff: nearby wood steps one or two shades warmer.
+          const threshold = ((xx & 1) * 2 + (yy & 1) * 3 + ((xx >> 1) & 1)) / 6;
+          if ((1 - reach) ** 1.5 < threshold * 0.9) continue;
+          const i2 = yy * W + xx,
+            old = pixels[i2],
+            r = old & 255,
+            g = (old >>> 8) & 255,
+            b = (old >>> 16) & 255;
+          const k = reach < 0.4 ? 0.34 : 0.18;
+          pixels[i2] = ((255 << 24) | (Math.round(b + (90 - b) * k) << 16) | (Math.round(g + (150 - g) * k) << 8) | Math.round(r + (230 - r) * k)) >>> 0;
+        }
+      rect(lx - 1, y + h, 2, 6, "#1b1418");
+      rect(lx - 4, ly - 8, 8, 2, "#2a1a14");
+      rect(lx - 5, ly - 6, 10, 12, "#1b1418");
+      rect(lx - 4, ly - 5, 8, 10, "#f08a28");
+      rect(lx - 3, ly - 4, 6, 8, "#ffd25a");
+      rect(lx - 1, ly - 3, 2, 5, "#fff4b8");
+      rect(lx - 5, ly + 6, 10, 2, "#2a1a14");
+    }
+  });
+  // Bolts down the post, spaced irregularly.
+  for (let y = Math.round(rand() * 60); y < H; y += Math.round(60 + rand() * 120)) {
+    rect(px + Math.round(P * 0.5), y, 2, 2, "#1b1418");
+    put(px + Math.round(P * 0.5), y, "#6a6474");
+  }
+  // A single ivy strand climbs part of the post on its shaded side.
+  const start = Math.floor(rand() * H * 0.5),
+    length = Math.min(H - start, Math.round(H * (0.15 + rand() * 0.2)));
+  for (let k = 0; k < length; k++) {
+    const x = px + 2 + Math.round(Math.sin(k * 0.08 + seed) * 2);
+    put(x, start + k, "#1d3324");
+    if (k % 9 === 0) {
+      rect(x + 1, start + k - 1, 4, 3, "#2f4a2c");
+      put(x + 3, start + k - 1, "#5e7a40");
+    }
   }
   return pixels;
 }

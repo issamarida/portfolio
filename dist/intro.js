@@ -1,4 +1,4 @@
-// Opening sequence: a still, blurred night ocean behind a broken wooden
+// Opening sequence: the village lake at night behind a broken wooden
 // plank that drops in on its ropes, then a camera swoop onto the
 // About cabin where the player steps outside to greet the visitor. It only
 // borrows the live world canvases, so the final frame matches the page.
@@ -23,81 +23,109 @@ export function shouldPlayIntro() {
   return navigation?.type !== "back_forward";
 }
 
-// A full moon at the top centre with rays fanning out over a dark sea,
-// painted small, blurred once and scaled up. Two transparent layers of
-// glints drift over the sea with compositor-only CSS animation.
-const NIGHT = { w: 320, h: 180, horizon: 104, mx: 160, my: 34 };
-
-function blurInto(canvas, art) {
-  const { w, h } = NIGHT;
-  canvas.width = w * 2;
-  canvas.height = h * 2;
-  const out = canvas.getContext("2d");
-  out.imageSmoothingEnabled = true;
-  if ("filter" in out) out.filter = "blur(3px)";
-  out.drawImage(art, -8, -8, w * 2 + 16, h * 2 + 16);
-}
+// The title backdrop is the village's own lake at night, painted on the
+// same coarse pixel grid: indigo sky, the peach moon, snowy ranges, a black
+// spruce shore with two lit cabins, and their light broken on the water.
+// Two crisp glint layers trade places with stepped CSS animation.
+const NIGHT = { w: 320, h: 180, horizon: 112, mx: 160, my: 44 };
 
 function paintNight(backdrop, glints) {
   const { w: W, h: H, horizon, mx, my } = NIGHT;
-  const art = document.createElement("canvas");
-  art.width = W;
-  art.height = H;
-  const c = art.getContext("2d");
+  backdrop.width = W;
+  backdrop.height = H;
+  const c = backdrop.getContext("2d");
   const rect = (x, y, w, h, color) => {
     c.fillStyle = color;
-    c.fillRect(Math.round(x), Math.round(y), Math.round(w), Math.round(h));
+    c.fillRect(Math.round(x), Math.round(y), Math.max(1, Math.round(w)), Math.max(1, Math.round(h)));
+  };
+  const disc = (cx, cy, r, color, squash = 1) => {
+    for (let y = -r; y <= r; y++) {
+      const half = Math.sqrt(Math.max(0, r * r - y * y));
+      rect(cx - half, cy + y * squash, half * 2, Math.max(1, squash), color);
+    }
   };
   let seed = 41;
   const rand = () => ((seed = (seed * 1664525 + 1013904223) >>> 0) / 4294967296);
-  ["#070e17", "#09131e", "#0b1825", "#0e1d2c", "#112333"].forEach((color, i) =>
-    rect(0, (i * horizon) / 5, W, horizon / 5 + 1, color),
+  ["#0d1636", "#101a3e", "#131f45", "#17244c", "#1b2a53", "#202f5a"].forEach((color, i) =>
+    rect(0, (i * horizon) / 6, W, horizon / 6 + 1, color),
   );
-  for (let i = 0; i < 36; i++) rect(rand() * W, rand() * (horizon - 10), 1, 1, "#8fa6b0");
-  // Rays fan out from the moon in every direction.
-  c.fillStyle = "#cfe0d4";
-  for (let i = 0; i < 14; i++) {
-    const angle = (i / 14) * Math.PI * 2 + 0.11,
-      spread = 0.07 + (i % 3) * 0.025;
-    c.globalAlpha = i % 2 ? 0.05 : 0.08;
-    c.beginPath();
-    c.moveTo(mx, my);
-    c.lineTo(mx + Math.cos(angle - spread) * 260, my + Math.sin(angle - spread) * 260);
-    c.lineTo(mx + Math.cos(angle + spread) * 260, my + Math.sin(angle + spread) * 260);
-    c.fill();
+  for (let i = 0; i < 46; i++) rect(rand() * W, rand() * (horizon - 30), 1, 1, i % 4 ? "#9aa6d8" : "#f4e6c0");
+  // Moon in stepped rings of haze, craters in a deeper peach.
+  disc(mx, my, 30, "#1f2c5c");
+  disc(mx, my, 25, "#283666");
+  disc(mx, my, 19, "#c98a5a");
+  disc(mx, my, 18, "#f2b674");
+  disc(mx - 2, my - 2, 14, "#f8c584");
+  for (const [dx, dy, r] of [[-6, -5, 3], [6, 3, 4], [-1, 9, 2], [8, -7, 2]]) disc(mx + dx, my + dy, r, "#dc9a62");
+  const cloud = (x, y, w) => {
+    disc(x, y + 1, w * 0.22, "#161d40", 0.5);
+    disc(x - w * 0.18, y, w * 0.2, "#273163", 0.6);
+    disc(x + w * 0.12, y - 2, w * 0.24, "#273163", 0.6);
+    rect(x - w * 0.05, y - w * 0.15, w * 0.2, 1, "#5f6ca6");
+  };
+  cloud(mx - 52, my + 10, 70);
+  cloud(mx + 60, my + 18, 56);
+  cloud(40, 30, 50);
+  cloud(280, 22, 46);
+  // Two ranges of snowy peaks.
+  const range = (peaks, base, body, shade, snow) => {
+    for (const [x, h, w] of peaks) {
+      for (let y = 0; y < h; y++) {
+        const half = (w / 2) * (y / h);
+        rect(x - half, base - h + y, half * 2, 1, body);
+        rect(x, base - h + y, half, 1, shade);
+        if (y < h * 0.3) rect(x - half, base - h + y, half * 2, 1, y < h * 0.15 ? "#d3d5ec" : snow);
+      }
+    }
+  };
+  range([[40, 34, 110], [120, 40, 120], [205, 36, 120], [290, 42, 130]], horizon - 10, "#30366a", "#252a58", "#8f94c4");
+  range([[0, 30, 110], [86, 38, 120], [160, 30, 110], [246, 44, 130], [330, 30, 100]], horizon - 4, "#3a3f74", "#2a2e5c", "#9aa1cc");
+  // The far spruce shore and two lit cabins.
+  for (let x = -2; x < W + 2; x += 3) {
+    const h = 5 + rand() * 9;
+    for (let y = 0; y < h; y++) rect(x - (y / h) * 2.5, horizon - h + y, 1 + (y / h) * 5, 1, rand() < 0.5 ? "#111828" : "#162034");
   }
-  c.globalAlpha = 1;
-  for (const [r, color] of [
-    [34, "#10283a"],
-    [26, "#173749"],
-    [20, "#22495a"],
-    [14, "#d6e2cc"],
-  ])
-    for (let y = -r; y <= r; y++) {
-      const half = Math.sqrt(r * r - y * y);
-      rect(mx - half, my + y, half * 2, 1, color);
-    }
-  rect(mx - 6, my - 5, 4, 3, "#bccab3");
-  rect(mx + 3, my + 3, 5, 3, "#bccab3");
-  rect(mx - 2, my + 6, 3, 2, "#c4d1bb");
-  // The sea, darkening towards the viewer.
-  ["#0d1e2a", "#0b1923", "#09151e", "#081219", "#060e14"].forEach((color, i) =>
-    rect(0, horizon + i * 16, W, 16, color),
+  rect(0, horizon - 2, W, 3, "#111828");
+  for (const x of [92, 236]) {
+    rect(x - 5, horizon - 8, 10, 7, "#2a1a1e");
+    rect(x - 7, horizon - 9, 14, 2, "#1a1828");
+    rect(x - 3, horizon - 6, 2, 2, "#ffb347");
+    rect(x + 1, horizon - 6, 2, 2, "#ffd27a");
+  }
+  // The lake, darker toward the viewer, with a dock running out.
+  ["#202c60", "#1d2858", "#1a2550", "#172148", "#141c3e"].forEach((color, i) =>
+    rect(0, horizon + 1 + i * 14, W, 14, color),
   );
-  rect(0, horizon, W, 1, "#1c3a48");
-  blurInto(backdrop, art);
-  // Glint layers: the moon path and scattered wave crests.
+  for (let i = 0; i < 70; i++) {
+    const y = horizon + 3 + rand() * (H - horizon - 3);
+    rect(rand() * W, y, 3 + rand() * 8, 1, "#2c3a70");
+  }
+  rect(212, 150, 14, 30, "#2c181b");
+  for (let y = 151; y < 180; y += 3) rect(213, y, 12, 2, "#5c2d1f");
+  rect(210, 146, 2, 14, "#3c201e");
+  rect(226, 146, 2, 14, "#3c201e");
+  rect(209, 140, 4, 5, "#ffb347");
+  paintGlints(glints, rand);
+}
+
+function paintGlints(glints, rand) {
+  const { w: W, h: H, horizon, mx } = NIGHT;
   glints.forEach((canvas, layer) => {
-    c.clearRect(0, 0, W, H);
-    for (let i = 0; i < 90; i++) {
-      const y = horizon + 2 + rand() * (H - horizon - 2),
-        depth = (y - horizon) / (H - horizon),
-        path = rand() < 0.6;
-      const spread = 4 + depth * 46,
-        x = path ? mx - spread + rand() * spread * 2 : rand() * W;
-      rect(x, y, 2 + rand() * (4 + depth * 8), 1, path ? (layer ? "#b8cbbb" : "#9db3a8") : "#2a4a58");
+    canvas.width = W;
+    canvas.height = H;
+    const c = canvas.getContext("2d");
+    const rect = (x, y, w, color) => {
+      c.fillStyle = color;
+      c.fillRect(Math.round(x), Math.round(y), Math.max(1, Math.round(w)), 1);
+    };
+    // The moon column and the cabin and dock lights, broken by ripples.
+    for (let y = horizon + 2; y < H; y += 2) {
+      const depth = (y - horizon) / (H - horizon);
+      if (rand() < 0.75) rect(mx - 3 - depth * 12 + rand() * (6 + depth * 24), y, 2 + rand() * (3 + depth * 6), layer ? "#f6c784" : "#d9925a");
     }
-    blurInto(canvas, art);
+    for (const [x, start] of [[92, horizon + 2], [236, horizon + 2], [211, 150]])
+      for (let y = start; y < Math.min(H, start + 30); y += 3)
+        if (rand() < 0.7) rect(x - 2 + rand() * 4, y, 2 + rand() * 3, layer ? "#ffd27a" : "#c07a3a");
   });
 }
 
@@ -222,8 +250,8 @@ export function runIntro(world, { onFinish } = {}) {
     }
   }
 
-  // The title backdrop is painted and blurred once, then never redrawn;
-  // only its glint layers move, on the compositor.
+  // The title backdrop is painted once; only its two glint layers move,
+  // on the compositor.
   paintNight(backdrop, [...root.querySelectorAll(".intro-glints")]);
 
   // The script: door opens, Issam steps out, waves and starts talking.

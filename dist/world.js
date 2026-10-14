@@ -1,6 +1,7 @@
 import { paintGround, paintFern } from "./ground.js";
 export { paintGround, paintFern } from "./ground.js";
-import { paintJourney, animateJourney } from "./journey.js";
+import { paintJourney, animateJourney, glowJourney } from "./journey.js";
+import { MOONLIGHT, ROOMLIGHT, lightBounds, lightCanvas, lightField } from "./lighting.js";
 import {
   EXIT_Y,
   INTERIOR_SPAWN,
@@ -212,6 +213,13 @@ export function riverBounds(x) {
     halfWidth = 15 + Math.sin(x * 0.019) * 3;
   return { top: center - halfWidth, bottom: center + halfWidth };
 }
+// The lake's near shore; it curls up to the far bank at both ends.
+export function lakeShore(x) {
+  const edge = Math.min(x, WIDTH - x);
+  const side = 118 + Math.max(0, edge) * 0.48;
+  return Math.min(riverBounds(x).bottom + 5, side);
+}
+export const WATERFALL = { x: 300, top: 52, foot: 112 };
 export function treeFootprint(tree) {
   // Includes canopy sway, raster rounding, trunk and the ground shadow.
   const x = Math.round(tree.x / 2) * 2,
@@ -328,7 +336,7 @@ export function villageTrees() {
         tone: rand() * 0.78,
         far: true,
       };
-      place(tree);
+      if (Math.abs(tree.x - WATERFALL.x) > 46) place(tree);
     }
   for (const tree of [
     { x: 82, y: 534, s: 1.02, tone: 0.65 },
@@ -474,8 +482,11 @@ export class World {
       this.ctx.translate(0, layout.skyHeight);
       this.drawTerrain();
       this.ctx.restore();
+      this.lightSink = [];
       paintJourney(this, layout, includeActors);
+      this.buildLighting(this.lightSink);
     } finally {
+      this.lightSink = null;
       this.ctx = main;
       this.reduced = reduced;
       this.time = time;
@@ -879,18 +890,19 @@ export class World {
       this.path([[x - 5, base], [x + 1, base - h], [x + 7, base]], shore() < 0.5 ? "#111828" : "#162034");
       this.rect(x, base - h + 4, 2, 2, "#22305a");
     }
-    // The lake fills the valley floor behind the village.
+    // The lake fills the valley floor behind the village; at both ends its
+    // shore curves back up to the far forest instead of running off the edge.
     const lakeTop = [],
       lakeBottom = [];
     for (let x = -24; x <= WIDTH + 24; x += 12) {
       lakeTop.push([x, 108 + Math.sin(x * 0.03) * 2]);
-      lakeBottom.unshift([x, riverBounds(x).bottom + 5]);
+      lakeBottom.unshift([x, lakeShore(x)]);
     }
     this.path([...lakeTop, ...lakeBottom], "#202c60");
     for (let y = 112; y < 190; y += 6) {
       const tone = y < 130 ? "#1a2552" : y < 160 ? "#283670" : "#2e3e7a";
       for (let x = (y * 7) % 23; x < WIDTH; x += 23 + ((x * y) % 17)) {
-        if (y > riverBounds(x).bottom + 2) continue;
+        if (y > lakeShore(x) - 3) continue;
         this.rect(x, y, 6 + ((x + y) % 11), 2, tone);
       }
     }
@@ -900,29 +912,34 @@ export class World {
         offset = Math.sin(i * 1.9) * 6;
       this.rect(480 - width / 2 + offset, y, width, 2, i % 3 ? "#d9925a" : "#f6c784");
     }
-    // Rocky cliffs at both ends, each with a falling stream.
-    for (const side of [0, 1]) {
-      const m = (x) => (side ? WIDTH - x : x);
-      this.path(
-        [[m(-10), 70], [m(70), 74], [m(118), 96], [m(136), 128], [m(130), 182],
-          [m(150), 230], [m(-10), 240]],
-        "#2c2f4a",
-      );
-      for (let i = 0; i < 26; i++) {
-        const rx = m(10 + r() * 110),
-          ry = 80 + r() * 140;
-        this.rect(rx - 8, ry - 5, 16 + r() * 10, 9, i % 3 ? "#3e4162" : "#4d5078");
-        this.rect(rx - 6, ry - 5, 10, 2, "#666a94");
-        if (i % 4 === 0) this.rect(rx - 8, ry - 7, 12, 3, "#3d5a34");
-      }
-      const fx = m(side ? 112 : 100);
-      this.rect(fx - 12, 94, 24, 80, "#4a64a8");
-      this.rect(fx - 9, 94, 6, 80, "#a9c2ec");
-      this.rect(fx + 1, 94, 4, 80, "#7a96d0");
-      this.rect(fx - 12, 92, 24, 4, "#d6e2f6");
-      this.ellipse(fx, 176, 40, 12, "#8eaad8");
-      this.ellipse(fx, 176, 28, 6, "#d6e2f6");
+    // A spring-fed fall: water rises in a mossy grotto, fills a ledge pool
+    // and pours from the outcrop into the lake.
+    const fall = WATERFALL;
+    this.path(
+      [[fall.x - 40, 112], [fall.x - 36, 82], [fall.x - 26, 64], [fall.x - 12, 54],
+        [fall.x + 10, 52], [fall.x + 26, 60], [fall.x + 36, 78], [fall.x + 42, 112]],
+      "#262a44",
+    );
+    for (const [dx, dy, w] of [[-30, 70, 18], [-34, 88, 14], [18, 66, 16], [24, 84, 18], [-22, 100, 16], [20, 100, 16], [-6, 56, 14]]) {
+      this.rect(fall.x + dx, dy, w, 8, "#4a4e72");
+      this.rect(fall.x + dx, dy, w, 2, "#7a80aa");
+      this.rect(fall.x + dx, dy + 8, w, 2, "#1e2238");
+      this.rect(fall.x + dx + 2, dy - 2, w * 0.6, 2, "#3d5a34");
     }
+    for (const [dx, h] of [[-34, 18], [-24, 24], [-12, 20], [12, 22], [24, 26], [34, 16]]) {
+      const foot = Math.abs(dx) < 20 ? 56 : 68;
+      this.path([[fall.x + dx - 7, foot], [fall.x + dx, foot - h], [fall.x + dx + 7, foot]], "#111828");
+    }
+    this.rect(fall.x - 9, 54, 18, 10, "#0c1020");
+    this.rect(fall.x - 7, 52, 14, 2, "#0c1020");
+    this.rect(fall.x - 12, 62, 24, 6, "#3c5a9c");
+    this.rect(fall.x - 10, 62, 20, 2, "#8eaad8");
+    this.rect(fall.x - 7, 66, 14, 44, "#4a64a8");
+    this.rect(fall.x - 5, 66, 4, 44, "#a9c2ec");
+    this.rect(fall.x + 2, 66, 2, 44, "#7a96d0");
+    this.ellipse(fall.x, 112, 40, 10, "#6a86c0");
+    this.ellipse(fall.x, 112, 26, 5, "#c8d6f0");
+    for (const dx of [-26, 22]) this.rect(fall.x + dx, 116, 8, 2, "#4a5f9e");
     // A broad clearing of dark moss-green grass, warmed later by lamplight.
     const clearing = [[145, 301], [208, 288], [233, 268], [398, 277],
       [430, 251], [549, 250], [603, 274], [779, 279], [816, 311],
@@ -1266,21 +1283,13 @@ export class World {
       this.ctx.restore();
     }
   }
+  // Light comes from real sources only: while a static scene is painted,
+  // each source is recorded for the light map; nothing is sprayed on top.
   glow(x, y, size, color = "#ffb544") {
-    // Three stepped pools of light instead of a smooth modern gradient.
-    const c = this.ctx;
-    c.save();
-    [
-      [size, 0.04],
-      [size * 0.65, 0.065],
-      [size * 0.35, 0.13],
-    ].forEach(([s, alpha]) => {
-      c.globalAlpha =
-        alpha * (this.reduced ? 1 : 0.93 + Math.sin(this.time * 4 + x) * 0.07);
-      this.rect(x - s, y - s * 0.45, s * 2, s * 0.9, color);
-      this.rect(x - s * 0.7, y - s * 0.65, s * 1.4, s * 1.3, color);
-    });
-    c.restore();
+    this.light({ kind: "point", x, y, r: size * 1.1, color });
+  }
+  light(source) {
+    this.lightSink?.push(source);
   }
   building(d) {
     // Rich exterior art is cached like the trees; the original live door,
@@ -1305,18 +1314,13 @@ export class World {
       this.cabinSprites.set(d.id, sprite);
     }
     this.ctx.drawImage(sprite.canvas, sprite.left, sprite.top, sprite.width, sprite.height);
-    const { x, y, w, h, id } = d, doorY = y + h - 42;
-    for (const wx of [x + 27, x + w - 28])
-      this.glow(wx, y + h - 34, 48);
-    for (const sx of [d.doorX - 19, d.doorX + 19])
-      this.glow(sx, doorY + 13, 25);
+    const { y, h, id } = d, doorY = y + h - 42;
     if (id === "about" && this.doorOpen > 0) {
       const leaf = Math.round((1 - this.doorOpen) * 10) * 2;
       this.rect(d.doorX - 10, doorY + 4, 20, 38, "#f0c063");
       this.rect(d.doorX - 8, doorY + 6, 16, 34, "#ffdc8e");
       this.rect(d.doorX - 10, doorY + 32, 20, 10, "#e3a64f");
       this.rect(d.doorX - 10, doorY + 4, Math.max(4, leaf), 38, "#7c5c36");
-      this.glow(d.doorX, doorY + 40, 46 * this.doorOpen, "#f2c36a");
     }
     this.rooftopSign(d);
   }
@@ -1624,7 +1628,7 @@ export class World {
       const left = sign.x - 4,
         top = sign.y - 4,
         width = sign.w + 8,
-        height = Math.ceil((foot - top) / 2) * 2 + 2;
+        height = Math.ceil((Math.max(foot, sign.y + sign.h + 16) - top) / 2) * 2 + 2;
       const canvas = document.createElement("canvas");
       canvas.width = width / 2;
       canvas.height = height / 2;
@@ -1674,6 +1678,14 @@ export class World {
       this.rect(x + ax * 2, y + h, 2, foot - y - h, "#6b5234");
       this.rect(x + ax * 2 - 2, foot - 2, 10, 2, "#2c2722");
     }
+    // A small iron lantern hangs under the board's left end.
+    const lx = x + 6,
+      ly = y + h + 2;
+    this.rect(lx + 2, ly, 2, 4, "#1b1418");
+    this.rect(lx - 1, ly + 2, 8, 2, "#24151a");
+    this.rect(lx, ly + 4, 6, 8, "#24151a");
+    this.rect(lx + 1, ly + 5, 4, 6, "#ffb347");
+    this.rect(lx + 2, ly + 6, 2, 3, "#fff1b8");
     // A shadow line where the board meets the posts.
     px(1, rows, cols - 2, 1, "#1d1710");
     // Dark outline with notched corners.
@@ -1741,7 +1753,8 @@ export class World {
     this.rect(x - 2, y - 51, 6, 10, "#ffe9a0");
     this.rect(x, y - 50, 2, 7, "#fffbe0");
     this.rect(x - 7, y - 40, 16, 3, "#24151a");
-    this.glow(x + 1, y - 46, 58);
+    this.light({ kind: "point", x: x + 1, y: y - 22, r: 62, color: "#ffc070" });
+    this.light({ kind: "emit", x: x - 4, y: y - 52, w: 10, h: 12 });
   }
   character() {
     if (!this.emerging) return this.characterSprite();
@@ -1820,18 +1833,21 @@ export class World {
       this.rect(px + 10, body - 40, 4, 8, "#9dad89");
       this.rect(px + 10 + sway, body - 47, 6, 7, "#dcbb85");
     }
-    if (this.talking) {
-      // A small speech bubble with drifting dots.
-      const bx = px + 8,
-        by = body - 74;
-      this.rect(bx, by, 30, 18, "#f3ead2");
-      this.rect(bx + 2, by - 2, 26, 22, "#f3ead2");
-      this.rect(bx + 2, by + 18, 6, 4, "#f3ead2");
-      this.rect(bx, by + 22, 4, 4, "#f3ead2");
-      const dot = this.reduced ? 3 : Math.floor(this.time * 4) % 4;
-      for (let i = 0; i < 3; i++)
-        this.rect(bx + 6 + i * 8, by + 8 - (i === dot ? 2 : 0), 4, 4, "#4b4034");
-    }
+  }
+  // A small speech bubble with drifting dots, drawn after the light map so
+  // it reads like the other markers.
+  speechBubble() {
+    const px = Math.round(this.player.x / 2) * 2,
+      bob = walkFrame(this.walkTime, this.walking, this.reduced) % 2 ? 2 : 0,
+      bx = px + 8,
+      by = Math.round(this.player.y / 2) * 2 - bob - 74;
+    this.rect(bx, by, 30, 18, "#f3ead2");
+    this.rect(bx + 2, by - 2, 26, 22, "#f3ead2");
+    this.rect(bx + 2, by + 18, 6, 4, "#f3ead2");
+    this.rect(bx, by + 22, 4, 4, "#f3ead2");
+    const dot = this.reduced ? 3 : Math.floor(this.time * 4) % 4;
+    for (let i = 0; i < 3; i++)
+      this.rect(bx + 6 + i * 8, by + 8 - (i === dot ? 2 : 0), 4, 4, "#4b4034");
   }
   smoke(d) {
     const vent = { career: [d.x + d.w + 6, d.y - 66], about: [d.x + d.w - 25, d.y - 18] }[d.id];
@@ -1855,7 +1871,6 @@ export class World {
     this.rect(x - 4 + (frame % 2) * 2, y - 30 + frame, 8, 20, "#ffb347");
     this.rect(x - 2, y - 16, 5, 12, "#ffe9a0");
     this.rect(x - 1 + ((frame + 1) % 3) * 2 - 2, y - 36 + (frame % 2) * 3, 4, 6, "#f08a28");
-    this.glow(x, y - 10, 80);
     if (!this.reduced)
       for (let i = 0; i < 4; i++) {
         const rise = (this.time * 18 + i * 13) % 46;
@@ -1891,96 +1906,149 @@ export class World {
     }
   }
   waterfalls() {
-    const phase = this.reduced ? 0 : Math.floor(this.time * 10) % 6;
-    for (const fx of [100, WIDTH - 112]) {
-      for (let y = 98 + phase * 2; y < 172; y += 12) {
-        this.rect(fx - 7, y, 2, 7, "#e6eefa");
-        this.rect(fx + 3, y + 5, 2, 6, "#cfdcf2");
-        this.rect(fx - 1, y + 9, 2, 4, "#ffffff");
-      }
-      const splash = this.reduced ? 0 : Math.floor(this.time * 6) % 3;
-      this.rect(fx - 14 + splash * 2, 172, 6, 2, "#ffffff");
-      this.rect(fx + 8 - splash * 2, 174, 6, 2, "#e6eefa");
+    // Water slides down the fall and foams where it meets the lake.
+    const { x, foot } = WATERFALL,
+      phase = this.reduced ? 0 : Math.floor(this.time * 12) % 8;
+    for (let y = 66 + phase * 2; y < foot - 2; y += 16) {
+      this.rect(x - 4, y, 2, 6, "#e6eefa");
+      this.rect(x + 2, y + 8, 2, 5, "#cfdcf2");
     }
+    const splash = this.reduced ? 0 : Math.floor(this.time * 6) % 3;
+    this.rect(x - 12 + splash * 2, foot - 2, 6, 2, "#ffffff");
+    this.rect(x + 6 - splash * 2, foot, 6, 2, "#e6eefa");
+    this.rect(x - 2, foot + 4 + splash * 2, 4, 2, "#a9c2ec");
   }
-  // Pixel lighting: a cached, stepped light map darkens what lies beyond the
-  // lamps and warms what lies within them. Banding keeps it pixel art.
-  lightSources() {
-    const lights = [[482, 314, 175, 1]];
-    for (const [x, y] of LAMPS) lights.push([x + 1, y - 30, 110, 0.9]);
-    for (const d of destinations) {
-      lights.push([d.doorX, d.y + d.h - 10, 120, 1]);
-      lights.push([d.x + 18, d.y + d.h - 30, 80, 0.8]);
-      lights.push([d.x + d.w - 18, d.y + d.h - 30, 80, 0.8]);
-      const sign = cabinSign(d);
-      lights.push([sign.x + sign.w / 2, sign.y + sign.h / 2, sign.w * 0.75, 0.75]);
+  // Where each cabin's light comes from: glass glows, windows spill onto
+  // the wall and ground, and the door lamps light the step.
+  cabinLights(d) {
+    const { x, y, w, h, id } = d,
+      gx = d.doorX,
+      doorY = y + h - 42,
+      lights = [];
+    const pane = (wx, wy, ww, wh, color = "#ffc070", reach = 46) => {
+      lights.push({ kind: "emit", x: wx, y: wy, w: ww, h: wh });
+      lights.push({ kind: "spill", x: wx + ww / 2, y: wy + wh, w: ww + 6, h: wh, reach, color });
+    };
+    for (const sx of [gx - 19, gx + 19]) {
+      lights.push({ kind: "emit", x: sx - 3, y: doorY + 7, w: 6, h: 10 });
+      lights.push({ kind: "point", x: sx, y: doorY + 22, r: 34, color: "#ffc070", power: 0.8 });
     }
-    for (const x of [188, 392, 573, 786, 300, 340, 520, 636, 700]) lights.push([x, 106, 22, 0.55]);
-    lights.push([480, 140, 60, 0.45]);
-    for (const route of cabinPaths())
-      for (let i = 4; i < route.length - 2; i += 6) lights.push([route[i][0], route[i][1], 52, 0.5]);
+    lights.push({ kind: "emit", x: gx - 5, y: doorY + 6, w: 10, h: 9 });
+    if (id === "projects") {
+      for (const wx of [x + 10, x + w - 34]) pane(wx, y + h - 50, 22, 22);
+      pane(x + 42, y + h - 54, 30, 50, "#ffb050", 60);
+      pane(x + 31, y + 8, 12, 14, "#ffc070", 4);
+      lights.push({ kind: "emit", x: x + w - 5, y: y + 5, w: 14, h: 14 });
+    } else if (id === "career") {
+      for (const wx of [x + 6, x + w - 26]) pane(wx, y + h - 52, 18, 24);
+      for (const wx of [x + 34, x + w - 50]) pane(wx, y + h - 48, 14, 18);
+      for (const wx of [x + 16, x + w - 28]) pane(wx, y + 21, 12, 12, "#ffc070", 4);
+    } else if (id === "gamedev") {
+      pane(x + 20, y + 46, w - 40, h - 48, "#ff7ad8", 52);
+      pane(x + w - 26, y + 50, 16, 20);
+      lights.push({ kind: "emit", x: x - 24, y: y + 52, w: 8, h: 10 });
+      lights.push({ kind: "point", x: x - 20, y: y + 70, r: 40, color: "#ff6ad0", power: 0.8 });
+      lights.push({ kind: "emit", x: gx - 30, y: y + 8, w: 60, h: 28 });
+    } else {
+      pane(x + w - 34, y + h - 52, 22, 26);
+      pane(x + 8, y + 48, 42, h - 54, "#ffb860", 50);
+      lights.push({ kind: "emit", x: x + w - 28, y: y - 2, w: 6, h: 6 });
+    }
+    // A small lantern hangs from each rooftop board's left post.
+    const sign = cabinSign(d);
+    lights.push({ kind: "emit", x: sign.x + 6, y: sign.y + sign.h + 6, w: 6, h: 6 });
+    lights.push({ kind: "point", x: sign.x + 8, y: sign.y + sign.h / 2, r: sign.w * 0.6, color: "#ffc070", power: 0.85, flatten: 1.6 });
     return lights;
   }
-  lightMaps() {
-    if (this.lightCache) return this.lightCache;
-    const w = WIDTH / 2,
-      h = HEIGHT / 2;
-    const shade = document.createElement("canvas"),
-      warm = document.createElement("canvas");
-    shade.width = warm.width = w;
-    shade.height = warm.height = h;
-    const shadeData = shade.getContext("2d").createImageData(w, h),
-      warmData = warm.getContext("2d").createImageData(w, h);
-    const lights = this.lightSources();
-    const dark = [150, 150, 196];
-    for (let py = 0; py < h; py++)
-      for (let px = 0; px < w; px++) {
-        const x = px * 2 + 1,
-          y = py * 2 + 1;
-        let light = 0;
-        for (const [lx, ly, radius, strength] of lights) {
-          const dist = Math.hypot(x - lx, (y - ly) * 1.25) / radius;
-          if (dist < 1) light = Math.max(light, (1 - dist) ** 1.2 * strength);
-        }
-        // Above the far shore the night is left as painted; the frame's
-        // bottom edge eases back so the lower scenery joins without a seam.
-        const fade = Math.max(0, Math.min(1, (y - 70) / 40, (540 - y) / 60));
-        const step = Math.round(light * 5) / 5;
-        const lake = y < 192 ? 0.55 : 1;
-        const darkness = Math.round((1 - step) * fade * lake * 3) / 3;
-        const i = (py * w + px) * 4;
-        for (let c = 0; c < 3; c++)
-          shadeData.data[i + c] = Math.round(255 + (dark[c] - 255) * darkness);
-        shadeData.data[i + 3] = 255;
-        const glow = Math.round(step * step * 4) / 4;
-        warmData.data[i] = 255;
-        warmData.data[i + 1] = 136;
-        warmData.data[i + 2] = 40;
-        warmData.data[i + 3] = Math.round(Math.min(1, glow * 0.8 + step * 0.25) * fade * 255);
-      }
-    shade.getContext("2d").putImageData(shadeData, 0, 0);
-    warm.getContext("2d").putImageData(warmData, 0, 0);
-    return (this.lightCache = { shade, warm });
+  villageLights() {
+    const lights = [
+      // The campfire throws its light low and wide across the flagstones.
+      { kind: "point", x: 482, y: 322, r: 175, color: "#ff9a40", power: 1.35, flatten: 1.7 },
+      { kind: "emit", x: 470, y: 290, w: 24, h: 34 },
+    ];
+    for (const [x, y] of LAMPS) {
+      lights.push({ kind: "point", x: x + 1, y: y - 22, r: 70, color: "#ffc070", power: 1.1 });
+      lights.push({ kind: "emit", x: x - 4, y: y - 52, w: 10, h: 12 });
+    }
+    for (const d of destinations) lights.push(...this.cabinLights(d));
+    for (const x of [188, 392, 573, 786])
+      lights.push({ kind: "point", x, y: 102, r: 20, color: "#ffc070", power: 0.7 });
+    return lights;
   }
-  applyLighting() {
-    if (typeof document === "undefined" || !this.ctx.drawImage) return;
-    const { shade, warm } = this.lightMaps(),
+  // The page's light: the village band plus a band around every source
+  // recorded while the lower scenery was painted. Between bands only the
+  // moonlight ambient applies, so long pages stay cheap. The sky above the
+  // far shore is left exactly as painted.
+  buildLighting(recorded) {
+    if (typeof document === "undefined") return;
+    const sky = this.layout.skyHeight || 0,
+      start = Math.floor(sky / 2) * 2,
+      ranges = [[start, start + HEIGHT]];
+    for (const light of recorded) {
+      const [, top, , bottom] = lightBounds(light);
+      ranges.push([Math.floor((top - 8) / 2) * 2, Math.ceil((bottom + 8) / 2) * 2]);
+    }
+    ranges.sort((a, b) => a[0] - b[0]);
+    const merged = [];
+    for (const [a, b] of ranges) {
+      const last = merged.at(-1);
+      if (last && a <= last[1] + 16) last[1] = Math.max(last[1], b);
+      else merged.push([Math.max(start, a), b]);
+    }
+    const lights = [...this.villageLights().map((l) => ({ ...l, y: l.y + sky })), ...recorded];
+    this.pageLight = {
+      start,
+      ambient: `rgb(${MOONLIGHT.join(",")})`,
+      bands: merged
+        .map(([top, bottom]) => [top, Math.min(bottom, this.layout.height)])
+        .filter(([top, bottom]) => bottom > top)
+        .map(([top, bottom]) => ({
+          top,
+          bottom,
+          canvas: lightCanvas(
+            lightField(
+              WIDTH,
+              bottom - top,
+              lights.map((l) => ({ ...l, y: l.y - top })),
+              { ambient: MOONLIGHT, clear: (y) => (y + top - sky - 64) / 44 },
+            ),
+          ),
+        })),
+    };
+  }
+  // Multiplies the light over the rows a surface shows. Inside a cabin, the
+  // room carries its own light, so the village band is left alone.
+  applyPageLight(top, bottom) {
+    const map = this.pageLight,
       c = this.ctx;
+    if (!map || !c.drawImage) return;
+    const sky = this.layout.skyHeight || 0,
+      parts = [];
+    let cursor = Math.max(top, map.start);
+    for (const band of map.bands) {
+      if (band.bottom <= cursor) continue;
+      if (band.top >= bottom) break;
+      if (band.top > cursor) parts.push([cursor, Math.min(band.top, bottom), null]);
+      parts.push([Math.max(cursor, band.top), Math.min(band.bottom, bottom), band]);
+      cursor = Math.min(band.bottom, bottom);
+    }
+    if (cursor < bottom) parts.push([cursor, bottom, null]);
     c.save();
     try {
       c.globalCompositeOperation = "multiply";
-      c.drawImage(shade, 0, 0, WIDTH, HEIGHT);
-      c.globalCompositeOperation = "overlay";
-      c.drawImage(warm, 0, 0, WIDTH, HEIGHT);
-      c.globalCompositeOperation = "screen";
-      c.globalAlpha = 0.45;
-      c.drawImage(warm, 0, 0, WIDTH, HEIGHT);
-      c.globalAlpha = 1;
-      const pulse = this.reduced ? 0.5 : 0.5 + Math.sin(this.time * 3.1) * 0.25;
-      c.globalCompositeOperation = "lighter";
-      c.globalAlpha = 0.18 * pulse;
-      const gd = destinations.find((d) => d.id === "gamedev");
-      this.ellipse(gd.x + gd.w / 2, gd.y + gd.h + 2, 150, 40, "#c03cb0");
+      c.fillStyle = map.ambient;
+      const shown = this.interior
+        ? parts.flatMap(([a, b, band]) => [
+            [a, Math.min(b, sky), band],
+            [Math.max(a, sky + HEIGHT), b, band],
+          ])
+        : parts;
+      for (const [a, b, band] of shown) {
+        if (b <= a) continue;
+        if (band)
+          c.drawImage(band.canvas, 0, (a - band.top) / 2, WIDTH / 2, (b - a) / 2, 0, a, WIDTH, b - a);
+        else c.fillRect(0, a, WIDTH, b - a);
+      }
     } finally {
       c.restore();
     }
@@ -1992,10 +2060,10 @@ export class World {
     // The near lakeshore: a mossy rim of round stones, reeds and lily pads.
     const rand = seeded(1957);
     const shore = [];
-    for (let x = -24; x <= WIDTH + 24; x += 12) shore.push([x, riverBounds(x).bottom + 5]);
-    this.path([...shore, [WIDTH + 24, riverBounds(WIDTH).bottom + 14], [-24, riverBounds(0).bottom + 14]], "#2c3a24");
+    for (let x = -24; x <= WIDTH + 24; x += 12) shore.push([x, lakeShore(x)]);
+    this.path([...shore, ...shore.slice().reverse().map(([x, y]) => [x, y + 10])], "#2c3a24");
     for (let x = 0; x < WIDTH; x += 13 + Math.floor(rand() * 6)) {
-      const y = riverBounds(x).bottom + 5 + rand() * 4;
+      const y = lakeShore(x) + rand() * 4;
       const w = 12 + rand() * 9;
       this.ellipse(x, y + 2, w + 2, 10, "#1f2338");
       this.ellipse(x, y, w, 8, rand() < 0.5 ? "#55597a" : "#4a4e6c");
@@ -2143,48 +2211,6 @@ export class World {
       this.pixelCloud(x, y, cloud.w * 0.8);
     }
   }
-  moonlight() {
-    const c = this.ctx;
-    c.save();
-    // Pixel-stepped shafts are rendered before scenery, which occludes the light.
-    const breathe = this.reduced ? 1 : 0.94 + Math.sin(this.time * 0.24) * 0.06;
-    const moon = this.moonPosition(),
-      originY = moon.y + moon.diameter * 0.25 - this.layout.skyHeight;
-    const shafts = [
-      {
-        points: [
-          [moon.x - 10, originY + 5],
-          [moon.x - 3, originY + 5],
-          [390, 540],
-          [270, 540],
-        ],
-        alpha: 0.038,
-      },
-      {
-        points: [
-          [moon.x - 4, originY + 7],
-          [moon.x + 4, originY + 7],
-          [655, 540],
-          [485, 540],
-        ],
-        alpha: 0.052,
-      },
-      {
-        points: [
-          [moon.x + 3, originY + 5],
-          [moon.x + 10, originY + 5],
-          [892, 530],
-          [744, 530],
-        ],
-        alpha: 0.029,
-      },
-    ];
-    for (const shaft of shafts) {
-      c.globalAlpha = shaft.alpha * breathe;
-      this.path(shaft.points, "#b8b4e0");
-    }
-    c.restore();
-  }
   draw() {
     const main = this.ctx;
     try {
@@ -2237,7 +2263,6 @@ export class World {
           else {
             this.skyClouds();
             this.crows();
-            this.moonlight();
             this.riverLife();
             this.waterfalls();
             this.bunting();
@@ -2286,21 +2311,32 @@ export class World {
               3,
               "#aaa07b",
             );
-            this.applyLighting();
+          }
+        } finally {
+          c.restore();
+        }
+      }
+      // Light, then whatever makes its own: fireflies, beams and markers.
+      this.applyPageLight(top, bottom);
+      glowJourney(this, this.layout);
+      if (top < this.layout.skyHeight + 620) {
+        c.save();
+        try {
+          c.translate(0, this.layout.skyHeight);
+          if (!this.interior) {
             this.flies.forEach((f) => {
               const t = this.reduced ? f.phase : this.time;
               const x = f.x + Math.sin(t * 0.5 + f.phase) * 9,
                 y = f.y + Math.cos(t * 0.7 + f.phase) * 6;
-              c.globalAlpha = 0.4 + (0.5 + 0.5 * Math.sin(t + f.phase)) * 0.6;
-              this.rect(x, y, 2, 2, "#f6e08a");
-              c.globalAlpha = 1;
+              if (Math.sin(t * 1.3 + f.phase * 3) > -0.3)
+                this.rect(x, y, 2, 2, "#f6e08a");
             });
             if (this.near) {
               const d = destinations.find((d) => d.id === this.near);
               this.rect(d.doorX - 4, d.y + d.h - 52, 8, 4, "#f1d58b");
               this.rect(d.doorX - 2, d.y + d.h - 48, 4, 3, "#f1d58b");
             }
-  
+            if (this.talking) this.speechBubble();
           }
           if (this.iris) this.drawIris();
         } finally {
@@ -2327,6 +2363,7 @@ export class World {
       this.ctx.scale(0.5, 0.5);
       this.reduced = true;
       this.time = 0;
+      this.lightSink = [];
       try {
         paintInterior(this, this.interior);
       } finally {
@@ -2337,13 +2374,37 @@ export class World {
       this.interiorCache.set(this.interior, cache);
     }
     this.ctx.drawImage(cache, 0, 0, WIDTH / 2, HEIGHT / 2, 0, 0, WIDTH, HEIGHT);
-    drawInteriorScene(
-      this,
-      this.interior,
-      this.reduced ? 0 : this.time,
-      () => this.characterSprite(),
-      this.nearKind === "lectern",
-    );
+    try {
+      drawInteriorScene(
+        this,
+        this.interior,
+        this.reduced ? 0 : this.time,
+        () => this.characterSprite(),
+        this.nearKind === "lectern",
+      );
+    } finally {
+      // The room's lamps, hearths and candles (static and live) are
+      // recorded on its first frame and light the room from then on.
+      if (this.lightSink) {
+        if (!this.interiorLight) this.interiorLight = new Map();
+        if (typeof document !== "undefined")
+          this.interiorLight.set(
+            this.interior,
+            lightCanvas(lightField(WIDTH, HEIGHT, this.lightSink, { ambient: ROOMLIGHT })),
+          );
+        this.lightSink = null;
+      }
+    }
+    const light = this.interiorLight?.get(this.interior);
+    if (light && this.ctx.drawImage) {
+      this.ctx.save();
+      try {
+        this.ctx.globalCompositeOperation = "multiply";
+        this.ctx.drawImage(light, 0, 0, WIDTH, HEIGHT);
+      } finally {
+        this.ctx.restore();
+      }
+    }
   }
   drawIris() {
     // A pixel-stepped iris closes on the player, then opens on the new scene.

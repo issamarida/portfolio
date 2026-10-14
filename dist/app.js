@@ -7,45 +7,6 @@ const canvas = document.querySelector("#world"),
   panel = document.querySelector("#panel"),
   interact = document.querySelector("#interact");
 let returnFocus = null;
-// The header portrait is shown as a pixel portrait on the same coarse grid
-// as the village: sampled down once, then scaled up with hard edges.
-function pixelatePortrait(img) {
-  const paint = () => {
-    if (!img.naturalWidth || img.dataset.pixelated) return;
-    const size = 36,
-      small = document.createElement("canvas");
-    small.width = small.height = size;
-    const ctx = small.getContext("2d");
-    const side = Math.min(img.naturalWidth, img.naturalHeight);
-    ctx.drawImage(
-      img,
-      (img.naturalWidth - side) / 2,
-      (img.naturalHeight - side) / 2,
-      side,
-      side,
-      0,
-      0,
-      size,
-      size,
-    );
-    // A short palette ramp keeps the photo flat-shaded like the sprites.
-    const image = ctx.getImageData(0, 0, size, size),
-      data = image.data;
-    for (let i = 0; i < data.length; i += 4)
-      for (let c = 0; c < 3; c++) data[i + c] = Math.round(data[i + c] / 16) * 16;
-    ctx.putImageData(image, 0, 0);
-    try {
-      img.dataset.pixelated = "";
-      img.src = small.toDataURL();
-    } catch {
-      // A tainted canvas leaves the original photograph in place.
-    }
-  };
-  if (img.complete) paint();
-  else img.addEventListener("load", paint, { once: true });
-}
-const portrait = document.querySelector(".identity img");
-if (portrait) pixelatePortrait(portrait);
 const status = document.querySelector("#world-status");
 function prompt(near, kind) {
   if (kind === "exit") return "Leave the cabin";
@@ -245,7 +206,7 @@ function stopExploring() {
 addEventListener("wheel", stopExploring, { passive: true });
 canvas.addEventListener("pointercancel", stopExploring);
 document
-  .querySelectorAll(".reading-section,.reading-invitation,.social-links")
+  .querySelectorAll(".reading-section,.reading-invitation,.contact")
   .forEach((element) => element.addEventListener("pointerdown", stopExploring));
 function openArea(id) {
   const area = areas[id];
@@ -350,12 +311,16 @@ document.querySelectorAll("[data-move]").forEach((b) => {
   b.addEventListener("pointercancel", stop);
   b.addEventListener("lostpointercapture", stop);
 });
-// Touch destination tap: clicking a nearby entrance opens it, a distant one remains explorable through navigation.
+// Touch destination tap: clicking a nearby entrance opens it, a distant one
+// remains explorable through navigation. Not every browser reports the
+// pointer type on click, so it is remembered from the pointerdown.
+let lastPointer = "mouse";
+canvas.addEventListener("pointerdown", (e) => (lastPointer = e.pointerType));
 canvas.addEventListener("click", (e) => {
   const y =
     (e.clientY + scrollY - worldTop) / worldScale - world.layout.skyHeight;
   if (
-    e.pointerType === "touch" &&
+    (e.pointerType || lastPointer) === "touch" &&
     world.gameVisible &&
     y >= 0 &&
     y <= 540 &&
@@ -396,6 +361,4 @@ if (shouldPlayIntro()) {
       canvas.focus({ preventScroll: true });
     },
   });
-  const speaker = document.querySelector(".intro-dialog img");
-  if (speaker) pixelatePortrait(speaker);
 }

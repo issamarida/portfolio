@@ -89,6 +89,16 @@ try {
       },
       true,
     );
+    // Bake the same moonlight and lamplight into the static picture.
+    const baked = painter.scene.getContext("2d"),
+      main = painter.ctx;
+    baked.setTransform(0.5, 0, 0, 0.5, 0, 0);
+    painter.ctx = baked;
+    try {
+      painter.applyPageLight(0, painter.layout.height);
+    } finally {
+      painter.ctx = main;
+    }
     return painter.scene.toDataURL("image/png").split(",")[1];
   });
   await writeFile("dist/art/journey.png", Buffer.from(data, "base64"));

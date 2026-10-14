@@ -4174,3 +4174,26 @@ dialog {
     bottom: -14px;
   }
 }
+
+/* The name is lettered like every other board: the same pixel face, ink and
+   faint highlight, one step larger as the page heading. */
+.sky-header .header .identity h1 {
+  font-family: var(--pixel);
+  font-weight: 400;
+  font-size: clamp(24px, 3.1cqw, 34px);
+  letter-spacing: 0.02em;
+  color: #3a2112;
+  text-shadow: 0 1px 0 #f2c58a66;
+  font-synthesis: none;
+  -webkit-font-smoothing: none;
+}
+@media (max-width: 740px) {
+  .sky-header .header .identity h1 {
+    font-size: 24px;
+  }
+}
+@media (max-width: 360px) {
+  .sky-header .header .identity h1 {
+    font-size: 21px;
+  }
+}

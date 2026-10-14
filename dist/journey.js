@@ -480,7 +480,8 @@ function lodge(p, x, y) {
 function cove(p, area) {
   const top = area.y;
   const water = COVE.map(([x, y]) => [x, top + y]);
-  p.path(water.map(([x, y]) => [x - 6, y - 8]), "#2c3424");
+  p.path(water.map(([x, y]) => [x - 10, y - 12]), "#4a3e2c");
+  p.path(water.map(([x, y]) => [x - 5, y - 6]), "#6a5a40");
   p.path(water, "#1a2550");
   for (let y = 356; y < 596; y += 7)
     for (let x = 610 + ((y * 7) % 19); x < 960; x += 26 + ((x + y) % 13))
@@ -617,14 +618,71 @@ function campsite(p, area, includeActors) {
     paintFern(p, x + 12, top + y + 6, 0.7);
   }
   for (const [x, y] of [[250, 380], [330, 420], [520, 420]]) mushroom(p, x, top + y);
-  // The surrounding woods close the clearing on every side.
-  for (const [x, y, s, tone] of [
-    [20, 90, 1.05, 0.2], [30, 260, 1.1, 0.6], [24, 470, 1, 0.3], [110, 560, 1.05, 0.15],
-    [220, 600, 0.95, 0.7], [330, 560, 1, 0.25], [440, 610, 1.05, 0.4], [540, 590, 0.95, 0.1],
-    [640, 90, 1, 0.35], [760, 80, 1.05, 0.2], [880, 70, 1, 0.65], [940, 220, 1.05, 0.3],
-    [700, 230, 0.9, 0.5], [820, 250, 0.95, 0.15], [330, 40, 0.8, 0.3],
-  ])
-    p.tree({ x, y: top + y, s, tone });
+  // A picnic table with a lantern, a rod rack by the dock and a hammock
+  // slung between two pines.
+  p.rect(276, top + 276, 56, 10, "#3c201e");
+  p.rect(278, top + 276, 52, 3, "#a0613b");
+  for (const lx of [282, 322]) p.rect(lx, top + 286, 4, 16, "#3c201e");
+  for (const by of [top + 262, top + 300]) {
+    p.rect(272, by, 64, 6, "#5c2d1f");
+    p.rect(272, by, 64, 2, "#8a4c2a");
+  }
+  p.rect(300, top + 266, 8, 10, "#24151a");
+  p.rect(301, top + 267, 6, 8, "#ffb347");
+  p.light({ kind: "emit", x: 300, y: top + 266, w: 8, h: 10 });
+  p.light({ kind: "point", x: 304, y: top + 284, r: 56, color: "#ffc070", power: 0.85 });
+  for (const rx of [636, 668]) p.rect(rx, top + 300, 4, 34, "#3c201e");
+  p.rect(632, top + 306, 42, 4, "#5c2d1f");
+  for (let k = 0; k < 3; k++)
+    for (let i = 0; i < 12; i++) p.rect(640 + k * 10 + i, top + 336 - i * 4, 2, 2, "#8a6a4a");
+  for (let i = 0; i <= 20; i++) {
+    const t = i / 20,
+      sag = Math.sin(t * Math.PI) * 16;
+    p.rect(782 + t * 80, top + 236 + t * 6 + sag, 4, 6, i % 4 < 2 ? "#b8605a" : "#e0c890");
+  }
+  // String lights sag between the two tents.
+  for (let i = 0; i <= 16; i++) {
+    const t = i / 16,
+      x = 424 + t * 86,
+      y = top + 128 - t * 22 + Math.sin(t * Math.PI) * 14;
+    p.rect(x, y, 2, 2, "#2a2228");
+    if (i % 2 === 0) {
+      p.rect(x, y + 2, 2, 4, ["#ffd27a", "#ff9a6a", "#a8d8ff", "#ffe9a0"][(i / 2) % 4]);
+      p.light({ kind: "emit", x, y: y + 2, w: 2, h: 4 });
+    }
+  }
+  p.light({ kind: "point", x: 468, y: top + 150, r: 60, color: "#ffc070", power: 0.5 });
+  // The woods close in around the camp in clumps, deepest at the edges.
+  const geometry = campsiteGeometry({ y: 0 });
+  const busy = [
+    geometry.lodge,
+    geometry.woodpile,
+    ...geometry.tents,
+    { left: 360, right: 540, top: 250, bottom: 380 },
+    { left: 260, right: 350, top: 250, bottom: 320 },
+    { left: 620, right: 690, top: 290, bottom: 350 },
+    { left: 770, right: 870, top: 220, bottom: 270 },
+    { left: 400, right: 500, top: 100, bottom: 250 },
+  ];
+  const rand = random(6631);
+  const trees = [
+    { x: 778, y: top + 244, s: 0.8, tone: 0.2 },
+    { x: 868, y: top + 252, s: 0.85, tone: 0.5 },
+  ];
+  for (let y = 10; y < 640; y += 26)
+    for (let x = -10 + ((y / 26) % 2) * 14; x < 980; x += 30) {
+      const clump = 0.5 + 0.5 * Math.sin(x * 0.024 + y * 0.011) * Math.cos(y * 0.031 + 0.4);
+      if (rand() > 0.2 + clump * 0.55) continue;
+      const tree = { x: x + (rand() - 0.5) * 16, y: y + (rand() - 0.5) * 12, s: 0.7 + rand() * 0.4, tone: rand() < 0.85 ? rand() * 0.78 : 0.85 };
+      const half = 42 * tree.s + 8,
+        box = { left: tree.x - half, right: tree.x + half, top: tree.y - 70 * tree.s - 10, bottom: tree.y + 10 };
+      const wet = [-half, 0, half].some((dx) => inCove(tree.x + dx, tree.y + 20) || inCove(tree.x + dx, tree.y - 20));
+      const trail = Math.abs(tree.x - (tree.y < 300 ? 470 - tree.y * 0.05 : 520 + (tree.y - 300) * 2)) < 60 && tree.y < 380;
+      const open = tree.x > 150 && tree.x < 640 && tree.y > 120 && tree.y < 470;
+      if (wet || trail || open || busy.some((b) => intersects(box, b))) continue;
+      trees.push({ ...tree, y: top + tree.y });
+    }
+  for (const tree of trees.sort((a, b) => a.y - b.y)) p.tree(tree);
   if (includeActors) animateCampsite(p, area, 0, true);
 }
 function animateCampsite(p, area, time, reduced) {
@@ -945,74 +1003,230 @@ function animateDrift(p, area, time, reduced) {
         p.rect(past.x + dx, area.y + past.y + 10 + dy, 2 + (k % 2) * 2, 2, k % 3 ? "#a08a62" : "#c4ad80");
       }
     }
+  // The brazier's flames lick above the drum's rim.
+  const flame = reduced ? 1 : Math.floor(time * 8) % 3;
+  p.rect(794, area.y + 254 - flame * 2, 14, 10, "#d8501c");
+  p.rect(796, area.y + 248 + flame, 10, 12, "#f08a28");
+  p.rect(799, area.y + 244 + (flame % 2) * 2, 4, 12, "#ffd27a");
   pickup(p, state, area);
 }
-function drift(p, area, includeActors) {
-  for (const [x, y, tone] of [
-    [110, 100, 0.16],
-    [850, 105, 0.22],
-    [855, 310, 0.15],
-    [125, 318, 0.2],
-  ])
-    p.tree({ x, y: area.y + y, s: 0.95, tone });
-  for (const [x, y] of [
-    [145, 208],
-    [811, 226],
-    [225, 82],
-    [730, 313],
-  ]) {
-    p.ellipse(x, area.y + y, 35, 19, "#5c6954");
-    p.rect(x - 10, area.y + y - 5, 18, 3, "#a1a48b");
-    paintFern(p, x + 14, area.y + y + 7, 0.8);
+// Packed earth in pixel rows: a ragged edge, mottled tones and gravel.
+function dirtOval(p, cx, cy, rx, ry, seed, tones) {
+  const rand = random(seed);
+  for (let y = -ry; y <= ry; y += 2) {
+    const half = rx * Math.sqrt(Math.max(0, 1 - (y / ry) ** 2)),
+      ragged = (rand() - 0.5) * 10;
+    p.rect(cx - half - ragged, cy + y, (half + ragged) * 2, 2, tones[0]);
   }
+  for (let i = 0; i < (rx * ry) / 18; i++) {
+    const angle = rand() * Math.PI * 2,
+      d = Math.sqrt(rand()) * 0.94,
+      x = cx + Math.cos(angle) * rx * d,
+      y = cy + Math.sin(angle) * ry * d;
+    p.rect(x, y, 2 + Math.floor(rand() * 3) * 2, 2, tones[1 + (i % (tones.length - 1))]);
+  }
+}
+// Scattered forest floor: needles, tufts, moss, stones, ferns and blooms.
+function forestFloor(p, top, bottom, seed, avoid = []) {
+  const rand = random(seed);
+  const count = Math.floor((WIDTH * (bottom - top)) / 380);
+  for (let i = 0; i < count; i++) {
+    const x = rand() * WIDTH,
+      y = top + rand() * (bottom - top),
+      kind = rand();
+    if (avoid.some((a) => x > a.left && x < a.right && y > a.top && y < a.bottom)) continue;
+    if (kind < 0.34) {
+      p.rect(x, y, 4, 2, "#4a3a28");
+      p.rect(x + 3, y + 2, 4, 2, "#5a4630");
+    } else if (kind < 0.62) {
+      p.rect(x, y, 2, 4, "#3e5a2e");
+      p.rect(x + 2, y - 2, 2, 6, "#5a7a3a");
+      p.rect(x + 4, y, 2, 4, "#34502a");
+    } else if (kind < 0.76) {
+      p.ellipse(x, y, 12, 6, "#2a4426");
+      p.rect(x - 3, y - 2, 6, 2, "#4a6e36");
+    } else if (kind < 0.86) {
+      p.rect(x, y, 6, 4, "#4a4e5a");
+      p.rect(x, y, 4, 2, "#6e7282");
+    } else if (kind < 0.92) {
+      paintFern(p, x, y, 0.55 + rand() * 0.3);
+    } else if (kind < 0.96) {
+      p.rect(x, y, 2, 2, ["#e8d8a0", "#d08aa8", "#a8b8e8", "#f0c060"][i % 4]);
+      p.rect(x + 4, y + 2, 2, 2, ["#e8d8a0", "#d08aa8"][i % 2]);
+      p.rect(x + 2, y + 2, 2, 4, "#3e5a2e");
+    } else if (kind < 0.985) {
+      mushroom(p, x, y);
+    } else {
+      p.rect(x - 14, y, 28, 4, "#3c2a1e");
+      p.rect(x - 14, y, 28, 1, "#6a4a30");
+      p.rect(x + 14, y - 1, 3, 6, "#8a6a44");
+    }
+  }
+}
+// The forest road that winds from the drift glade down to the campsite.
+export function forestRoad(layout) {
+  if (!layout.drift || !layout.stable) return [];
+  const a = [480, layout.drift.y + 322],
+    d = [480, layout.stable.y - 6],
+    mid = (a[1] + d[1]) / 2;
+  const b = [560, mid - 30],
+    c = [400, mid + 30];
+  return Array.from({ length: 25 }, (_, i) => {
+    const t = i / 24,
+      u = 1 - t;
+    return [
+      u * u * u * a[0] + 3 * u * u * t * b[0] + 3 * u * t * t * c[0] + t * t * t * d[0],
+      u * u * u * a[1] + 3 * u * u * t * b[1] + 3 * u * t * t * c[1] + t * t * t * d[1],
+    ];
+  });
+}
+function road(p, layout) {
+  const points = forestRoad(layout);
+  if (!points.length) return;
+  for (const [x, y] of points) p.ellipse(x, y, 64, 34, "#3a2c1e");
+  for (const [x, y] of points) p.ellipse(x, y, 54, 26, "#6a4c30");
+  const rand = random(4409);
+  for (let i = 0; i < points.length - 1; i++) {
+    const [ax, ay] = points[i],
+      [bx, by] = points[i + 1],
+      angle = Math.atan2(by - ay, bx - ax),
+      nx = -Math.sin(angle),
+      ny = Math.cos(angle);
+    for (let t = 0; t < 1; t += 0.2) {
+      const x = ax + (bx - ax) * t,
+        y = ay + (by - ay) * t;
+      for (const side of [-11, 11]) p.rect(x + nx * side - 2, y + ny * side, 5, 2, "#4a3420");
+      if (rand() < 0.5) {
+        p.rect(x - 1, y - 2, 2, 4, "#4e6a34");
+        p.rect(x + 2, y, 2, 2, "#3e5a2e");
+      }
+      if (rand() < 0.25) p.rect(x + nx * (22 + rand() * 6), y + ny * 22, 4, 2, "#6e7282");
+      if (rand() < 0.2) p.rect(x + (rand() - 0.5) * 30, y + (rand() - 0.5) * 12, 2, 2, "#8a7458");
+    }
+  }
+  // A rain puddle holds a lantern's reflection, and a finger-post points
+  // the way at the top.
+  const [px, py] = points[9];
+  p.ellipse(px + 8, py + 2, 26, 8, "#1c2650");
+  p.rect(px + 2, py, 10, 2, "#c08a4a");
+  for (const i of [6, 17]) {
+    const [lx, ly] = points[i];
+    p.lantern(lx + (i % 2 ? -36 : 36), ly + 6);
+  }
+  const [sx, sy] = points[2];
+  p.rect(sx + 38, sy - 30, 4, 34, "#3c201e");
+  p.path([[sx + 26, sy - 30], [sx + 56, sy - 30], [sx + 62, sy - 25], [sx + 56, sy - 20], [sx + 26, sy - 20]], "#8a4c2a");
+  p.path([[sx + 22, sy - 16], [sx + 52, sy - 16], [sx + 52, sy - 6], [sx + 22, sy - 6], [sx + 16, sy - 11]], "#7a4224");
+  p.rect(sx + 30, sy - 26, 20, 2, "#3c201e");
+  p.rect(sx + 26, sy - 12, 20, 2, "#3c201e");
+}
 
-  p.ellipse(480, area.y + 205, 575, 266, "#3e4a32");
-  p.ellipse(480, area.y + 205, 537, 237, "#786546");
-  p.ellipse(480, area.y + 205, 498, 211, "#8a7553");
-  for (const radius of [150, 160, 172]) {
-    const outer = [],
-      inner = [];
-    for (let i = 0; i <= 48; i++) {
-      const angle = (i / 48) * Math.PI * 2;
-      outer.push([
-        480 + Math.cos(angle) * (radius + 2),
-        area.y + 205 + Math.sin(angle) * (62 + (radius - 160) * 0.28 + 1),
-      ]);
-      inner.push([
-        480 + Math.cos(angle) * (radius - 2),
-        area.y + 205 + Math.sin(angle) * (62 + (radius - 160) * 0.28 - 1),
-      ]);
+function garage(p, x, y) {
+  // A timber workshop with its wide door open on a lit bench.
+  p.ellipse(x + 78, y + 140, 190, 22, "#141810");
+  p.rect(x, y + 50, 156, 92, "#4a2a20");
+  for (let yy = y + 54; yy < y + 140; yy += 7) {
+    p.rect(x, yy, 156, 2, "#2c181b");
+    p.rect(x, yy + 2, 156, 1, "#6a3a24");
+  }
+  p.path([[x - 12, y + 56], [x + 78, y + 6], [x + 168, y + 56]], "#24151a");
+  p.path([[x - 6, y + 52], [x + 78, y + 12], [x + 162, y + 52]], "#4a3434");
+  for (let yy = y + 20; yy < y + 52; yy += 6) {
+    const half = ((yy - y - 12) / 40) * 84;
+    p.rect(x + 78 - half, yy, half * 2, 2, "#2c1c1e");
+    for (let xx = x + 78 - half + ((yy / 6) % 2 ? 4 : 0); xx < x + 78 + half - 6; xx += 12) p.rect(xx, yy + 2, 8, 2, "#655048");
+  }
+  p.rect(x - 8, y + 52, 172, 4, "#a0613b");
+  // The open door and the workshop inside.
+  p.rect(x + 34, y + 72, 88, 70, "#24151a");
+  p.rect(x + 38, y + 76, 80, 66, "#c07038");
+  p.rect(x + 38, y + 76, 80, 14, "#a05a2c");
+  for (const [tx, h] of [[48, 16], [58, 12], [66, 18], [76, 10]]) p.rect(x + tx, y + 80, 2, h, "#4a4048");
+  p.rect(x + 44, y + 112, 68, 6, "#5c2d1f");
+  p.rect(x + 46, y + 118, 4, 22, "#3c201e");
+  p.rect(x + 106, y + 118, 4, 22, "#3c201e");
+  p.rect(x + 54, y + 104, 12, 8, "#c84a3a");
+  p.rect(x + 74, y + 106, 18, 6, "#6a6474");
+  p.rect(x + 96, y + 100, 6, 12, "#3a6a9a");
+  p.light?.({ kind: "emit", x: x + 38, y: y + 76, w: 80, h: 66 });
+  p.light?.({ kind: "spill", x: x + 78, y: y + 142, w: 90, h: 60, reach: 80, color: "#ffb860" });
+  p.lantern(x + 140, y + 100);
+  // Barrels, a jerrycan and a stack of worn tyres by the wall.
+  for (const [bx, color, band] of [[x + 6, "#2a4a7a", "#5a7aaa"], [x + 20, "#8a2a24", "#c05040"]]) {
+    p.rect(bx, y + 114, 13, 26, "#141018");
+    p.rect(bx + 1, y + 115, 11, 24, color);
+    for (const yy of [y + 119, y + 132]) p.rect(bx + 1, yy, 11, 2, band);
+  }
+  for (let i = 0; i < 3; i++) {
+    p.ellipse(x + 176, y + 136 - i * 8, 30, 12, "#141418");
+    p.ellipse(x + 176, y + 135 - i * 8, 14, 5, "#2a2a30");
+  }
+  p.rect(x + 160, y + 122, 10, 14, "#b03a2a");
+  p.rect(x + 162, y + 120, 4, 2, "#141018");
+}
+
+function drift(p, area, includeActors) {
+  const top = area.y;
+  // A grass rim, then the packed-earth arena worn into the forest.
+  dirtOval(p, 480, top + 205, 300, 140, 811, ["#2c3a24", "#3a4a2c", "#24321e"]);
+  dirtOval(p, 480, top + 205, 280, 128, 812, ["#5e4630", "#6e5438", "#4e3a26", "#7e6a50", "#8a8070"]);
+  // Tyre ruts: overlapping loops from many laps, slightly off each other.
+  for (const [radius, dy, tone] of [[148, 0, "#3e2c1e"], [158, -3, "#44301f"], [166, 2, "#3e2c1e"], [176, -1, "#4a3622"], [140, 4, "#4a3622"]]) {
+    for (let i = 0; i < 160; i++) {
+      const angle = (i / 160) * Math.PI * 2;
+      if ((i * 7 + radius) % 23 < 3) continue;
+      p.rect(480 + Math.cos(angle) * radius, top + 205 + dy + Math.sin(angle) * (62 + (radius - 160) * 0.3), 4, 2, tone);
     }
-    p.path([...outer, ...inner.reverse()], "#5b513c");
   }
-  for (const [x, y] of [
-    [205, 205],
-    [751, 225],
-    [718, 125],
-  ]) {
-    p.ellipse(x, area.y + y + 8, 66, 23, "#4b4938");
-    for (let i = 0; i < 7; i++) {
-      const dx = ((i * 19) % 51) - 25,
-        dy = (i * 11) % 20;
-      p.ellipse(x + dx, area.y + y - dy, 18 + (i % 3) * 4, 12, "#78806a");
-      p.rect(x + dx - 5, area.y + y - dy - 3, 9, 2, "#a1a38a");
+  for (const [cx, cy] of [[420, 210], [560, 196]])
+    for (let i = 0; i < 40; i++) {
+      const angle = (i / 40) * Math.PI * 2;
+      p.rect(cx + Math.cos(angle) * 26, top + cy + Math.sin(angle) * 10, 3, 2, "#3e2c1e");
     }
+  // Two puddles catch the lanterns' light.
+  for (const [x, y, w] of [[300, 262, 34], [664, 150, 28]]) {
+    p.ellipse(x, top + y, w, 9, "#1c2650");
+    p.rect(x - w * 0.2, top + y - 1, w * 0.3, 2, "#c08a4a");
+    p.rect(x + w * 0.1, top + y + 2, w * 0.2, 2, "#3a4a88");
   }
-  for (let i = 0; i < 45; i++)
-    p.rect(
-      273 + ((i * 83) % 414),
-      area.y + 110 + ((i * 37) % 192),
-      3,
-      2,
-      "#9f8a63",
-    );
-  // Log barriers and four lantern posts ring the drift track.
-  for (const [x, y, w] of [[250, 100, 46], [690, 104, 46], [180, 250, 40], [790, 262, 40], [330, 330, 50], [620, 336, 50]]) {
-    p.rect(x - w / 2, area.y + y - 4, w, 9, "#3c201e");
-    p.rect(x - w / 2, area.y + y - 4, w, 3, "#844024");
-    p.ellipse(x - w / 2, area.y + y, 8, 9, "#c48a52");
+  garage(p, 20, top + 40);
+  // A log stack, a burning brazier and a bench for whoever is watching.
+  for (let row = 0; row < 4; row++)
+    for (let i = 0; i < 6 - row; i++) {
+      const lx = 816 + i * 16 + row * 8,
+        ly = top + 196 - row * 13;
+      p.ellipse(lx, ly, 16, 14, "#3c201e");
+      p.ellipse(lx, ly, 12, 10, "#a0683a");
+      p.ellipse(lx, ly, 5, 4, "#6a4226");
+    }
+  p.rect(800, top + 204, 116, 4, "#24151a");
+  p.rect(792, top + 262, 18, 26, "#2a2228");
+  p.rect(792, top + 262, 18, 3, "#5a5462");
+  for (let k = 0; k < 4; k++) p.rect(794 + k * 4, top + 270, 2, 2, "#ff9a40");
+  p.light?.({ kind: "point", x: 801, y: top + 272, r: 96, color: "#ff9a40", power: 1.05, flatten: 1.5 });
+  p.light?.({ kind: "emit", x: 790, y: top + 244, w: 22, h: 22 });
+  log(p, 860, top + 292);
+  // Log barriers and four lantern posts ring the track.
+  for (const [x, y, w] of [[250, 100, 46], [690, 104, 46], [214, 250, 40], [760, 262, 40], [330, 330, 50], [620, 336, 50]]) {
+    p.rect(x - w / 2, top + y - 4, w, 9, "#3c201e");
+    p.rect(x - w / 2, top + y - 4, w, 3, "#844024");
+    p.ellipse(x - w / 2, top + y, 8, 9, "#c48a52");
   }
-  for (const [x, y] of [[200, 128], [760, 132], [214, 318], [748, 320]]) p.lantern(x, area.y + y);
+  // Pines close in around the glade, densest behind the far edge.
+  const trees = [];
+  const rand = random(9902);
+  for (let x = 160; x < 820; x += 30) {
+    trees.push({ x: x + (rand() - 0.5) * 16, y: top + 46 + (rand() - 0.5) * 18, s: 0.62 + rand() * 0.3, tone: rand() * 0.78 });
+    if (rand() < 0.6) trees.push({ x: x + 14, y: top + 24 + rand() * 10, s: 0.5 + rand() * 0.2, tone: rand() * 0.78 });
+  }
+  for (const [x, y, s, tone] of [
+    [40, 220, 1, 0.3], [90, 262, 0.9, 0.1], [30, 330, 1.05, 0.6], [140, 330, 0.85, 0.2],
+    [196, 352, 0.8, 0.4], [920, 110, 1, 0.2], [930, 240, 1.05, 0.5], [880, 340, 0.95, 0.15],
+    [930, 350, 0.8, 0.3], [760, 356, 0.8, 0.7], [200, 360, 0.75, 0.2],
+  ])
+    trees.push({ x, y: top + y, s, tone });
+  for (const tree of trees.sort((a, b) => a.y - b.y)) p.tree(tree);
+  for (const [x, y] of [[210, 96], [752, 96], [214, 320], [748, 322]]) p.lantern(x, top + y);
   if (includeActors) animateDrift(p, area, 0, true);
 }
 
@@ -1216,6 +1430,25 @@ export function paintJourney(painter, layout, includeActors = true) {
       y = start + rand() * Math.max(0, layout.height - start);
     paintFern(p, x, y, 0.7 + rand() * 0.5);
   }
+  // Litter, tufts and stones everywhere the reading scrolls do not cover.
+  forestFloor(
+    p,
+    start,
+    layout.height,
+    5303,
+    (layout.sections || []).map((s) => ({
+      left: s.x,
+      right: s.x + s.width,
+      top: s.y,
+      bottom: s.y + s.height,
+    })),
+  );
+  road(p, layout);
+  const roadPoints = forestRoad(layout);
+  const onRoad = (box) =>
+    roadPoints.some(([x, y]) =>
+      intersects(box, { left: x - 40, right: x + 40, top: y - 22, bottom: y + 22 }),
+    );
   const trees = [];
   for (let y = start + 35; y < layout.height + 90; y += 62) {
     for (let x = 25; x < WIDTH; x += 54) {
@@ -1223,7 +1456,7 @@ export function paintJourney(painter, layout, includeActors = true) {
         ty = y + (rand() - 0.5) * 34;
       const tree = { x: tx, y: ty, s: 0.75 + rand() * 0.45, tone: rand() };
       const footprint = treeFootprint(tree);
-      const scenicOpening = scenery.some((scene) =>
+      const scenicOpening = onRoad(footprint) || scenery.some((scene) =>
         intersects(footprint, {
           left: scene.x - scene.rx,
           right: scene.x + scene.rx,

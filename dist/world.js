@@ -373,6 +373,50 @@ export function villageTrees() {
     [593, 514, 0.55],
   ])
     place({ x, y, s: size, tone: rand() });
+  // Clustered pines fill the woodland around the clearing: the shore band
+  // behind the cabins, both flanks and the southern edge. Clumps and gaps
+  // come from a smooth deterministic field, so the forest has depth rather
+  // than rows; the walkable clearing, paths, lamps and signs stay open.
+  const signs = destinations.map((d) => {
+    const sign = cabinSign(d);
+    return { left: sign.x - 8, right: sign.x + sign.w + 8, top: sign.y - 16, bottom: sign.y + sign.h + 8 };
+  });
+  const keepOut = [
+    { left: 452, right: 514, top: 150, bottom: 300 },
+    { left: 510, right: 548, top: 236, bottom: 276 },
+    { left: 594, right: 636, top: 228, bottom: 278 },
+    { left: 300, right: 660, top: 350, bottom: 560 },
+    { left: 776, right: 850, top: 376, bottom: 470 },
+  ];
+  const woodland = (tree) => {
+    const b = treeFootprint(tree);
+    if (tree.y < lakeShore(tree.x) + 12) return false;
+    if (tree.x > 150 && tree.x < 826 && tree.y > 268 && tree.y < 484) return false;
+    if (Math.abs(tree.x - WATERFALL.x) < 52 && b.top < 130) return false;
+    if (LAMPS.some(([lx, ly]) => Math.abs(tree.x - lx) < 20 && Math.abs(tree.y - ly) < 24)) return false;
+    return ![...signs, ...keepOut].some((k) => b.left < k.right && b.right > k.left && b.top < k.bottom && b.bottom > k.top);
+  };
+  for (let y = 192; y < 556; y += 21)
+    for (let x = -18 + ((y / 21) % 2) * 12; x < WIDTH + 20; x += 25) {
+      const clump = 0.5 + 0.5 * Math.sin(x * 0.029 + 1.7) * Math.cos(y * 0.047 - 0.6);
+      if (rand() > 0.28 + clump * 0.62) continue;
+      const far = y < 262;
+      const tree = {
+        x: x + (rand() - 0.5) * 14,
+        y: y + (rand() - 0.5) * 10,
+        s: far ? 0.5 + rand() * 0.22 : 0.68 + rand() * 0.38,
+        tone: rand() < 0.86 ? rand() * 0.78 : 0.82 + rand() * 0.15,
+      };
+      if (woodland(tree)) place(tree);
+    }
+  // Two small stands frame the north path between the upper cabins.
+  for (const [x, y, size] of [
+    [396, 236, 0.48], [420, 256, 0.55], [440, 232, 0.44], [400, 268, 0.5],
+    [380, 250, 0.46], [570, 236, 0.38], [560, 262, 0.36],
+  ]) {
+    const tree = { x, y, s: size, tone: rand() * 0.78 };
+    if (woodland(tree)) place(tree);
+  }
   for (let row = 0; row < 4; row++)
     for (const side of [0, 1])
       for (let col = 0; col < 3; col++) {
@@ -1124,6 +1168,60 @@ export class World {
     this.rect(566, 444, 41, 7, "#6a3a24");
     this.rect(568, 459, 4, 10, "#3c201e");
     this.rect(602, 459, 4, 10, "#3c201e");
+    // Undergrowth: tufts, clover and pebbles across the green, shrubs along
+    // every cabin wall and low scrub where the clearing meets the forest.
+    const pathPoints = paths.flat();
+    const onPath = (x, y) =>
+      pathPoints.some(([px, py]) => Math.abs(px - x) < 17 && Math.abs(py - y) < 15) ||
+      Math.hypot((x - 482) / 1.8, y - 329) < 48 ||
+      (x > 462 && x < 504 && y < 302);
+    const under = seeded(6107);
+    for (let i = 0; i < 900; i++) {
+      const x = 140 + under() * 700,
+        y = 196 + under() * 300;
+      if (onPath(x, y) || y < lakeShore(x) + 6) continue;
+      const kind = under();
+      if (kind < 0.55) {
+        this.rect(x, y, 2, 4, "#4e6a34");
+        this.rect(x + 2, y - 2, 2, 6, "#6a8040");
+        this.rect(x + 4, y, 2, 4, "#3e5a2e");
+      } else if (kind < 0.75) {
+        this.rect(x, y, 6, 2, "#3e5a2e");
+        this.rect(x + 1, y - 2, 4, 2, "#5a7a3a");
+      } else if (kind < 0.88) {
+        this.rect(x, y, 4, 2, "#5a5a54");
+        this.rect(x, y - 2, 2, 2, "#7e7a6e");
+      } else if (kind < 0.95) {
+        this.rect(x, y, 2, 2, ["#e8d8a0", "#d08aa8", "#a8b8e8"][i % 3]);
+        this.rect(x + 2, y + 2, 2, 2, "#3e5a2e");
+      } else {
+        this.rect(x, y, 4, 4, "#8a6a4a");
+        this.rect(x, y - 2, 4, 2, "#c06040");
+      }
+    }
+    const shrub = (x, y, size, bloom) => {
+      this.ellipse(x, y + 2, size + 6, size * 0.5, "#141c12");
+      this.ellipse(x, y - size * 0.2, size, size * 0.7, "#24391f");
+      this.ellipse(x - size * 0.18, y - size * 0.35, size * 0.62, size * 0.45, "#355a2c");
+      this.rect(x - size * 0.3, y - size * 0.55, size * 0.3, 2, "#5a7e3e");
+      if (bloom) for (let k = 0; k < 3; k++) this.rect(x - size * 0.3 + k * size * 0.25, y - size * 0.4 + (k % 2) * 4, 2, 2, bloom);
+    };
+    for (const d of destinations) {
+      const front = d.y + d.h + 2;
+      for (const sx of [d.x + 8, d.x + d.w - 8]) {
+        if (Math.abs(sx - d.doorX) < 30) continue;
+        shrub(sx, front, 14, d.id === "gamedev" ? "#d08ad8" : "#f0c060");
+      }
+      shrub(d.x - 14, d.y + d.h - 10, 18, null);
+      shrub(d.x + d.w + 16, d.y + d.h - 8, 16, "#e88a6a");
+    }
+    for (const [x, y, size] of [
+      [168, 296, 16], [176, 340, 20], [164, 392, 18], [170, 452, 16],
+      [806, 300, 18], [812, 350, 16], [806, 468, 20], [250, 272, 14],
+      [420, 270, 16], [560, 274, 14], [770, 276, 16], [224, 484, 18],
+      [282, 488, 14], [690, 486, 16], [748, 488, 18],
+    ])
+      shrub(x, y, size, size > 17 ? null : "#e8d8a0");
     // A finger-post beside the north path and a notice board by Career.
     this.rect(531, 240, 4, 32, "#3c201e");
     this.rect(514, 240, 30, 10, "#5a3020");
@@ -1626,7 +1724,7 @@ export class World {
       // Posts reach down to the roof; moss tufts rise above the board.
       const foot = Math.max(...sign.posts.map((px) => roofLine(d, px - d.x - d.w / 2))) + 4;
       const left = sign.x - 4,
-        top = sign.y - 4,
+        top = sign.y - 14,
         width = sign.w + 8,
         height = Math.ceil((Math.max(foot, sign.y + sign.h + 16) - top) / 2) * 2 + 2;
       const canvas = document.createElement("canvas");
@@ -1678,14 +1776,6 @@ export class World {
       this.rect(x + ax * 2, y + h, 2, foot - y - h, "#6b5234");
       this.rect(x + ax * 2 - 2, foot - 2, 10, 2, "#2c2722");
     }
-    // A small iron lantern hangs under the board's left end.
-    const lx = x + 6,
-      ly = y + h + 2;
-    this.rect(lx + 2, ly, 2, 4, "#1b1418");
-    this.rect(lx - 1, ly + 2, 8, 2, "#24151a");
-    this.rect(lx, ly + 4, 6, 8, "#24151a");
-    this.rect(lx + 1, ly + 5, 4, 6, "#ffb347");
-    this.rect(lx + 2, ly + 6, 2, 3, "#fff1b8");
     // A shadow line where the board meets the posts.
     px(1, rows, cols - 2, 1, "#1d1710");
     // Dark outline with notched corners.
@@ -1698,8 +1788,11 @@ export class World {
     px(1, 2, 1, rows - 3, "#8a4c2a");
     px(cols - 2, 2, 1, rows - 3, "#3c201e");
     px(2, rows - 2, cols - 3, 1, "#3c201e");
-    // Plank face with staggered seams and a little grain.
+    // Plank face, brightest under the two lamps and dimming toward the foot.
     px(2, 2, cols - 4, rows - 4, "#5c2d1f");
+    px(2, 2, cols - 4, 3, "#86442a");
+    px(2, 5, cols - 4, 3, "#6e3622");
+    for (const lamp of [6, cols - 8]) px(lamp - 3, 2, 8, 2, "#a0582e");
     const rand = seeded(d.x * 7 + d.y);
     for (const seam of [5, 9]) {
       px(2, seam, cols - 4, 1, "#4b241e");
@@ -1726,7 +1819,7 @@ export class World {
             for (let gx = 0; gx < 5; gx++)
               if (row[gx] === "#")
                 pass
-                  ? px(cursor + gx, 4 + gy, 1, 1, gy < 2 ? "#fff3d6" : "#f6dcae")
+                  ? px(cursor + gx, 4 + gy, 1, 1, gy < 2 ? "#fffbea" : gy < 5 ? "#ffe7b4" : "#f4c886")
                   : px(cursor + gx + 1, 5 + gy, 1, 1, "#2b1f14");
           });
         cursor += ch === " " ? 3 : 6;
@@ -1738,6 +1831,13 @@ export class World {
         span = 1 + Math.floor(rand() * 3);
       px(ax, 0, span, 1, "#3f5a2e");
       if (rand() < 0.6) px(ax + (span > 1 ? 1 : 0), -1, 1, 1, "#5d7d3c");
+    }
+    // Two gooseneck lamps lean over the top edge and light the lettering.
+    for (const [lx, dir] of [[x + 6, 1], [x + w - 8, -1]]) {
+      this.rect(lx, y - 10, 2, 10, "#1b1418");
+      this.rect(dir > 0 ? lx : lx - 6, y - 12, 8, 2, "#1b1418");
+      this.rect(lx + dir * 6 - 3, y - 12, 8, 4, "#24151a");
+      this.rect(lx + dir * 6 - 2, y - 8, 6, 2, "#fff1b8");
     }
   }
   lantern(x, y) {
@@ -1954,10 +2054,11 @@ export class World {
       pane(x + 8, y + 48, 42, h - 54, "#ffb860", 50);
       lights.push({ kind: "emit", x: x + w - 28, y: y - 2, w: 6, h: 6 });
     }
-    // A small lantern hangs from each rooftop board's left post.
+    // Each rooftop board is lit by its two lamps, which also wash the roof.
     const sign = cabinSign(d);
-    lights.push({ kind: "emit", x: sign.x + 6, y: sign.y + sign.h + 6, w: 6, h: 6 });
-    lights.push({ kind: "point", x: sign.x + 8, y: sign.y + sign.h / 2, r: sign.w * 0.6, color: "#ffc070", power: 0.85, flatten: 1.6 });
+    lights.push({ kind: "emit", x: sign.x - 2, y: sign.y - 12, w: sign.w + 4, h: sign.h + 14 });
+    for (const lx of [sign.x + 12, sign.x + sign.w - 12])
+      lights.push({ kind: "point", x: lx, y: sign.y + sign.h + 10, r: 46, color: "#ffc070", power: 0.8, flatten: 1.2 });
     return lights;
   }
   villageLights() {

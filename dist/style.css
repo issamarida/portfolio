@@ -3959,3 +3959,95 @@ dialog::backdrop {
 .sky-header .email-icon::before {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 18 14' shape-rendering='crispEdges'%3E%3Cpath fill='%233a65d5' d='M1 0h16v1h1v12h-1v1H1v-1H0V1h1z'/%3E%3Cpath fill='%23fff5db' d='M2 2h14v10H2z'/%3E%3Cpath fill='%233a65d5' d='M2 2h2v2H2zM4 4h2v2H4zM6 6h2v2H6zM8 8h2v1H8zM10 6h2v2h-2zM12 4h2v2h-2zM14 2h2v2h-2zM2 10h2v2H2zM4 8h2v2H4zM12 8h2v2h-2zM14 10h2v2h-2z'/%3E%3C/svg%3E");
 }
+
+/* Lakeside lantern night: the four sky signals become planks hanging on
+   iron chains, lettered in dark ink. Element boxes keep their roles; only
+   the two profile links move under the boards they hang from. */
+body {
+  background-color: #0b1330;
+}
+.sky-header .header .sky-cloud,
+.sky-header .header .social-links a.sky-cloud {
+  color: #3a2112;
+  text-shadow: 0 1px 0 #f2c58a66;
+}
+.sky-header .header .sky-cloud::before {
+  inset: calc(-4 * var(--cp)) calc(-5 * var(--cp));
+  border-width: calc(8 * var(--cp));
+  border-image: url("./art/plank-sign.svg") 8 fill / calc(8 * var(--cp)) stretch;
+  filter: drop-shadow(0 calc(2 * var(--cp)) 0 #0a0f2299);
+  -webkit-filter: drop-shadow(0 calc(2 * var(--cp)) 0 #0a0f2299);
+}
+.sky-header .header .sky-cloud:hover,
+.sky-header .header .sky-cloud:focus-visible {
+  color: #6b2c0e;
+}
+.sky-header .header .sky-cloud:hover::before,
+.sky-header .header .sky-cloud:focus-visible::before {
+  filter: brightness(1.12) drop-shadow(0 calc(2 * var(--cp)) 0 #0a0f2299);
+  -webkit-filter: brightness(1.12) drop-shadow(0 calc(2 * var(--cp)) 0 #0a0f2299);
+}
+/* Two chains run up from each board: to the sky for the top boards, and
+   behind the board above for the profile links. */
+.sky-header .header .sky-cloud::after {
+  content: "";
+  position: absolute;
+  z-index: -2;
+  inset: auto 12% calc(100% + 2 * var(--cp)) 12%;
+  height: var(--chain, 80px);
+  border: 0;
+  border-image: none;
+  background:
+    url("./art/chain.svg") left bottom / calc(4 * var(--cp)) calc(8 * var(--cp)) repeat-y,
+    url("./art/chain.svg") right bottom / calc(4 * var(--cp)) calc(8 * var(--cp)) repeat-y;
+  image-rendering: pixelated;
+  pointer-events: none;
+}
+.sky-header .header .identity.sky-cloud,
+.sky-header .header .email-link.sky-cloud {
+  --chain: 120px;
+  z-index: 3;
+}
+.sky-header .header .social-links a.cloud-github,
+.sky-header .header .social-links a.cloud-linkedin {
+  z-index: 1;
+}
+.sky-header .identity img {
+  border-radius: 50%;
+  image-rendering: pixelated;
+  background: #2a4c8a;
+  box-shadow:
+    0 0 0 calc(1 * var(--cp)) #22120c,
+    0 0 0 calc(2.5 * var(--cp)) #3d68b0,
+    0 0 0 calc(3.5 * var(--cp)) #22120c;
+}
+@media (min-width: 741px) {
+  .sky-header .header .social-links a.cloud-github {
+    left: 17cqw;
+    top: 14.8cqw;
+    --chain: 4cqw;
+  }
+  .sky-header .header .social-links a.cloud-linkedin {
+    right: 9cqw;
+    top: 10.4cqw;
+    --chain: 4cqw;
+  }
+}
+@media (max-width: 740px) {
+  .sky-header .header .social-links a.cloud-github {
+    --chain: 82px;
+  }
+  .sky-header .header .social-links a.cloud-linkedin {
+    --chain: 38px;
+  }
+  .sky-header .header .email-link.sky-cloud {
+    --chain: 26px;
+    z-index: 2;
+  }
+}
+.sky-header .email-icon {
+  color: transparent;
+}
+.intro-dialog img {
+  image-rendering: pixelated;
+}

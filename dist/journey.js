@@ -1244,6 +1244,8 @@ function riverY(area, x) {
 }
 
 function river(p, area) {
+  // The lake's southern arm: a stone rim, a lamplit dock, lilies and a
+  // moored rowboat on deep indigo water.
   const half = Math.min(52, area.height * 0.3);
   const upper = [],
     lower = [],
@@ -1256,52 +1258,83 @@ function river(p, area) {
     innerUpper.push([x, y - half]);
     innerLower.push([x, y + half]);
   }
-  p.path([...upper, ...lower.reverse()], "#51604a");
-  p.path([...innerUpper, ...innerLower.reverse()], "#173b66");
-  // Sheltered lily pads stay clear of the original stones and reflection lanes.
-  for (const [x, offset] of [[120, 5], [400, 18], [710, -14], [862, 20]]) {
-    const y = riverY(area, x) + offset;
-    p.ellipse(x, y + 2, 22, 8, "#112c51");
-    p.ellipse(x, y, 18, 6, "#647536");
-    p.rect(x - 5, y - 2, 7, 2, "#93a653");
-    p.rect(x + 1, y, 6, 2, "#173b66");
-    p.rect(x - 1, y - 5, 4, 4, "#fff0bc");
-    p.rect(x, y - 6, 2, 4, "#fff6d6");
-    p.rect(x, y - 3, 2, 2, "#f4b940");
-  }
-  for (let x = 0; x < WIDTH; x += 38) {
+  p.path([...upper, ...lower.reverse()], "#3a3a2a");
+  p.path([...innerUpper, ...innerLower.reverse()], "#1a2550");
+  for (let x = -10; x < WIDTH + 10; x += 6) {
     const y = riverY(area, x);
-    p.rect(x, y - half + 3, 22, 2, "#427ba1");
-    p.rect(x + 14, y + half - 4, 21, 2, "#2a5879");
-    if (x % 3 === 0) {
-      p.ellipse(x + 10, y + half + 4, 27, 13, "#71786a");
-      p.rect(x + 3, y + half + 1, 13, 2, "#a1a38a");
+    p.rect(x, y - half + 6, 6, half - 6, "#1d2a5a");
+    p.rect(x, y + half * 0.3, 6, half * 0.7, "#172148");
+  }
+  for (let x = 0, i = 0; x < WIDTH; x += 29, i++) {
+    const y = riverY(area, x) + Math.sin(i * 2.3) * half * 0.6;
+    p.rect(x, y, 12 + (i % 3) * 6, 2, i % 2 ? "#2c3a70" : "#33437c");
+  }
+  // Round shore stones along both edges.
+  const rand = random(5521);
+  for (const side of [-1, 1])
+    for (let x = -6; x < WIDTH + 10; x += 14 + Math.floor(rand() * 8)) {
+      const y = riverY(area, x) + side * (half + 3) + (rand() - 0.5) * 4;
+      const w = 14 + rand() * 10;
+      p.ellipse(x, y + 3, w + 2, 11, "#141a30");
+      p.ellipse(x, y, w, 9, rand() < 0.5 ? "#55597a" : "#4a4e6c");
+      p.rect(x - w * 0.3, y - 3, w * 0.4, 2, "#80859f");
+      if (rand() < 0.3) p.rect(x - w * 0.4, y - 5, w * 0.5, 2, "#3d5a34");
+    }
+  // Lily pads with a few pink blooms.
+  for (const [x, offset] of [[120, 5], [300, 18], [610, -14], [700, 12], [862, 20], [236, -16]]) {
+    const y = riverY(area, x) + offset;
+    p.ellipse(x, y + 2, 22, 8, "#121a3c");
+    p.ellipse(x, y, 18, 7, "#3e5a34");
+    p.rect(x - 5, y - 2, 7, 2, "#6a8a46");
+    p.rect(x + 1, y, 6, 2, "#1a2550");
+    if (x % 4 === 0) {
+      p.rect(x - 2, y - 5, 5, 4, "#f0a8c4");
+      p.rect(x - 1, y - 6, 3, 2, "#ffd8e8");
+      p.rect(x, y - 4, 1, 1, "#ffd060");
     }
   }
-  for (const [x, offset] of [
-    [169, -8],
-    [226, 9],
-    [479, -4],
-    [539, 10],
-    [766, -12],
-    [824, 7],
-  ]) {
-    const y = riverY(area, x) + offset;
-    p.ellipse(x, y + 3, 43, 23, "#1d373b");
-    p.ellipse(x, y, 35, 19, "#747e70");
-    p.rect(x - 10, y - 5, 17, 3, "#a9ad92");
-    p.rect(x - 14, y + 4, 19, 3, "#516655");
+  // A rowboat moored by the western shore.
+  {
+    const bx = 178,
+      by = riverY(area, bx) + 8;
+    p.ellipse(bx, by + 6, 70, 12, "#10173a");
+    p.path([[bx - 34, by - 4], [bx + 30, by - 4], [bx + 22, by + 8], [bx - 26, by + 8]], "#3c201e");
+    p.path([[bx - 30, by - 2], [bx + 27, by - 2], [bx + 20, by + 6], [bx - 23, by + 6]], "#844024");
+    p.rect(bx - 28, by - 4, 56, 2, "#b0663a");
+    for (const sx of [bx - 14, bx + 6]) p.rect(sx, by - 2, 6, 7, "#5c2d1f");
+    p.rect(bx + 14, by - 10, 3, 18, "#6a3622");
+    p.rect(bx - 40, by - 6, 8, 2, "#8a7a5a");
   }
+  // A plank dock runs out from the northern shore.
+  {
+    const dx = 480,
+      top = riverY(area, dx) - half - 14,
+      bottom = riverY(area, dx) + half * 0.15;
+    p.rect(dx - 34, top, 68, bottom - top + 4, "#2c181b");
+    for (let y = top + 2; y < bottom; y += 6) {
+      p.rect(dx - 32, y, 64, 5, "#7a3c22");
+      p.rect(dx - 32, y, 64, 1, "#b0663a");
+      p.rect(dx - 32 + ((y * 7) % 50), y + 2, 2, 2, "#4b241e");
+    }
+    for (const px of [dx - 36, dx + 30]) {
+      p.rect(px, top - 4, 6, bottom - top + 16, "#3c201e");
+      p.rect(px + 1, top - 4, 2, bottom - top + 16, "#844024");
+      p.lantern(px + 2, top + 2);
+      for (let i = 0; i < 8; i++)
+        p.rect(px - 2 + Math.sin(i * 2.1) * 3, bottom + 8 + i * 5, 8 - (i % 3) * 2, 2,
+          i % 3 === 0 ? "#ffd27a" : i % 2 ? "#c07a3a" : "#8a5a3a");
+    }
+  }
+  // Reeds at the water's edge.
   for (const x of [64, 336, 651, 906]) {
     const y = riverY(area, x) + half + 13;
     for (let i = 0; i < 4; i++) {
-      p.rect(x + i * 5, y - 13 - (i % 2) * 5, 2, 18, "#84946a");
-      p.rect(x + i * 5 - 1, y - 16 - (i % 2) * 5, 4, 7, "#a18a57");
+      p.rect(x + i * 5, y - 13 - (i % 2) * 5, 2, 18, "#5a7040");
+      p.rect(x + i * 5 - 1, y - 16 - (i % 2) * 5, 4, 7, "#8a6a3a");
     }
-    p.ellipse(x - 8, y + 1, 19, 9, "#4c6650");
+    p.ellipse(x - 8, y + 1, 19, 9, "#2e4428");
   }
-  // The same amber light as the village follows the existing riverbank.
-  // Narrow broken reflections sit between the original stepping stones.
+  // Shore lamps, each doubled as a broken amber column on the water.
   for (const x of [82, 350, 655, 910]) {
     const middle = riverY(area, x);
     p.lantern(x, middle - half - 12);
@@ -1310,7 +1343,7 @@ function river(p, area) {
         width = 7 + ((i * 7) % 17),
         offset = Math.sin(i * 2.3 + x) * 5;
       p.rect(x - width / 2 + offset, yy, width, 2,
-        i % 3 === 0 ? "#ffdb79" : i % 2 ? "#cb8f42" : "#886941");
+        i % 3 === 0 ? "#ffd27a" : i % 2 ? "#c07a3a" : "#7a5a4a");
     }
   }
 }
@@ -1927,20 +1960,9 @@ export function animateJourney(p, layout) {
         const ry =
           riverY(area, rx) +
           Math.sin(i * 2.7) * Math.min(29, area.height * 0.2);
-        const onRock = [
-          [169, -8],
-          [226, 9],
-          [479, -4],
-          [539, 10],
-          [766, -12],
-          [824, 7],
-        ].some(
-          ([rockX, offset]) =>
-            Math.abs(rx - rockX) < 26 &&
-            Math.abs(ry - riverY(area, rockX) - offset) < 15,
-        );
-        if (!onRock)
-          p.rect(rx, ry, 10 + (i % 4) * 4, 2, i % 3 ? "#407dab" : "#89bad0");
+        const onDock = Math.abs(rx - 480) < 44 && ry < riverY(area, 480) + 10;
+        if (!onDock)
+          p.rect(rx, ry, 10 + (i % 4) * 4, 2, i % 3 ? "#3a4a88" : "#6a7ab8");
       }
       for (let i = 0; i < 6; i++) {
         const fx = 83 + i * 151 + Math.sin(time * 0.6 + i) * 9;

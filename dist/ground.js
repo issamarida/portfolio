@@ -14,13 +14,13 @@ export function paintGround(p, area, seed = 9031) {
   const cols = Math.ceil((x + width) / cell) - left + 2;
   const rows = Math.ceil((y + height) / cell) - top + 2;
   const palette = [
-    "#243e38",
-    "#2d483c",
-    "#2b4136",
-    "#203c37",
-    "#354a38",
-    "#27443a",
-    "#2d4334",
+    "#24372a",
+    "#2c3f2a",
+    "#29392a",
+    "#203328",
+    "#33442c",
+    "#273b2c",
+    "#2e3e29",
   ];
   const sites = [];
   for (let row = 0; row < rows; row++)
@@ -67,11 +67,11 @@ export function paintGround(p, area, seed = 9031) {
   for (let i = 0; i < count; i++) {
     const px = x + rand() * width,
       py = y + rand() * height;
-    const color = i % 5 === 0 ? "#607454" : i % 3 === 0 ? "#4b6250" : "#3e5848";
+    const color = i % 5 === 0 ? "#66703f" : i % 3 === 0 ? "#4e5f3a" : "#3e5236";
     p.rect(px, py, 2 + rand() * 4, 2, color);
     if (i % 4 === 0) {
-      p.rect(px + 2, py - 2, 2, 2, "#65754b");
-      p.rect(px + 4, py + 2, 2, 2, "#3e644d");
+      p.rect(px + 2, py - 2, 2, 2, "#7a7a44");
+      p.rect(px + 4, py + 2, 2, 2, "#3e5a3a");
     }
     if (i % 7 === 0) {
       p.rect(px - 2, py + 2, 4, 2, "#635c43");

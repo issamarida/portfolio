@@ -15,6 +15,7 @@ import {
   nearbyArea,
   destinations,
   cabinSign,
+  MOUNTAIN,
 } from "../dist/world.js";
 import { paintPillar, paintTemple } from "../dist/pillars.js";
 import { areas } from "../dist/content.js";
@@ -260,7 +261,7 @@ test("every mountain layer paints in front of the moon and the crest covers its 
       draws.findIndex((d) => d[0] === "path"),
   );
   const center = draws.find(
-    (d) => d[0] === "path" && d[2] === "#344b50" && d[1][2][0] === 480,
+    (d) => d[0] === "path" && d[2] === MOUNTAIN && d[1][2][0] === 480,
   );
   const moon = world.moonPosition();
   assert.equal(center[1][2][1], moon.y + moon.diameter * 0.25);

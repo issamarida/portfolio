@@ -14,13 +14,13 @@ export function paintGround(p, area, seed = 9031) {
   const cols = Math.ceil((x + width) / cell) - left + 2;
   const rows = Math.ceil((y + height) / cell) - top + 2;
   const palette = [
-    "#263a2e",
-    "#2b3d30",
-    "#29392c",
-    "#23362d",
-    "#303d2e",
-    "#283b2d",
-    "#2b3b2b",
+    "#243e38",
+    "#2d483c",
+    "#2b4136",
+    "#203c37",
+    "#354a38",
+    "#27443a",
+    "#2d4334",
   ];
   const sites = [];
   for (let row = 0; row < rows; row++)
@@ -67,11 +67,11 @@ export function paintGround(p, area, seed = 9031) {
   for (let i = 0; i < count; i++) {
     const px = x + rand() * width,
       py = y + rand() * height;
-    const color = i % 5 === 0 ? "#53614a" : i % 3 === 0 ? "#46503d" : "#3a4c35";
+    const color = i % 5 === 0 ? "#607454" : i % 3 === 0 ? "#4b6250" : "#3e5848";
     p.rect(px, py, 2 + rand() * 4, 2, color);
     if (i % 4 === 0) {
-      p.rect(px + 2, py - 2, 2, 2, "#526042");
-      p.rect(px + 4, py + 2, 2, 2, "#344e35");
+      p.rect(px + 2, py - 2, 2, 2, "#65754b");
+      p.rect(px + 4, py + 2, 2, 2, "#3e644d");
     }
     if (i % 7 === 0) {
       p.rect(px - 2, py + 2, 4, 2, "#635c43");
@@ -80,7 +80,7 @@ export function paintGround(p, area, seed = 9031) {
   }
 }
 export function paintFern(p, x, y, size = 1) {
-  p.rect(x, y - 15 * size, 2, 18 * size, "#60734a");
+  p.rect(x, y - 15 * size, 2, 18 * size, "#759557");
   for (let branch = 0; branch < 4; branch++) {
     const yy = y - 3 - branch * 4 * size,
       reach = (9 - branch * 1.5) * size;
@@ -91,10 +91,10 @@ export function paintFern(p, x, y, size = 1) {
           yy - (2 - step) * 2 * size,
           3 * size,
           2,
-          branch % 2 ? "#637b4b" : "#4b6a42",
+          branch % 2 ? "#709758" : "#4c805b",
         );
       }
     }
   }
-  p.rect(x - 2, y - 18 * size, 4, 3 * size, "#7f8f57");
+  p.rect(x - 2, y - 18 * size, 4, 3 * size, "#a0ab6a");
 }

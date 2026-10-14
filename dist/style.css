@@ -3755,3 +3755,162 @@ mark.kw {
     display: none;
   }
 }
+
+/* Lanternlight finishes: the existing village, cloud silhouettes, scrolls,
+   woven borders and cutscenes keep their original geometry and animation. */
+:root {
+  --gold: #f2cf85;
+  --night-ink: #17243a;
+}
+body {
+  background-color: #08182e;
+}
+.sky-header .header .sky-cloud,
+.sky-header .header .social-links a.sky-cloud {
+  color: var(--night-ink);
+  text-shadow: 0 1px 0 #f9f1d338;
+}
+.sky-header .header .sky-cloud::before {
+  filter: brightness(1.82) saturate(0.4);
+  -webkit-filter: brightness(1.82) saturate(0.4);
+}
+.sky-header .header .sky-cloud:hover,
+.sky-header .header .sky-cloud:focus-visible {
+  color: #253e65;
+}
+.sky-header .header .sky-cloud:hover::before,
+.sky-header .header .sky-cloud:focus-visible::before {
+  filter: brightness(1.98) saturate(0.4);
+  -webkit-filter: brightness(1.98) saturate(0.4);
+}
+.sky-header .identity img {
+  box-shadow:
+    0 0 0 2px #33435a,
+    0 0 0 4px #efe2bc,
+    0 0 24px #f4d79745;
+}
+.sky-header .email-icon {
+  color: #1b4b8d;
+  text-shadow: 0 1px 0 #fff0c8;
+}
+.sky-header .sky-cloud:focus-visible {
+  outline-color: #ffe3a0;
+  box-shadow: 0 0 0 2px #17243a;
+}
+.reading-invitation a {
+  color: #fff2d0;
+  text-shadow:
+    2px 2px 0 #352016,
+    0 0 10px #ffcf7b24;
+  filter: drop-shadow(0 4px 0 #08162666);
+}
+.reading-invitation a:hover,
+.reading-invitation a:focus-visible {
+  color: #fff9e8;
+  filter: brightness(1.1) drop-shadow(0 4px 0 #08162666);
+}
+.portfolio-reading .reading-section {
+  background-image:
+    radial-gradient(ellipse at 12% 0, #ffc86c20, transparent 54%),
+    radial-gradient(ellipse at 100% 100%, #78a6bd0c, transparent 55%),
+    linear-gradient(var(--scroll-tint), var(--scroll-tint)),
+    url("./art/parchment.svg");
+  background-size:
+    auto,
+    auto,
+    auto,
+    128px 128px;
+  box-shadow:
+    inset 0 2px 0 #ffdca515,
+    inset 2px 0 0 #ffdca50c,
+    0 10px 20px #0612205c;
+}
+.reading-section::before,
+.reading-section::after {
+  filter: brightness(1.12) saturate(1.1);
+}
+.portfolio-reading .section-heading {
+  box-shadow:
+    inset 0 3px 0 #ffe8a63b,
+    inset 0 -3px 0 #2014214d,
+    0 6px 0 #06101d70,
+    0 10px 16px #00000024;
+}
+.portfolio-reading .section-heading h2 {
+  color: #fff0be;
+  text-shadow:
+    2px 2px 0 var(--ribbon-dark),
+    0 4px 0 #00000059,
+    0 0 14px #ffd38818;
+}
+.ribbon-emblem {
+  filter: drop-shadow(2px 2px 0 #00000066) drop-shadow(0 0 5px #ffcc731f);
+}
+.portfolio-reading .reading-section .project-card {
+  background: linear-gradient(120deg, #ffce7510, #06122038 72%);
+  box-shadow:
+    inset 3px 0 0 var(--ribbon),
+    inset 0 1px 0 #ffdca515,
+    inset 0 -1px 0 #00000026;
+}
+.reading-section .quote {
+  color: #f5e1b8;
+  border-left-color: var(--ribbon-edge);
+  text-shadow: 0 0 12px #ffcf7b16;
+}
+.reading-section .text-link,
+.reading-section .project-card a,
+.panel-content .text-link,
+.panel-content .project-card a {
+  color: #f5d994;
+  text-decoration-color: #c7a86a;
+}
+.reading-section a:hover,
+.panel-content a:hover {
+  color: #fff2cf;
+  text-decoration-color: currentColor;
+}
+dialog {
+  background-image:
+    radial-gradient(ellipse at 0 0, #ffd08814, transparent 55%),
+    linear-gradient(#31281ff2, #25242bf2), url("./art/parchment.svg");
+  background-size:
+    auto,
+    auto,
+    128px 128px;
+  box-shadow: 0 20px 80px #0208179c;
+}
+dialog::backdrop {
+  background: #051126e0;
+}
+.panel-top,
+.panel-footer {
+  background: #32271f;
+  box-shadow: inset 0 1px 0 #f3d39418;
+}
+.panel-top button:hover,
+.panel-footer button:hover {
+  color: #fff1c7;
+}
+.world-wrap .interact,
+.walk-hint {
+  color: #ffe3a0;
+  background: #292018ed;
+  box-shadow:
+    0 -2px 0 #d0a668,
+    -2px 0 0 #9c743f,
+    2px 0 0 #9c743f,
+    0 2px 0 #654728,
+    0 5px 0 #07132366;
+}
+.touch-pad button {
+  color: #ffe7b2;
+  background: #26394be8;
+  box-shadow:
+    0 2px #876f4d,
+    2px 0 #56656d,
+    -2px 0 #56656d;
+}
+.touch-pad button:active {
+  background: #465345;
+}

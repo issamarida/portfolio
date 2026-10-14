@@ -627,21 +627,27 @@ export class World {
     return { x: 480, y: (this.layout.moonArea?.y || 0) + 125, diameter: 118 };
   }
   drawSky() {
-    this.rect(0, 0, WIDTH, (this.layout.skyHeight || 0) + 190, "#17242b");
+    this.rect(0, 0, WIDTH, (this.layout.skyHeight || 0) + 190, "#101d3c");
     const { x, y, diameter: d } = this.moonPosition();
-    this.ellipse(x, y, d + 22, d + 22, "#253c40");
-    this.ellipse(x, y, d + 10, d + 10, "#486360");
-    this.ellipse(x, y, d, d, "#c6d3b5");
-    this.ellipse(x - 2, y - 2, d - 6, d - 6, "#e5e4c7");
-    this.ellipse(x - d * 0.23, y - d * 0.2, d * 0.19, d * 0.14, "#c6ceb4");
-    this.ellipse(x + d * 0.22, y + d * 0.09, d * 0.23, d * 0.18, "#c9d0b9");
-    this.ellipse(x - d * 0.03, y + d * 0.3, d * 0.13, d * 0.09, "#cbd2b8");
+    this.ellipse(x, y, d + 22, d + 22, "#233556");
+    this.ellipse(x, y, d + 10, d + 10, "#706649");
+    this.ellipse(x, y, d, d, "#eabd4b");
+    this.ellipse(x - 2, y - 2, d - 6, d - 6, "#ffdf70");
+    this.ellipse(x - d * 0.23, y - d * 0.2, d * 0.19, d * 0.14, "#ecc05a");
+    this.ellipse(x + d * 0.22, y + d * 0.09, d * 0.23, d * 0.18, "#f0c55d");
+    this.ellipse(x - d * 0.03, y + d * 0.3, d * 0.13, d * 0.09, "#eec459");
     const rand = seeded(714);
     for (let i = 0; i < 45; i++) {
       const sx = rand() * WIDTH,
         sy = rand() * this.layout.skyHeight;
-      if (Math.hypot(sx - x, sy - y) > d * 0.7)
-        this.rect(sx, sy, 2, 2, "#7d9693");
+      if (Math.hypot(sx - x, sy - y) > d * 0.7) {
+        this.rect(sx, sy, 2, 2, i % 5 ? "#8cbcdf" : "#ffe38c");
+        // A few quiet compass stars share the reference's blue and gold sky.
+        if (i % 9 === 0) {
+          this.rect(sx - 2, sy, 6, 2, "#b6d4e6");
+          this.rect(sx, sy - 2, 2, 6, "#b6d4e6");
+        }
+      }
     }
     // All snowy silhouettes sit in front of the moon, below the clear identity sky.
     // Muted pigment gives depth while every silhouette stays on the pixel grid.
@@ -667,7 +673,7 @@ export class World {
             [center + span * 0.24, top + peakHeight * 0.46],
             [center + span * 0.5, distantBase],
           ],
-          "#2b4048",
+          "#2c416a",
         );
         this.path(
           [
@@ -676,7 +682,7 @@ export class World {
             [center + span * 0.5, distantBase],
             [center + span * 0.07, distantBase],
           ],
-          "#253741",
+          "#223557",
         );
         this.path(
           [
@@ -687,7 +693,7 @@ export class World {
             [center - span * 0.02, top + peakHeight * 0.32],
             [center - span * 0.06, top + peakHeight * 0.2],
           ],
-          "#557079",
+          "#667ea6",
         );
         this.path(
           [
@@ -695,7 +701,7 @@ export class World {
             [center + span * 0.15, top + peakHeight * 0.3],
             [center + span * 0.04, top + peakHeight * 0.25],
           ],
-          "#405963",
+          "#49618c",
         );
       }
       this.ctx.globalAlpha = 0.42;
@@ -714,7 +720,7 @@ export class World {
           [980, distantBase],
           [-20, distantBase],
         ],
-        "#30494d",
+        "#344e71",
       );
     } finally {
       this.ctx.restore();
@@ -749,7 +755,7 @@ export class World {
           [mx + w / 2, base],
           [mx + 10, base - 32],
         ],
-        "#293f46",
+        "#293c61",
       );
       this.path(
         [
@@ -760,7 +766,7 @@ export class World {
           [mx + 2, base - peak * 0.63],
           [mx - w * 0.07, base - peak * 0.77],
         ],
-        "#b3c7c4",
+        "#9eb7d0",
       );
       this.path(
         [
@@ -768,7 +774,7 @@ export class World {
           [mx + w * 0.19, base - peak * 0.66],
           [mx + w * 0.08, base - peak * 0.73],
         ],
-        "#769fa4",
+        "#6f8faf",
       );
       this.path(
         [
@@ -777,7 +783,7 @@ export class World {
           [mx - w * 0.07, base - peak * 0.4],
           [mx + 12, base],
         ],
-        "#3b5559",
+        "#3b5677",
       );
     }
   }
@@ -817,7 +823,7 @@ export class World {
     }
   }
   drawTerrain() {
-    this.rect(0, 170, 960, 370, "#22332e");
+    this.rect(0, 170, 960, 370, "#1d3837");
     this.path(
       [
         [0, 124],
@@ -836,7 +842,7 @@ export class World {
         [960, 165],
         [0, 165],
       ],
-      "#253b3b",
+      "#213e4c",
     );
     this.path(
       [
@@ -853,16 +859,16 @@ export class World {
         [960, 191],
         [0, 191],
       ],
-      "#2b4240",
+      "#274b51",
     );
     const r = seeded(832);
     paintGround(this, { x: 0, y: 170, width: WIDTH, height: 370 }, 9031);
     this.grass.forEach((g) => {
       if (g.y < 137) return;
-      this.rect(g.x, g.y, 2 + g.v * 3, 2, g.v > 0.55 ? "#304438" : "#1c2c29");
+      this.rect(g.x, g.y, 2 + g.v * 3, 2, g.v > 0.55 ? "#3c5550" : "#19302e");
       if (g.v > 0.78) {
-        this.rect(g.x, g.y - 4, 2, 4, "#40503a");
-        this.rect(g.x + 4, g.y - 2, 2, 4, "#354b37");
+        this.rect(g.x, g.y - 4, 2, 4, "#536849");
+        this.rect(g.x + 4, g.y - 2, 2, 4, "#42644d");
       }
     });
     for (const [x, y, size] of [
@@ -892,7 +898,7 @@ export class World {
       [444, 225],
       [453, 182],
     ];
-    this.path(creek, "#3e5147");
+    this.path(creek, "#3b5657");
     this.path(
       [
         [450, 120],
@@ -907,11 +913,11 @@ export class World {
         [436, 222],
         [467, 170],
       ],
-      "#314e54",
+      "#1c4775",
     );
     for (let y = 142; y < 279; y += 18) {
-      this.rect(450 + Math.sin(y) * 9, y, 18, 2, "#456864");
-      this.rect(479 + Math.cos(y) * 5, y + 8, 9, 2, "#233e47");
+      this.rect(450 + Math.sin(y) * 9, y, 18, 2, "#4d83ab");
+      this.rect(479 + Math.cos(y) * 5, y + 8, 9, 2, "#173357");
     }
     // Four separate spokes connect the fountain courtyard to the cabin doors.
     const paths = cabinPaths();
@@ -929,22 +935,42 @@ export class World {
             [bx + nx, by - ny],
             [ax + nx, ay - ny],
           ],
-          "#534e3c",
+          "#695438",
         );
         for (let t = 0; t < 1; t += 0.5) {
           const x = ax + (bx - ax) * t,
             y = ay + (by - ay) * t;
-          this.ellipse(x, y, 27, 20, "#847352");
-          this.rect(x - 5 + r() * 8, y - 4, 6, 2, "#b09a6b");
-          this.rect(x - 10, y + 4, 4, 2, "#62583f");
+          this.ellipse(x, y, 27, 20, "#a5804b");
+          this.rect(x - 5 + r() * 8, y - 4, 6, 2, "#d2ac6a");
+          this.rect(x - 10, y + 4, 4, 2, "#78613f");
         }
       }
     }
-    this.ellipse(482, 338, 92, 32, "#20352e");
-    this.ellipse(482, 330, 86, 48, "#656c60");
-    this.ellipse(482, 325, 80, 40, "#9aa18c");
-    this.ellipse(482, 322, 66, 28, "#344f55");
-    this.ellipse(482, 322, 58, 22, "#568b8b");
+    // Lamplight falls onto the existing grass and paths, underneath all actors.
+    // These pixel-stepped amber islands are baked into the terrain cache.
+    const lamplight = (x, y, width, height) => {
+      this.ctx.save();
+      try {
+        for (const [scale, alpha] of [[1.25, 0.08], [0.9, 0.12], [0.55, 0.15]]) {
+          this.ctx.globalAlpha = alpha;
+          this.ellipse(x, y, width * scale, height * scale, "#ffc35d");
+        }
+      } finally {
+        this.ctx.restore();
+      }
+    };
+    for (const d of destinations) {
+      lamplight(d.doorX, d.y + d.h + 10, 90, 38);
+      for (const wx of [d.x + 27, d.x + d.w - 28])
+        lamplight(wx, d.y + d.h + 5, 48, 24);
+    }
+    for (const [x, y] of [[363, 289], [596, 314], [334, 420], [633, 452], [458, 460]])
+      lamplight(x - 4, y + 3, 74, 32);
+    this.ellipse(482, 338, 92, 32, "#16373c");
+    this.ellipse(482, 330, 86, 48, "#5b688d");
+    this.ellipse(482, 325, 80, 40, "#9ba9be");
+    this.ellipse(482, 322, 66, 28, "#175c99");
+    this.ellipse(482, 322, 58, 22, "#2999c9");
     for (let x = 448; x <= 516; x += 12) {
       this.rect(x, 329, 2, 8, "#454f48");
       this.rect(x + 2, 336, 8, 2, "#869281");
@@ -996,7 +1022,8 @@ export class World {
         this.rect(x, y - 2, 3, 2, "#ce9b77");
       } else if (i % 3 === 0) {
         this.rect(x, y, 2, 6, "#67794d");
-        this.rect(x - 2, y - 2, 6, 4, "#b0aa79");
+        this.rect(x - 2, y - 2, 6, 4, "#f4e9c0");
+        this.rect(x, y - 2, 2, 2, "#efbd5c");
       } else {
         this.rect(x, y, 8, 4, "#53604e");
         this.rect(x + 2, y - 2, 5, 2, "#72806a");
@@ -1085,9 +1112,10 @@ export class World {
       ? 0
       : Math.round(Math.sin(this.time * 0.8 + t.x * 0.017) * 1.2) * 2;
     this.ctx.translate(sway, 0);
-    const dark = t.tone > 0.5 ? "#1e322b" : "#1c332f",
-      mid = t.tone > 0.5 ? "#334b36" : "#2c4b3b",
-      light = t.tone > 0.5 ? "#526644" : "#47644a";
+    // The same mixed forest keeps its silhouettes, now lit in midnight teal.
+    const dark = t.tone > 0.5 ? "#163c3e" : "#102d3d",
+      mid = t.tone > 0.5 ? "#356554" : "#215064",
+      light = t.tone > 0.5 ? "#78905c" : "#508787";
     if (t.tone < 0.28) {
       // Pines mix with softer broadleaf trees around the clearing.
       this.path(
@@ -1120,6 +1148,18 @@ export class World {
       );
       this.rect(x - 13 * s, y - 41 * s, 10 * s, 3, light);
       this.rect(x - 22 * s, y - 20, 16 * s, 3, light);
+      // Tiered boughs add depth inside the original conifer crown footprint.
+      for (let tier = 0; tier < 4; tier++) {
+        const by = y - height - 7 + tier * height * 0.25,
+          reach = (8 + tier * 7) * s;
+        this.path(
+          [[x - 2 * s, by - 6 * s], [x - reach, by + 10 * s],
+            [x - reach * 0.4, by + 8 * s], [x - 2 * s, by + 11 * s]],
+          mid,
+        );
+        this.rect(x - reach + 2 * s, by + 8 * s, reach * 0.35, 2, light);
+        this.rect(x + 4 * s, by + 10 * s, reach * 0.42, 2, "#1a4250");
+      }
     } else {
       // Overlapping rasterized leaf clusters produce irregular, rounded crowns.
       this.ellipse(x, y - height * 0.7, width * 2.15, height * 0.9, dark);
@@ -1167,17 +1207,25 @@ export class World {
       }
       this.rect(x - width * 0.4, y - height * 0.94, width * 0.4, 3, light);
       this.rect(x - width * 0.75, y - height * 0.7, width * 0.3, 3, light);
+      // Small stepped leaf glints, rather than a flat smooth canopy.
+      for (let i = 0; i < 9; i++) {
+        const lx = (r() - 0.55) * width * 1.3,
+          ly = (r() - 0.5) * height * 0.43;
+        this.rect(x + lx, y - height * 0.79 + ly, 6 * s, 2,
+          t.tone > 0.78 ? "#aeab67" : "#6a927d");
+        this.rect(x + lx - 2, y - height * 0.79 + ly + 2, 2, 3 * s, mid);
+      }
     }
     this.ctx.restore();
   }
-  glow(x, y, size, color = "#e0ac53") {
+  glow(x, y, size, color = "#ffb544") {
     // Three stepped pools of light instead of a smooth modern gradient.
     const c = this.ctx;
     c.save();
     [
-      [size, 0.025],
-      [size * 0.65, 0.04],
-      [size * 0.35, 0.08],
+      [size, 0.04],
+      [size * 0.65, 0.065],
+      [size * 0.35, 0.13],
     ].forEach(([s, alpha]) => {
       c.globalAlpha =
         alpha * (this.reduced ? 1 : 0.93 + Math.sin(this.time * 4 + x) * 0.07);
@@ -1190,13 +1238,13 @@ export class World {
     const { x, y, w, h, id } = d;
     this.rect(x - 6, y + h - 2, w + 12, 14, "#182622");
     this.rect(x - 2, y + 28, w + 4, h - 24, "#302d28");
-    this.rect(x + 3, y + 31, w - 6, h - 30, "#79664b");
+    this.rect(x + 3, y + 31, w - 6, h - 30, "#977044");
     for (let yy = y + 37; yy < y + h; yy += 9) {
-      this.rect(x + 3, yy, w - 6, 2, "#4e4935");
-      this.rect(x + 5, yy + 2, w - 10, 2, "#8e7652");
+      this.rect(x + 3, yy, w - 6, 2, "#65482e");
+      this.rect(x + 5, yy + 2, w - 10, 2, "#b58a50");
     }
     [x + 4, x + w - 10].forEach((xx) =>
-      this.rect(xx, y + 31, 6, h - 31, "#4a4030"),
+      this.rect(xx, y + 31, 6, h - 31, "#5b3d27"),
     );
     if (id === "career") {
       this.rect(x + 22, y - 34, w - 43, 66, "#69644e");
@@ -1220,9 +1268,9 @@ export class World {
       this.rect(x + w - 36, y - 20, 21, 5, "#7d7560");
     }
     const roof =
-      id === "gamedev" ? "#765668" : id === "about" ? "#785b4e" : "#5a6460";
+      id === "gamedev" ? "#745e91" : id === "about" ? "#9a674b" : "#536888";
     const shade =
-      id === "gamedev" ? "#4c3c4b" : id === "about" ? "#4d413a" : "#3c4a46";
+      id === "gamedev" ? "#3e345b" : id === "about" ? "#5f3f35" : "#2d3b61";
     this.path(
       [
         [x - 14, y + 34],
@@ -1249,14 +1297,14 @@ export class World {
       for (let xx = x + w / 2 - half + 5; xx < x + w / 2 + half - 4; xx += 16)
         this.rect(xx + (row % 2 ? 4 : 0), yy + 2, 2, 4, shade);
     }
-    this.rect(x - 13, y + 37, w + 26, 5, "#a18a5c");
+    this.rect(x - 13, y + 37, w + 26, 5, "#c4995b");
     this.rect(x - 9, y + 42, w + 18, 3, "#493f2f");
     const doorY = y + h - 42;
     this.rect(d.doorX - 13, doorY, 26, 42, "#30362c");
     this.rect(d.doorX - 10, doorY + 4, 20, 38, "#a17c47");
     for (let xx = d.doorX - 8; xx < d.doorX + 9; xx += 6)
       this.rect(xx, doorY + 6, 2, 34, "#765b39");
-    this.rect(d.doorX - 7, doorY + 7, 14, 15, "#e2b765");
+    this.rect(d.doorX - 7, doorY + 7, 14, 15, "#ffd06c");
     this.rect(d.doorX - 1, doorY + 7, 2, 15, "#877047");
     this.rect(d.doorX + 5, doorY + 29, 3, 3, "#ecc981");
     if (id === "about" && this.doorOpen > 0) {
@@ -1272,11 +1320,11 @@ export class World {
     this.rect(d.doorX - 22, y + h + 5, 44, 4, "#6c7354");
     [x + 16, x + w - 39].forEach((wx) => {
       this.rect(wx - 3, y + h - 50, 28, 31, "#39392c");
-      this.rect(wx, y + h - 47, 22, 25, "#d3a24e");
-      this.rect(wx + 3, y + h - 44, 16, 19, "#f0cc78");
+      this.rect(wx, y + h - 47, 22, 25, "#eca23c");
+      this.rect(wx + 3, y + h - 44, 16, 19, "#ffe397");
       this.rect(wx + 9, y + h - 47, 3, 25, "#806242");
       this.rect(wx, y + h - 35, 22, 3, "#806242");
-      this.rect(wx - 5, y + h - 21, 32, 5, "#a48a5b");
+      this.rect(wx - 5, y + h - 21, 32, 5, "#c49451");
       this.rect(wx - 6, y + h - 49, 3, 25, "#5b6042");
       this.rect(wx + 26, y + h - 49, 3, 25, "#5b6042");
       this.glow(wx + 11, y + h - 34, 58);
@@ -1296,10 +1344,36 @@ export class World {
     }
     if (id === "about") {
       this.rect(x + w + 4, y + h - 6, 17, 6, "#85674e");
-      this.rect(x + w + 8, y + h - 13, 4, 8, "#626f48");
-      this.rect(x + w + 14, y + h - 17, 4, 11, "#708352");
+      this.rect(x + w + 8, y + h - 13, 4, 8, "#4a7753");
+      this.rect(x + w + 14, y + h - 17, 4, 11, "#77934e");
       this.rect(x - 21, y + h - 14, 12, 16, "#735f45");
-      this.rect(x - 24, y + h - 19, 18, 8, "#485e3e");
+      this.rect(x - 24, y + h - 19, 18, 8, "#3f6a54");
+    }
+    // Existing timber facades gain tiny copper studs and a warm roof glint.
+    this.rect(x + w / 2 - 4, y - 7, 8, 3, "#bd9768");
+    for (const postX of [x + 5, x + w - 9]) {
+      this.rect(postX, y + 44, 2, 2, "#e0b66f");
+      this.rect(postX, y + h - 8, 2, 2, "#c19152");
+    }
+    // Ivy hugs the wall edges; the doorway and all existing windows stay clear.
+    for (const side of [0, 1]) {
+      const vx = side ? x + w - 4 : x + 1;
+      for (let leaf = 0; leaf < 4; leaf++) {
+        const vy = y + 43 + leaf * 7;
+        this.rect(vx, vy, 2, 7, "#314b3d");
+        this.rect(vx + (side ? -3 : 2), vy + 2, 4, 3, "#6e8f4e");
+        this.rect(vx + (side ? 1 : -2), vy + 5, 3, 3, "#3b7358");
+      }
+    }
+    // Daisies grow from the existing window boxes without enlarging the cabin.
+    for (const wx of [x + 16, x + w - 39]) {
+      for (let bloom = 0; bloom < 3; bloom++) {
+        const bx = wx + 2 + bloom * 7, by = y + h - 22;
+        this.rect(bx, by - 3, 2, 4, "#4b7647");
+        this.rect(bx - 2, by - 5, 6, 2, "#f8e6b4");
+        this.rect(bx, by - 7, 2, 6, "#f8e6b4");
+        this.rect(bx, by - 5, 2, 2, "#f2b53e");
+      }
     }
     this.rooftopSign(d);
   }
@@ -1419,11 +1493,13 @@ export class World {
   }
   lantern(x, y) {
     this.rect(x, y - 33, 4, 35, "#575843");
-    this.rect(x - 8, y - 35, 14, 4, "#a58e57");
-    this.rect(x - 8, y - 30, 8, 11, "#d4a553");
-    this.rect(x - 6, y - 28, 4, 7, "#f3d285");
+    this.rect(x - 8, y - 35, 14, 4, "#cb9650");
+    this.rect(x - 8, y - 30, 8, 11, "#ffb53e");
+    this.rect(x - 6, y - 28, 4, 7, "#ffefad");
     this.rect(x - 10, y - 33, 12, 3, "#534b33");
     this.rect(x - 10, y - 20, 12, 3, "#534b33");
+    this.rect(x - 5, y - 27, 2, 5, "#fff8d2");
+    this.rect(x, y - 15, 2, 15, "#b88745");
     this.glow(x - 4, y - 25, 68);
   }
   character() {
@@ -1565,45 +1641,45 @@ export class World {
       waterUpper.push([x, y - width]);
       waterLower.unshift([x, y + width]);
     }
-    this.path([...upper, ...lower], "#4e604a");
-    this.path([...waterUpper, ...waterLower], "#31565c");
+    this.path([...upper, ...lower], "#45665f");
+    this.path([...waterUpper, ...waterLower], "#173f70");
     const rand = seeded(1957);
     for (let i = 0; i < 96; i++) {
       const x = rand() * WIDTH,
         y = this.riverCenter(x);
       const side = i % 2 === 0 ? -1 : 1,
         bankY = y + side * (19 + rand() * 5);
-      this.ellipse(x, bankY, 6 + rand() * 11, 4 + rand() * 5, "#6c796a");
-      this.rect(x - 2, bankY - 2, 4, 2, "#879281");
+      this.ellipse(x, bankY, 6 + rand() * 11, 4 + rand() * 5, "#607a93");
+      this.rect(x - 2, bankY - 2, 4, 2, "#99aec1");
       if (i % 3 === 0) {
         this.rect(x + 4, bankY - 10, 2, 12, "#899565");
         this.rect(x + 7, bankY - 7, 2, 9, "#647f59");
         this.rect(x + 4, bankY - 12, 2, 5, "#b09464");
       }
       if (i % 5 === 0) {
-        this.ellipse(x, y, 16, 6, "#3b6669");
-        this.rect(x - 4, y, 8, 2, "#557c78");
+        this.ellipse(x, y, 16, 6, "#225f91");
+        this.rect(x - 4, y, 8, 2, "#638db1");
       }
     }
     // Soft moon reflections remain short, interrupted by the gentle current.
     for (let x = 560; x < 640; x += 14)
-      this.rect(x, this.riverCenter(x) - 6 + (x % 3) * 3, 10, 2, "#78988b");
+      this.rect(x, this.riverCenter(x) - 6 + (x % 3) * 3, 10, 2, "#d2bb73");
   }
   riverLife() {
     const phase = this.reduced ? 0 : Math.floor(this.time * 3) % 6;
     for (let x = 8; x < WIDTH; x += 36) {
       const flowX = x + phase * 2,
         y = this.riverCenter(flowX);
-      this.rect(flowX, y - 5, 12, 2, "#6a948c");
-      this.rect(flowX + 8 - phase, y + 5, 7, 2, "#466f72");
+      this.rect(flowX, y - 5, 12, 2, "#65a6c0");
+      this.rect(flowX + 8 - phase, y + 5, 7, 2, "#2f6395");
     }
     for (const [x, y] of [
       [470, 188],
       [456, 222],
       [473, 252],
     ]) {
-      this.rect(x + phase, y, 12, 2, "#799f97");
-      this.rect(x + 8 - phase, y + 5, 7, 2, "#456f72");
+      this.rect(x + phase, y, 12, 2, "#78b5cf");
+      this.rect(x + 8 - phase, y + 5, 7, 2, "#2c5c88");
     }
     // A mallard and duckling drift quietly in a sheltered bend.
     const drift = this.reduced
@@ -1665,13 +1741,14 @@ export class World {
           [482 + side * 21, 316],
           [482 + side * 15, 300],
         ],
-        "#8ebbb2",
+        "#43b8ee",
       );
-      this.rect(482 + side * 23, 311 + phase * 2, 3, 5, "#c3dace");
-      this.rect(482 + side * 22 - 5, 322, 12, 2, "#abd0c0");
+      this.rect(482 + side * 23, 311 + phase * 2, 3, 5, "#c3f0ff");
+      this.rect(482 + side * 22 - 5, 322, 12, 2, "#92e8ff");
     }
-    this.rect(449 + phase * 3, 318, 15, 2, "#8ab6af");
-    this.rect(499 - phase * 2, 323, 11, 2, "#bad0b8");
+    this.rect(449 + phase * 3, 318, 15, 2, "#53c9f1");
+    this.rect(499 - phase * 2, 323, 11, 2, "#d4f4ff");
+    this.glow(482, 316, 28, "#49bce9");
   }
   rabbit(state, index) {
     const c = this.ctx;

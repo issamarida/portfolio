@@ -1235,11 +1235,11 @@ function river(p, area) {
     innerLower.push([x, y + half]);
   }
   p.path([...upper, ...lower.reverse()], "#51604a");
-  p.path([...innerUpper, ...innerLower.reverse()], "#284a50");
+  p.path([...innerUpper, ...innerLower.reverse()], "#173b66");
   for (let x = 0; x < WIDTH; x += 38) {
     const y = riverY(area, x);
-    p.rect(x, y - half + 3, 22, 2, "#59796e");
-    p.rect(x + 14, y + half - 4, 21, 2, "#45665d");
+    p.rect(x, y - half + 3, 22, 2, "#427ba1");
+    p.rect(x + 14, y + half - 4, 21, 2, "#2a5879");
     if (x % 3 === 0) {
       p.ellipse(x + 10, y + half + 4, 27, 13, "#71786a");
       p.rect(x + 3, y + half + 1, 13, 2, "#a1a38a");
@@ -1266,6 +1266,19 @@ function river(p, area) {
       p.rect(x + i * 5 - 1, y - 16 - (i % 2) * 5, 4, 7, "#a18a57");
     }
     p.ellipse(x - 8, y + 1, 19, 9, "#4c6650");
+  }
+  // The same amber light as the village follows the existing riverbank.
+  // Narrow broken reflections sit between the original stepping stones.
+  for (const x of [82, 350, 655, 910]) {
+    const middle = riverY(area, x);
+    p.lantern(x, middle - half - 12);
+    for (let i = 0; i < 12; i++) {
+      const yy = middle - half + 7 + i * ((half * 2 - 14) / 12),
+        width = 5 + ((i * 7) % 13),
+        offset = Math.sin(i * 2.3 + x) * 5;
+      p.rect(x - width / 2 + offset, yy, width, 2,
+        i % 3 === 0 ? "#ffdb79" : i % 2 ? "#cb8f42" : "#886941");
+    }
   }
 }
 
@@ -1894,7 +1907,7 @@ export function animateJourney(p, layout) {
             Math.abs(ry - riverY(area, rockX) - offset) < 15,
         );
         if (!onRock)
-          p.rect(rx, ry, 10 + (i % 4) * 4, 2, i % 3 ? "#527c7c" : "#79a29b");
+          p.rect(rx, ry, 10 + (i % 4) * 4, 2, i % 3 ? "#407dab" : "#89bad0");
       }
       for (let i = 0; i < 6; i++) {
         const fx = 83 + i * 151 + Math.sin(time * 0.6 + i) * 9;

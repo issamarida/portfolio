@@ -369,7 +369,72 @@ export function pillarPixels(W, H, seed, shaft = false) {
     }
   }
   }
-  if (shaft) return pixels;
+  if (shaft) {
+    // Timber surrounds the original carved stone, with its motifs and moss
+    // still exposed. Everything is baked into the existing static surface.
+    const rect = (x, y, w, h, hex) => {
+      for (let yy = Math.round(y); yy < y + h; yy++)
+        for (let xx = Math.round(x); xx < x + w; xx++) put(xx, yy, hex);
+    };
+    if (W >= 28) {
+      const rail = Math.max(4, Math.min(9, Math.round(W * 0.065)));
+      for (const rx of [2, W - rail - 2]) {
+        rect(rx, 0, rail, H, "#33201c");
+        rect(rx + 1, 0, rail - 2, H, "#754629");
+        rect(rx + rail - 3, 0, 2, H, "#ad7040");
+        for (let yy = 0; yy < H; yy += 7) {
+          rect(rx + 2, yy, 1, 4, "#583321");
+          rect(rx + rail - 2, yy + 3, 1, 3, "#c18547");
+        }
+      }
+      // Short corner braces leave the central reliefs readable.
+      for (let yy = 20; yy < H; yy += 94) {
+        for (const rx of [0, W - rail * 2 - 5]) {
+          rect(rx, yy, rail * 2 + 5, 5, "#301c1b");
+          rect(rx, yy, rail * 2 + 5, 1, "#d49a52");
+          rect(rx, yy + 1, rail * 2 + 5, 2, "#966036");
+          rect(rx + 4, yy + 2, 2, 2, "#edba67");
+        }
+      }
+      const lx = W - rail - 12;
+      for (let ly = 35; ly < H - 17; ly += 126) {
+        // Pixel light pools tint the existing carving rather than erase it.
+        for (let yy = ly - 25; yy < ly + 29; yy++)
+          for (let xx = lx - 25; xx < lx + 26; xx++) {
+            if (!inside(xx, yy)) continue;
+            const distance = Math.hypot(xx - lx, (yy - ly) * 0.88);
+            const a = Math.max(0, 1 - distance / 26) ** 2 * 0.64;
+            const index = yy * W + xx, old = pixels[index];
+            if (!old || !a) continue;
+            const r = Math.round((old & 255) * (1 - a) + 255 * a),
+              g = Math.round(((old >>> 8) & 255) * (1 - a) + 160 * a),
+              b = Math.round(((old >>> 16) & 255) * (1 - a) + 48 * a);
+            pixels[index] = ((255 << 24) | (b << 16) | (g << 8) | r) >>> 0;
+          }
+        rect(lx, ly - 20, 2, 13, "#2a1b22");
+        rect(lx - 3, ly - 9, 8, 2, "#c78d43");
+        rect(lx - 5, ly - 7, 12, 17, "#231928");
+        rect(lx - 3, ly - 5, 8, 13, "#e98726");
+        rect(lx - 2, ly - 4, 6, 10, "#ffd65a");
+        rect(lx, ly - 3, 2, 9, "#fff3af");
+        rect(lx - 4, ly + 8, 10, 2, "#a75928");
+        rect(lx - 5, ly - 6, 2, 16, "#38212a");
+        rect(lx + 5, ly - 6, 2, 16, "#38212a");
+      }
+      // Ivy climbs the new timber; the old trailing vines stay beneath it.
+      for (let yy = 0; yy < H; yy += 3) {
+        const vx = W - rail - 2 + Math.round(Math.sin(yy * 0.08 + seed) * 4);
+        rect(vx, yy, 1, 4, "#1a3c39");
+        if (yy % 9 === 0) {
+          const side = yy % 18 ? 1 : -1;
+          rect(vx + side, yy, 3, 3, "#295747");
+          rect(vx + side, yy - 1, 2, 2, "#568b63");
+          rect(vx + side * 2, yy + 1, 2, 1, "#85a369");
+        }
+      }
+    }
+    return pixels;
+  }
   // Leaves spill over the capital's top edge.
   for (let lx = x0 - 6; lx < x0 + PW + 6; lx++)
     if (rand() < 0.45) {

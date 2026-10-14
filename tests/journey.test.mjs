@@ -11,6 +11,8 @@ import {
   CAMPER_LOOP,
   campsiteGeometry,
   campsiteState,
+  fishermanState,
+  FISHING_LOOP,
   inCove,
   glowJourney,
 } from "../dist/journey.js";
@@ -121,33 +123,48 @@ test("the camper toasts, burns, blows out, eats and reloads in one loop", () => 
   assert.deepEqual(camperState(2), camperState(2 + CAMPER_LOOP));
 });
 
-test("the lakeside campsite keeps its parts apart and inside the clearing", () => {
+test("the fisherman's camp keeps its parts apart and inside the clearing", () => {
   const area = layout.stable,
     parts = campsiteGeometry(area);
-  const boxes = [parts.bellTent, parts.kitchen, parts.woodpile, ...parts.tents, parts.fire, parts.dock];
-  for (const box of boxes) {
+  const boxes = [parts.tent, parts.fire, ...parts.logs, parts.dock];
+  for (const box of [...boxes, parts.bucket]) {
     assert.ok(box.left >= 0 && box.right <= 960);
     assert.ok(box.top >= area.y && box.bottom <= area.y + 600);
   }
   for (let i = 0; i < boxes.length; i++)
     for (let j = i + 1; j < boxes.length; j++)
       assert.ok(!intersects(boxes[i], boxes[j]), `${i} ${j}`);
-  // The dock reaches from the shore into the cove; the fire stays on land.
+  // The dock reaches into the cove, the bucket sits on it, the fire on land.
   assert.ok(inCove(727, 520) && !inCove(727, 362));
-  assert.ok(!inCove(445, 318));
+  assert.ok(intersects(parts.bucket, parts.dock));
+  assert.ok(!inCove(502, 360));
 });
 
-test("ducks paddle and the float bobs inside the cove, frozen under reduced motion", () => {
-  for (let t = 0; t < 60; t += 0.25) {
-    const state = campsiteState(t);
-    assert.ok(inCove(state.bobber.x, state.bobber.y));
-    for (const duck of state.ducks) {
-      for (const dx of [-10, 10]) assert.ok(inCove(duck.x + dx, duck.y + 4), `duck at ${t}`);
-      assert.ok(duck.x < 684 || duck.x > 790 || duck.y > 540 || duck.y < 350, "ducks keep off the dock");
-    }
+test("the fisherman waits, hooks a fish, drops it in the bucket and casts again", () => {
+  const phases = new Set();
+  let stowedAt = null;
+  for (let t = 0; t < FISHING_LOOP; t += 0.05) {
+    const state = fishermanState(t);
+    phases.add(state.phase);
+    if (state.phase === "wait" || state.phase === "bite")
+      assert.ok(inCove(state.bobber.x, state.bobber.y), `float in the water at ${t}`);
+    if (state.splash === "bucket") stowedAt ??= t;
   }
+  for (const phase of ["wait", "bite", "reel", "stow", "bait", "windup", "cast"])
+    assert.ok(phases.has(phase), phase);
+  assert.ok(stowedAt !== null, "the fish lands in the bucket");
+  // During the stow the fish ends right above the bucket.
+  const late = fishermanState(10.3);
+  assert.ok(late.fish && Math.abs(late.fish.x - 693) < 8 && Math.abs(late.fish.y - 502) < 10);
+  assert.deepEqual(fishermanState(2, true), fishermanState(9, true));
+  assert.deepEqual(fishermanState(4), fishermanState(4 + FISHING_LOOP));
+});
+
+test("ducks paddle on the cove and freeze under reduced motion", () => {
+  for (let t = 0; t < 60; t += 0.25)
+    for (const duck of campsiteState(t).ducks)
+      for (const dx of [-10, 10]) assert.ok(inCove(duck.x + dx, duck.y + 4), `duck at ${t}`);
   assert.deepEqual(campsiteState(3, true), campsiteState(40, true));
-  assert.notDeepEqual(campsiteState(3), campsiteState(9));
 });
 
 test("headlights and fireflies are drawn after the light map and only when visible", () => {

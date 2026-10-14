@@ -2,20 +2,20 @@
 // grid to whatever size their element takes: staggered planks, a splintered
 // end, a snapped corner, a crack, iron nails and a little moss.
 const WOOD = {
-  outline: "#241b12",
-  top: "#a07a48",
-  left: "#8a6a3e",
-  right: "#5a4128",
-  bottom: "#4c3722",
-  face: "#6b4f31",
-  seam: "#5a4129",
-  grain: "#7a5b39",
-  knot: "#4a3622",
-  nail: "#c9ad7a",
-  shadow: "#2b1f14",
-  crack: "#1d1710",
+  outline: "#231826",
+  top: "#bf8848",
+  left: "#a36a39",
+  right: "#60351f",
+  bottom: "#40281f",
+  face: "#7c4a2a",
+  seam: "#56331f",
+  grain: "#935b31",
+  knot: "#44281e",
+  nail: "#eed097",
+  shadow: "#291c22",
+  crack: "#191523",
 };
-const MOSS = ["#2f4524", "#3f5a2e", "#5d7d3c"];
+const MOSS = ["#235244", "#3d704f", "#749151"];
 
 function seeded(seed) {
   let value = seed >>> 0;

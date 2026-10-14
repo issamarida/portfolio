@@ -418,10 +418,10 @@ function barn(p, x, y) {
   p.ellipse(x, y + 75, 440, 148, "#354333");
   p.ellipse(x, y + 69, 392, 113, "#5a4933");
   // A compact open-front timber stable, with hay and warm hanging lanterns.
-  p.rect(x - 116, y - 65, 232, 121, "#483b2c");
+  p.rect(x - 116, y - 65, 232, 121, "#4e2d24");
   for (let dx = -112; dx < 114; dx += 16) {
-    p.rect(x + dx, y - 62, 13, 114, "#76553b");
-    p.rect(x + dx, y - 62, 3, 114, "#8b6746");
+    p.rect(x + dx, y - 62, 13, 114, "#915b32");
+    p.rect(x + dx, y - 62, 3, 114, "#ba7c42");
   }
   for (const dx of [-98, 18]) {
     p.rect(x + dx, y - 47, 80, 101, "#27302a");
@@ -437,7 +437,7 @@ function barn(p, x, y) {
       [x + 101, y - 113],
       [x + 136, y - 63],
     ],
-    "#293e38",
+    "#1e294c",
   );
   for (let row = 0; row < 5; row++) {
     const inset = (4 - row) * 7;
@@ -446,8 +446,13 @@ function barn(p, x, y) {
       y - 107 + row * 9,
       262 - inset * 2,
       7,
-      row % 2 ? "#446052" : "#365349",
+      row % 2 ? "#465074" : "#353b60",
     );
+    for (let tile = x - 124 + inset; tile < x + 124 - inset; tile += 22) {
+      const tx = tile + (row % 2) * 6;
+      p.rect(tx, y - 105 + row * 9, 2, 5, "#252840");
+      p.rect(tx + 3, y - 107 + row * 9, 14, 2, "#627097");
+    }
   }
   p.rect(x - 138, y - 63, 276, 7, "#9c7b50");
   // A louvred cupola rides the ridge; an owl lives in its window.
@@ -493,6 +498,23 @@ function barn(p, x, y) {
   }
   p.lantern(x - 113, y + 3);
   p.lantern(x + 117, y + 3);
+  // Window-box flowers and ivy repeat the village's botanical details.
+  for (const side of [-1, 1]) {
+    const px = x + side * 110;
+    for (let leaf = 0; leaf < 5; leaf++) {
+      p.rect(px, y - 57 + leaf * 7, 2, 8, "#2c513d");
+      p.rect(px - 3, y - 55 + leaf * 7, 6, 3, "#719354");
+    }
+    p.rect(x + side * 146 - 13, y + 37, 27, 20, "#80432a");
+    p.rect(x + side * 146 - 15, y + 37, 31, 4, "#ba7540");
+    for (let i = 0; i < 3; i++) {
+      const bx = x + side * 146 - 8 + i * 8;
+      p.rect(bx, y + 28, 2, 10, "#779b53");
+      p.rect(bx - 2, y + 25, 6, 2, "#fff0c8");
+      p.rect(bx, y + 23, 2, 6, "#fff0c8");
+      p.rect(bx, y + 25, 2, 2, "#efb747");
+    }
+  }
   p.ellipse(x + 19, y + 132, 47, 20, "#665845");
   p.ellipse(x + 19, y + 127, 40, 15, "#3b5860");
 }
@@ -1236,6 +1258,17 @@ function river(p, area) {
   }
   p.path([...upper, ...lower.reverse()], "#51604a");
   p.path([...innerUpper, ...innerLower.reverse()], "#173b66");
+  // Sheltered lily pads stay clear of the original stones and reflection lanes.
+  for (const [x, offset] of [[120, 5], [400, 18], [710, -14], [862, 20]]) {
+    const y = riverY(area, x) + offset;
+    p.ellipse(x, y + 2, 22, 8, "#112c51");
+    p.ellipse(x, y, 18, 6, "#647536");
+    p.rect(x - 5, y - 2, 7, 2, "#93a653");
+    p.rect(x + 1, y, 6, 2, "#173b66");
+    p.rect(x - 1, y - 5, 4, 4, "#fff0bc");
+    p.rect(x, y - 6, 2, 4, "#fff6d6");
+    p.rect(x, y - 3, 2, 2, "#f4b940");
+  }
   for (let x = 0; x < WIDTH; x += 38) {
     const y = riverY(area, x);
     p.rect(x, y - half + 3, 22, 2, "#427ba1");
@@ -1274,7 +1307,7 @@ function river(p, area) {
     p.lantern(x, middle - half - 12);
     for (let i = 0; i < 12; i++) {
       const yy = middle - half + 7 + i * ((half * 2 - 14) / 12),
-        width = 5 + ((i * 7) % 13),
+        width = 7 + ((i * 7) % 17),
         offset = Math.sin(i * 2.3 + x) * 5;
       p.rect(x - width / 2 + offset, yy, width, 2,
         i % 3 === 0 ? "#ffdb79" : i % 2 ? "#cb8f42" : "#886941");

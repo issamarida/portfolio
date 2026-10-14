@@ -498,10 +498,138 @@ export function paintPillar(canvas, mirror, seed) {
 }
 
 
-// Each margin is one carved, moss-grown column running from the top of the
-// screen to the bottom and past both, mirrored so its lit side faces the page.
+// Reference timber gateway. It is painted once at the existing margin's
+// native pixel resolution; resizing, mirroring and fireflies are unchanged.
+function timberPixels(W, H, seed) {
+  const pixels = new Uint32Array(W * H), rand = seeded(seed);
+  const put = (x, y, color) => {
+    x = Math.round(x); y = Math.round(y);
+    if (x >= 0 && y >= 0 && x < W && y < H) pixels[y * W + x] = rgba(color);
+  };
+  const rect = (x, y, w, h, color) => {
+    for (let yy = Math.round(y); yy < y + h; yy++)
+      for (let xx = Math.round(x); xx < x + w; xx++) put(xx, yy, color);
+  };
+  const wood = ["#291b23", "#442622", "#603320", "#794322", "#94582a", "#b27335"];
+  // Upright oak planks, with staggered grain and a warm bevel toward the page.
+  const board = Math.max(9, Math.min(22, Math.round(W / 5)));
+  for (let y = 0; y < H; y++)
+    for (let x = 0; x < W; x++) {
+      const u = x % board;
+      const shade = u < 2 ? 0 : u === 2 ? 4 : u > board - 3 ? 1 : 2 + (Math.floor(x / board) % 2);
+      put(x, y, wood[shade]);
+    }
+  for (let i = 0; i < W * H / 38; i++) {
+    const x = Math.floor(rand() * W), y = Math.floor(rand() * H);
+    rect(x, y, 1, 3 + Math.floor(rand() * 6), rand() > 0.45 ? "#874b26" : "#4b2921");
+  }
+  const rail = Math.min(10, Math.max(3, Math.round(W * 0.065)));
+  for (const x of [1, W - rail - 1]) {
+    rect(x, 0, rail, H, "#281925");
+    rect(x + 1, 0, rail - 2, H, "#9b602d");
+    rect(x + rail - 3, 0, 2, H, "#d19547");
+    rect(x + rail - 1, 0, 1, H, "#f2bd63");
+  }
+  const band = 87, panelW = Math.min(65, W - rail * 2 - 4);
+  for (let y = -8; y < H; y += band) {
+    rect(0, y, W, 8, "#281725");
+    rect(0, y + 1, W, 2, "#d09446");
+    rect(0, y + 3, W, 3, "#98602e");
+    rect(0, y + 6, W, 1, "#543322");
+    for (let x = rail + 6; x < W - 5; x += 23) {
+      rect(x, y + 3, 3, 3, "#322231");
+      rect(x, y + 3, 2, 1, "#edb75d");
+    }
+    if (panelW < 16) continue;
+    const cx = Math.floor(W / 2), cy = y + 48;
+    if (Math.floor((y + 8) / band) % 2 === 0) {
+      // The inset octagonal gem in the reference, with a carved golden rim.
+      const r = Math.min(21, panelW / 2 - 2);
+      for (let yy = -r; yy <= r; yy++)
+        for (let xx = -r; xx <= r; xx++) {
+          const d = Math.max(Math.abs(xx), Math.abs(yy), (Math.abs(xx) + Math.abs(yy)) / 1.45);
+          if (d <= r) put(cx + xx, cy + yy,
+            d > r - 2 ? "#261b28" : d > r - 3 ? "#d7903d" : d > r - 5 ? "#8c5028" : "#67391f");
+        }
+      rect(cx - 8, cy - 6, 16, 14, "#111b39");
+      rect(cx - 6, cy - 7, 12, 16, "#18459e");
+      rect(cx - 4, cy - 5, 8, 12, "#287ef0");
+      rect(cx - 2, cy - 5, 3, 10, "#79d3ff");
+      rect(cx - 4, cy - 5, 2, 3, "#c6efff");
+    } else {
+      // Twin recessed mask eyes echo the original framing motifs.
+      for (const dx of [-9, 9]) {
+        rect(cx + dx - 6, cy - 8, 12, 10, "#281a28");
+        rect(cx + dx - 5, cy - 9, 9, 1, "#c3873d");
+        rect(cx + dx - 4, cy - 6, 8, 6, "#101b36");
+        rect(cx + dx - 4, cy + 2, 9, 2, "#a56a30");
+      }
+      rect(cx - 1, cy - 1, 3, 11, "#a0682c");
+      rect(cx - 12, cy + 15, 25, 2, "#352029");
+      rect(cx - 12, cy + 17, 25, 1, "#ae6e30");
+    }
+  }
+  // Ivy has stepped leaf silhouettes, lit upper tips and blue-green shade.
+  const leaf = (x, y, side) => {
+    rect(x - 1, y + 1, 8, 6, "#102f34");
+    rect(x, y, 5, 6, "#2e6449");
+    rect(x - 1, y + 2, 7, 3, "#3c8059");
+    rect(x + (side > 0 ? 3 : 0), y - 1, 3, 4, "#609866");
+    rect(x + 1, y + 1, 2, 2, "#93b779");
+  };
+  for (let column = 0; column <= Math.ceil(W / 36); column++) {
+    const anchor = column * 36 + 3;
+    let last = anchor;
+    for (let y = -4; y < H; y += 2) {
+      const x = Math.round(anchor + Math.sin(y * 0.051 + column * 2 + seed) * 7);
+      rect(Math.min(last, x), y, Math.abs(last - x) + 2, 3, "#243f32");
+      if (y % 12 === 0) {
+        leaf(x - 6, y, -1);
+        leaf(x + 2, y + 3, 1);
+      }
+      last = x;
+    }
+  }
+  // Hanging lanterns have glass, a black iron cage and baked pixel glow.
+  if (W >= 24) for (let index = 0, y = 33; y < H; y += 112, index++) {
+    const x = Math.round(index % 2 ? Math.max(12, W * 0.32) : W - rail - 8);
+    for (let yy = y - 24; yy <= y + 27; yy++)
+      for (let xx = x - 29; xx <= x + 29; xx++) {
+        if (xx < 0 || yy < 0 || xx >= W || yy >= H) continue;
+        const a = Math.max(0, 1 - Math.hypot(xx - x, (yy - y) * 0.9) / 29) ** 1.6 * 0.85;
+        const i = yy * W + Math.round(xx), old = pixels[i];
+        const r = Math.round((old & 255) * (1 - a) + 255 * a),
+          g = Math.round(((old >>> 8) & 255) * (1 - a) + 172 * a),
+          b = Math.round(((old >>> 16) & 255) * (1 - a) + 38 * a);
+        pixels[i] = ((255 << 24) | (b << 16) | (g << 8) | r) >>> 0;
+      }
+    rect(x - 1, y - 25, 2, 16, "#1b172a");
+    rect(x - 2, y - 26, 3, 2, "#b07932");
+    rect(x - 4, y - 10, 8, 3, "#bf8338");
+    rect(x - 6, y - 7, 12, 17, "#1b172a");
+    rect(x - 4, y - 5, 8, 13, "#fb981f");
+    rect(x - 3, y - 4, 6, 11, "#ffde55");
+    rect(x - 2, y - 3, 4, 9, "#fff5b0");
+    rect(x - 5, y - 6, 1, 16, "#543221");
+    rect(x + 4, y - 6, 1, 16, "#543221");
+    rect(x - 4, y + 10, 8, 2, "#b2732b");
+  }
+  // A pair of quiet woodland birds perch on the crossbeams.
+  if (W >= 50) for (let y = 167; y < H; y += 224) {
+    const x = W - rail - 21;
+    rect(x, y - 3, 8, 4, "#121e30");
+    rect(x + 2, y - 5, 5, 4, "#e7e2bd");
+    rect(x + 5, y - 7, 4, 4, seed === 41 ? "#df7656" : "#69b4dc");
+    rect(x + 8, y - 5, 3, 1, "#edb556");
+    rect(x + 6, y - 6, 1, 1, "#142137");
+    rect(x - 3, y, 5, 2, seed === 41 ? "#973f36" : "#2c5e83");
+    rect(x + 3, y + 1, 1, 2, "#e0ad57");
+  }
+  return pixels;
+}
+
 export function paintTemple(canvas, mirror, seed) {
-  blit(canvas, pillarPixels(canvas.width, canvas.height, seed, true), mirror);
+  blit(canvas, timberPixels(canvas.width, canvas.height, seed), mirror);
 }
 
 // Fireflies drifting over the moss; deterministic positions, CSS motion.

@@ -3914,3 +3914,48 @@ dialog::backdrop {
 .touch-pad button:active {
   background: #465345;
 }
+
+/* One deliberate pixel type hierarchy: readable prose, compact game labels.
+   These families retain the established sizes, line heights and cloud bounds. */
+.section-body :is(p, li, blockquote) {
+  font-family: var(--reading);
+}
+.sky-header .header .sky-cloud,
+.sky-header .header .social-links a.sky-cloud,
+.section-heading,
+.panel-top,
+.panel-footer,
+.house-label,
+.interact,
+.touch-pad button {
+  font-family: var(--pixel);
+}
+
+/* Native pixel marks replace platform-dependent emoji paint, while their
+   original aria-hidden text and inline dimensions remain untouched. */
+.sky-header .social-emoji,
+.sky-header .email-icon {
+  position: relative;
+  color: transparent;
+  text-shadow: none;
+}
+.sky-header .social-emoji::before,
+.sky-header .email-icon::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: contain;
+  image-rendering: pixelated;
+  pointer-events: none;
+}
+.sky-header .cloud-github .social-emoji::before {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' shape-rendering='crispEdges'%3E%3Cpath fill='%23172232' d='M4 0h8v1h2v2h1v2h1v6h-1v2h-2v1h-2v2H6v-2H3v-1H1v-2H0V5h1V3h1V1h2z'/%3E%3Cpath fill='%23fff4d5' d='M4 4V2l3 2h2l3-2v3h1v4h-2v2H5V9H3V5h1zM6 11h4v4H8v-2H6zM3 10h2v2H3v-1H2v-1z'/%3E%3Cpath fill='%23172232' d='M5 6h2v2H5zM9 6h2v2H9z'/%3E%3C/svg%3E");
+}
+.sky-header .cloud-linkedin .social-emoji::before {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' shape-rendering='crispEdges'%3E%3Cpath fill='%230e77b8' d='M1 0h14v1h1v14h-1v1H1v-1H0V1h1z'/%3E%3Cpath fill='%23fff5db' d='M3 3h2v2H3zM3 7h2v6H3zM7 7h2v1h1V7h2v1h1v5h-2V9H9v4H7z'/%3E%3C/svg%3E");
+}
+.sky-header .email-icon::before {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 18 14' shape-rendering='crispEdges'%3E%3Cpath fill='%233a65d5' d='M1 0h16v1h1v12h-1v1H1v-1H0V1h1z'/%3E%3Cpath fill='%23fff5db' d='M2 2h14v10H2z'/%3E%3Cpath fill='%233a65d5' d='M2 2h2v2H2zM4 4h2v2H4zM6 6h2v2H6zM8 8h2v1H8zM10 6h2v2h-2zM12 4h2v2h-2zM14 2h2v2h-2zM2 10h2v2H2zM4 8h2v2H4zM12 8h2v2h-2zM14 10h2v2h-2z'/%3E%3C/svg%3E");
+}

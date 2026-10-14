@@ -80,7 +80,7 @@ const BOOK_COLORS = [
 ];
 function books(p, x, base, w, seed) {
   const r = seeded(seed);
-  for (let xx = x; xx < x + w - 6; ) {
+  for (let xx = x; xx < x + w - 6;) {
     const bw = 6 + Math.floor(r() * 3) * 2,
       bh = 18 + Math.floor(r() * 5) * 2;
     if (r() < 0.12) {
@@ -113,6 +113,17 @@ function plant(p, x, base, big = false) {
     p.ellipse(x + dx * s, base + dy * s, w * s, h * s, "#4a7a4a");
   p.rect(x - 2, base - 40 * s, 2, 22 * s, "#6c9a5a");
   p.rect(x + 6 * s, base - 44 * s, 2, 10, "#8ab06a");
+  p.rect(x - 8 * s, base - 15 * s, 2, 10 * s, "#d28c54");
+  p.rect(x - 8 * s, base - 3, 17 * s, 2, "#69402a");
+  for (const [dx, dy] of [
+    [-12, -40],
+    [4, -47],
+    [12, -29],
+    [-5, -31],
+  ]) {
+    p.rect(x + dx * s, base + dy * s, 6 * s, 2, "#96af62");
+    p.rect(x + dx * s + 2, base + dy * s + 2, 2, 6 * s, "#6c9456");
+  }
 }
 
 function candleStick(p, x, base, h = 14) {
@@ -136,6 +147,12 @@ function armchair(p, x, base, color, dark, blanket) {
   p.rect(x - 22, base - 10, 44, 4, dark);
   p.rect(x - 26, base - 4, 4, 6, WOOD_DARK);
   p.rect(x + 22, base - 4, 4, 6, WOOD_DARK);
+  p.rect(x - 22, base - 49, 43, 2, "#f3cc8933");
+  p.rect(x - 21, base - 21, 40, 2, "#f3cc8933");
+  for (const xx of [x - 14, x + 12]) {
+    p.rect(xx, base - 38, 3, 3, dark);
+    p.rect(xx, base - 40, 3, 2, "#f3cc8933");
+  }
   if (blanket) {
     // A knitted throw over the arm.
     p.rect(x + 4, base - 50, 22, 30, blanket[0]);
@@ -159,6 +176,55 @@ function rug(p, cx, cy, w, h, base, edge, accent) {
   for (const side of [-1, 1])
     for (let dy = -8; dy <= 8; dy += 4)
       p.rect(cx + side * (w / 2 + 2) - 2, cy + dy, 6, 2, edge);
+}
+
+function wovenRug(p, cx, cy, w, h, base, edge, accent) {
+  p.rect(cx - w / 2 - 2, cy - h / 2 + 4, w + 4, h + 4, "#271c20");
+  p.rect(cx - w / 2, cy - h / 2, w, h, edge);
+  p.rect(cx - w / 2 + 4, cy - h / 2 + 4, w - 8, h - 8, "#3e2621");
+  p.rect(cx - w / 2 + 7, cy - h / 2 + 7, w - 14, h - 14, base);
+  for (let x = cx - w / 2 + 10; x < cx + w / 2 - 6; x += 12) {
+    for (const side of [-1, 1]) {
+      const y = cy + side * (h / 2 - 11);
+      p.rect(x, y, 4, 4, edge);
+      p.rect(x + 2, y - 2, 2, 8, edge);
+      p.rect(x + 4, y + side * 2, 4, 2, accent);
+    }
+  }
+  for (let y = cy - h / 2 + 18; y < cy + h / 2 - 10; y += 12)
+    for (const side of [-1, 1]) {
+      p.rect(cx + side * (w / 2 - 12), y, 4, 4, edge);
+      p.rect(cx + side * (w / 2 - 14), y + 2, 8, 2, edge);
+    }
+  for (const side of [-1, 1])
+    for (let y = cy - h / 2 + 4; y < cy + h / 2; y += 6)
+      p.rect(cx + side * (w / 2 + 1), y, 4, 2, "#cbb783");
+  const diamonds = [
+    [cx, cy, 34, 20],
+    [cx - 58, cy, 16, 10],
+    [cx + 58, cy, 16, 10],
+  ];
+  for (const [x, y, dw, dh] of diamonds) {
+    p.path(
+      [
+        [x, y - dh],
+        [x + dw, y],
+        [x, y + dh],
+        [x - dw, y],
+      ],
+      edge,
+    );
+    p.path(
+      [
+        [x, y - dh + 4],
+        [x + dw - 8, y],
+        [x, y + dh - 4],
+        [x - dw + 8, y],
+      ],
+      base,
+    );
+    p.rect(x - 3, y - 3, 6, 6, accent);
+  }
 }
 
 function crate(p, x, base, w = 34, h = 26) {
@@ -262,7 +328,13 @@ function hearthFire(p, x, y, w, time) {
   p.glow(x, y - 10, 90, "#f2a24a");
   p.rect(x - w / 2, y - 4, w, 6, "#4a2c1a");
   p.rect(x - w / 2 + 4, y - 8, w - 8, 4, "#6c4d35");
-  p.rect(x - w / 2 + 6, y - 16 - (f % 2) * 4, w - 12, 12 + (f % 2) * 4, "#c4552e");
+  p.rect(
+    x - w / 2 + 6,
+    y - 16 - (f % 2) * 4,
+    w - 12,
+    12 + (f % 2) * 4,
+    "#c4552e",
+  );
   p.rect(x - w / 3, y - 24 + (f % 3) * 2, (w * 2) / 3, 18, "#e98a3a");
   p.rect(x - w / 6, y - 30 + (f % 2) * 3, w / 3, 22, "#f6c35a");
   p.rect(x - 2, y - 18 + f, 4, 12, "#ffe7a8");
@@ -270,9 +342,430 @@ function hearthFire(p, x, y, w, time) {
     for (let i = 0; i < 3; i++) {
       const rise = (time * 20 + i * 13) % 30;
       p.ctx.globalAlpha = 1 - rise / 30;
-      p.rect(x - 8 + i * 8 + Math.sin(time * 3 + i) * 3, y - 30 - rise, 2, 2, "#ffcf7a");
+      p.rect(
+        x - 8 + i * 8 + Math.sin(time * 3 + i) * 3,
+        y - 30 - rise,
+        2,
+        2,
+        "#ffcf7a",
+      );
       p.ctx.globalAlpha = 1;
     }
+}
+
+// Detail passes are painted into the existing room cache. Furniture footprints,
+// the open floor, and every live actor remain independent of these decorations.
+function pixelLine(p, ax, ay, bx, by, ink, weight = 2) {
+  const steps = Math.max(
+    1,
+    Math.ceil(Math.max(Math.abs(bx - ax), Math.abs(by - ay)) / 2),
+  );
+  for (let i = 0; i <= steps; i++)
+    p.rect(
+      ax + ((bx - ax) * i) / steps,
+      ay + ((by - ay) * i) / steps,
+      weight,
+      weight,
+      ink,
+    );
+}
+
+function lamp(p, x, y) {
+  p.rect(x - 1, y - 12, 2, 12, "#291c18");
+  p.rect(x - 8, y, 16, 4, "#81532c");
+  p.rect(x - 6, y + 4, 12, 16, "#f8b746");
+  p.rect(x - 3, y + 6, 6, 12, "#ffedaf");
+  p.rect(x - 8, y + 20, 16, 4, "#81532c");
+  p.rect(x - 6, y + 2, 2, 20, "#a7763e");
+  p.rect(x + 4, y + 2, 2, 20, "#a7763e");
+  p.glow(x, y + 12, 66, "#ffa94c");
+}
+
+function bottle(p, x, y, ink, height = 20) {
+  p.rect(x - 6, y - height + 6, 12, height - 6, "#a8c7b570");
+  p.rect(x - 5, y - height + 10, 10, height - 11, ink);
+  p.rect(x - 3, y - height, 6, 8, "#c7d1ae");
+  p.rect(x - 4, y - height - 2, 8, 3, "#a67a44");
+  p.rect(x - 4, y - height + 6, 2, height - 9, "#fff2c34a");
+  p.rect(x - 3, y - 9, 6, 5, "#e6cd95");
+  p.rect(x - 1, y - 8, 2, 2, "#815a35");
+}
+
+function vine(p, x, y, length, seed) {
+  const random = seeded(seed);
+  for (let yy = y; yy < y + length; yy += 8) {
+    const xx = x + Math.round(Math.sin(yy * 0.1 + seed) * 2) * 2;
+    p.rect(xx, yy, 2, 9, "#3d5033");
+    const side = random() > 0.5 ? -1 : 1;
+    p.rect(xx + side * 3 - 3, yy + 1, 6, 4, "#3f764d");
+    p.rect(xx + side * 5 - 2, yy + 5, 4, 3, "#819b50");
+    if (random() > 0.74) p.rect(xx + side * 4, yy + 2, 2, 2, "#bdaf63");
+  }
+}
+
+function guitar(p, x, y, wood = "#b77b41") {
+  p.rect(x - 2, y, 4, 24, "#9b673b");
+  p.rect(x - 3, y - 4, 6, 8, "#d09b56");
+  p.rect(x - 5, y - 2, 10, 2, "#a5aab1");
+  p.ellipse(x, y + 28, 20, 22, "#342018");
+  p.ellipse(x, y + 40, 26, 24, "#342018");
+  p.ellipse(x, y + 28, 16, 18, wood);
+  p.ellipse(x, y + 40, 22, 20, wood);
+  p.ellipse(x, y + 31, 8, 8, "#342018");
+  p.rect(x - 5, y + 43, 10, 3, "#694126");
+  p.rect(x - 1, y + 3, 2, 42, "#edcea047");
+  for (let yy = y + 7; yy < y + 22; yy += 5) p.rect(x - 2, yy, 4, 1, "#e4ba7b");
+}
+
+function keyboard(p, x, y, width) {
+  p.rect(x - 2, y - 2, width + 4, 18, "#201b20");
+  p.rect(x, y, width, 12, "#f2dfb5");
+  const keys = Math.floor(width / 4);
+  for (let i = 1; i < keys; i++) {
+    p.rect(x + i * 4, y, 1, 12, "#a89377");
+    if (i % 7 !== 0 && i % 7 !== 3) p.rect(x + i * 4 - 1, y, 2, 7, "#261e24");
+  }
+  p.rect(x - 2, y + 14, width + 4, 2, "#98673e");
+}
+
+function roomDetails(p, id) {
+  // Brass fasteners and carved timber catches the same amber light everywhere.
+  for (const x of [184, 778]) {
+    p.rect(x, 106, 2, 378, "#aa78423b");
+    for (const y of [116, 210, 360, 476]) {
+      p.rect(x - 2, y - 2, 6, 6, "#352419");
+      p.rect(x, y, 2, 2, "#c49353");
+    }
+  }
+  lamp(p, 186, 278);
+  lamp(p, 776, 278);
+  // The door path remains open; flowers grow beyond its walkable side walls.
+  for (const x of [190, 772]) {
+    plant(p, x, 470);
+    for (const [dx, dy] of [
+      [-5, -35],
+      [5, -42],
+      [0, -28],
+    ]) {
+      p.rect(x + dx - 2, 470 + dy, 6, 2, "#e3c07a");
+      p.rect(x + dx, 468 + dy, 2, 6, id === "about" ? "#d38cb1" : "#efe2b4");
+      p.rect(x + dx, 470 + dy, 2, 2, "#e9b249");
+    }
+  }
+  if (id === "career") observatoryDetails(p);
+  if (id === "gamedev") arcadeDetails(p);
+  if (id === "projects") workshopDetails(p);
+  if (id === "about") botanicalDetails(p);
+}
+
+function observatoryDetails(p) {
+  // Twelve brass zodiac marks on the existing circular window; the live
+  // shooting star keeps its original window clip and path.
+  for (let i = 0; i < 12; i++) {
+    const a = (i * Math.PI) / 6,
+      x = 640 + Math.cos(a) * 40,
+      y = 160 + Math.sin(a) * 40;
+    p.rect(x - 2, y - 2, 4, 4, "#d8ab65");
+    p.rect(x, y - 4, 2, 8, "#d8ab65");
+    p.rect(x - 4, y, 8, 2, "#d8ab65");
+    pixelLine(
+      p,
+      640 + Math.cos(a) * 33,
+      160 + Math.sin(a) * 33,
+      640 + Math.cos(a) * 29,
+      160 + Math.sin(a) * 29,
+      "#866843",
+    );
+  }
+  p.ellipse(640, 160, 48, 48, "#bc9757");
+  p.ellipse(640, 160, 44, 44, "#122541");
+  p.rect(638, 114, 4, 92, "#795130");
+  p.rect(594, 158, 92, 4, "#795130");
+  p.rect(640, 116, 2, 88, "#bd9251");
+  p.rect(596, 158, 88, 2, "#bd9251");
+  for (const [x, y] of [
+    [620, 134],
+    [658, 178],
+    [632, 184],
+  ]) {
+    p.rect(x - 2, y, 6, 2, "#edcd82");
+    p.rect(x, y - 2, 2, 6, "#edcd82");
+  }
+  // Deep-blue constellation pennants frame the star instrument.
+  for (const x of [560, 706]) {
+    p.path(
+      [
+        [x, 116],
+        [x + 24, 116],
+        [x + 24, 182],
+        [x + 12, 174],
+        [x, 182],
+      ],
+      "#203c62",
+    );
+    p.rect(x, 116, 24, 3, "#c49353");
+    p.ellipse(x + 12, 139, 12, 12, "#edc263");
+    p.ellipse(x + 16, 136, 10, 10, "#203c62");
+    p.rect(x + 6, 158, 3, 3, "#edc263");
+    p.rect(x + 17, 164, 2, 2, "#edc263");
+  }
+  // A small tiled hearth sits in the existing lower bookshelf footprint.
+  p.rect(194, 202, 114, 62, "#544136");
+  for (let row = 0; row < 5; row++)
+    for (let col = 0; col < 6; col++)
+      p.rect(
+        196 + col * 18,
+        204 + row * 12,
+        16,
+        10,
+        (row + col) % 2 ? "#86705a" : "#736252",
+      );
+  p.rect(214, 214, 74, 42, "#281b17");
+  p.rect(190, 198, 122, 6, "#bf8e50");
+  p.rect(206, 260, 94, 6, "#bd9251");
+  p.rect(226, 252, 42, 5, "#805330");
+  p.glow(250, 238, 72, "#ffae52");
+  // Copper collars and a dark lens make the existing telescope substantial.
+  pixelLine(p, 612, 242, 676, 194, "#f1c979", 3);
+  pixelLine(p, 618, 241, 682, 193, "#865a2d", 3);
+  p.ellipse(677, 193, 14, 14, "#bc9252");
+  p.ellipse(677, 193, 8, 8, "#143353");
+  p.rect(677, 189, 3, 2, "#9ed8ec");
+  p.ellipse(640, 222, 8, 8, "#dcac5d");
+  pixelLine(p, 640, 238, 623, 261, "#b4854a");
+  pixelLine(p, 641, 239, 660, 263, "#b4854a");
+  // Charts and an armillary sphere on the existing writing desk.
+  p.ellipse(748, 250, 26, 26, "#d0a462");
+  p.ellipse(748, 250, 22, 22, "#352d2b");
+  p.ellipse(748, 250, 14, 22, "#be9454");
+  p.ellipse(748, 250, 10, 18, "#352d2b");
+  p.rect(734, 248, 28, 2, "#e4bc70");
+  p.rect(746, 262, 4, 14, "#d0a462");
+  p.rect(740, 276, 16, 4, "#9f753f");
+  p.rect(700, 332, 48, 22, "#d5bb84");
+  for (const [x, y] of [
+    [708, 340],
+    [726, 336],
+    [738, 346],
+  ])
+    p.rect(x, y, 2, 2, "#76573b");
+  pixelLine(p, 708, 340, 726, 336, "#94764c");
+  pixelLine(p, 726, 336, 738, 346, "#94764c");
+  vine(p, 318, 112, 62, 42);
+  // A brass celestial ring is woven into the existing midnight-blue rug.
+  for (let i = 0; i < 30; i++) {
+    const a = (i * Math.PI * 2) / 30;
+    p.rect(480 + Math.cos(a) * 87, 350 + Math.sin(a) * 31, 2, 2, "#d9bf77");
+  }
+  for (const [x, y] of [
+    [410, 352],
+    [532, 358],
+    [515, 334],
+    [440, 372],
+  ]) {
+    p.rect(x - 3, y, 8, 2, "#edcf82");
+    p.rect(x, y - 3, 2, 8, "#edcf82");
+  }
+  pixelLine(p, 408, 338, 440, 324, "#8e9bae");
+  pixelLine(p, 440, 324, 476, 330, "#8e9bae");
+  pixelLine(p, 476, 330, 520, 336, "#8e9bae");
+}
+
+function arcadeDetails(p) {
+  // Marquee glass, neon side rails and coin-door hardware on existing cabinets.
+  for (const [x, ink] of [
+    [204, "#ed69c3"],
+    [268, "#69d9f3"],
+  ]) {
+    p.rect(x - 2, 134, 56, 2, ink);
+    p.rect(x + 2, 154, 2, 110, ink);
+    p.rect(x + 48, 154, 2, 110, ink);
+    p.rect(x + 6, 138, 40, 8, "#19152c");
+    for (let i = 0; i < 7; i++) p.rect(x + 10 + i * 4, 140, 2, 4, ink);
+    p.rect(x + 18, 239, 16, 14, "#151725");
+    p.rect(x + 22, 243, 8, 2, "#bea775");
+    p.rect(x + 22, 248, 2, 2, ink);
+    p.rect(x + 30, 248, 2, 2, "#5d646d");
+    p.glow(x + 26, 186, 58, ink);
+  }
+  // Outline neon controller on the wall, kept above the book marker.
+  p.rect(426, 120, 108, 38, "#231b31");
+  const outline = [
+    [448, 144],
+    [452, 128],
+    [466, 128],
+    [470, 132],
+    [490, 132],
+    [494, 128],
+    [508, 128],
+    [514, 146],
+    [506, 148],
+    [496, 140],
+    [466, 140],
+    [456, 148],
+    [448, 144],
+  ];
+  for (let i = 0; i < outline.length - 1; i++)
+    pixelLine(p, ...outline[i], ...outline[i + 1], "#6edfff");
+  p.rect(459, 132, 2, 9, "#6edfff");
+  p.rect(455, 136, 10, 2, "#6edfff");
+  p.rect(496, 133, 3, 3, "#ff83cf");
+  p.rect(502, 138, 3, 3, "#ff83cf");
+  p.glow(480, 138, 52, "#3faef1");
+  // The existing mushroom poster gains a glowing etched border and cap.
+  p.rect(354, 124, 50, 2, "#ff7ed0");
+  p.rect(354, 184, 50, 2, "#a550a2");
+  p.rect(356, 128, 2, 56, "#ff7ed0");
+  p.rect(400, 128, 2, 56, "#a550a2");
+  p.ellipse(379, 150, 32, 22, "#d6589d");
+  for (const [x, y] of [
+    [370, 146],
+    [384, 146],
+    [378, 154],
+  ])
+    p.rect(x, y, 4, 4, "#ffd3ed");
+  p.glow(379, 153, 40, "#dd53b2");
+  // Reflected scanlines, vent slots and tiny buttons around the television.
+  for (let y = 178; y < 219; y += 6) p.rect(726, y, 10, 2, "#29283b");
+  p.rect(663, 174, 2, 46, "#ac99be");
+  p.rect(665, 170, 73, 2, "#ac99be");
+  for (const [x, ink] of [
+    [643, "#e68fbd"],
+    [754, "#77cbea"],
+  ]) {
+    p.rect(x, 223, 8, 2, ink);
+    p.rect(x + 3, 221, 2, 6, ink);
+  }
+  vine(p, 766, 112, 68, 72);
+  vine(p, 188, 118, 68, 22);
+  plant(p, 578, 212);
+}
+
+function workshopDetails(p) {
+  // The original tool wall stays visible; instruments hang on its empty flanks.
+  p.rect(298, 108, 132, 4, "#6a432b");
+  guitar(p, 300, 126, "#c18945");
+  guitar(p, 440, 126, "#ceaa67");
+  guitar(p, 472, 126, "#8e5739");
+  // Workbench synth and sheets share space with the vise, lamp and screw jar.
+  keyboard(p, 332, 220, 80);
+  p.rect(332, 202, 54, 16, "#222432");
+  p.rect(336, 205, 18, 9, "#547381");
+  for (let x = 361; x < 383; x += 6) {
+    p.ellipse(x, 206, 4, 4, "#b39b6f");
+    p.rect(x - 1, 212, 2, 3, "#cc7c49");
+  }
+  p.rect(408, 196, 20, 21, "#ead6a7");
+  for (let y = 199; y < 214; y += 4) p.rect(410, y, 16, 1, "#9d875f");
+  p.rect(414, 202, 2, 6, "#59412c");
+  p.rect(420, 206, 2, 6, "#59412c");
+  // Music notation supplements the original chalkboard sketches.
+  for (let y = 128; y < 149; y += 4) p.rect(504, y, 58, 1, "#9aa888");
+  for (const [x, y] of [
+    [514, 135],
+    [534, 131],
+    [550, 139],
+  ]) {
+    p.ellipse(x, y, 5, 3, "#efe2bd");
+    p.rect(x + 2, y - 9, 2, 10, "#efe2bd");
+  }
+  // Brass cymbals and deep red drums occupy the existing stove-side solid.
+  p.ellipse(648, 242, 26, 30, "#2a1b20");
+  p.ellipse(648, 242, 22, 26, "#d2b784");
+  p.ellipse(648, 242, 16, 20, "#ede0b4");
+  p.ellipse(648, 242, 4, 4, "#34252a");
+  p.rect(632, 222, 32, 4, "#cfac6e");
+  p.rect(634, 226, 4, 21, "#934a39");
+  p.rect(660, 226, 4, 21, "#934a39");
+  for (const x of [630, 668]) {
+    p.rect(x, 202, 2, 58, "#a89a7a");
+    p.ellipse(x, 208, 29, 6, "#d6ac5c");
+    p.rect(x - 4, 206, 9, 2, "#ffe1a2");
+    pixelLine(p, x, 250, x - 8, 266, "#9e9279");
+    pixelLine(p, x, 250, x + 8, 266, "#9e9279");
+  }
+  // Records in the wall shelf and warm ivy along the far wall.
+  for (const [x, y] of [
+    [600, 116],
+    [642, 114],
+  ]) {
+    p.rect(x, y, 32, 28, "#684632");
+    p.ellipse(x + 16, y + 14, 22, 22, "#26212b");
+    p.ellipse(x + 16, y + 14, 6, 6, "#d5a459");
+    p.rect(x + 7, y + 7, 2, 8, "#707078");
+  }
+  vine(p, 758, 114, 72, 26);
+}
+
+function botanicalDetails(p) {
+  // Botanical collecting remains a visual setting, with no added biography.
+  for (const [x, length] of [
+    [196, 72],
+    [300, 70],
+    [568, 84],
+    [724, 76],
+  ])
+    vine(p, x, 114, length, x);
+  for (const x of [350, 376, 588, 748]) {
+    p.rect(x, 110, 2, 24, "#987348");
+    for (let i = 0; i < 4; i++) {
+      p.rect(
+        x - 6 + i * 3,
+        132 + (i % 2) * 3,
+        3,
+        20 - (i % 2) * 4,
+        i % 2 ? "#6f8c4e" : "#446c43",
+      );
+      p.rect(x - 7 + i * 3, 150 + (i % 2) * 3, 5, 4, "#9d9253");
+    }
+  }
+  // Apothecary bottles sit on the original shelves and drawer cabinet.
+  for (const [x, ink, h] of [
+    [606, "#a5823d", 22],
+    [624, "#73a06a", 28],
+    [646, "#658e9c", 24],
+    [676, "#b28153", 22],
+  ])
+    bottle(p, x, 214, ink, h);
+  shelf(p, 580, 132, 164);
+  for (const [x, ink] of [
+    [590, "#9a7544"],
+    [612, "#56835a"],
+    [637, "#83729c"],
+    [665, "#bea054"],
+    [691, "#81916b"],
+    [718, "#b57645"],
+  ])
+    bottle(p, x, 130, ink, 16);
+  // A dark copper cauldron rests on the existing hearth, above its live fire.
+  p.ellipse(480, 207, 72, 38, "#282b29");
+  p.ellipse(480, 205, 62, 32, "#485042");
+  p.ellipse(480, 194, 72, 18, "#bb934f");
+  p.ellipse(480, 194, 64, 12, "#202b25");
+  p.ellipse(480, 194, 52, 8, "#91a55a");
+  p.rect(457, 204, 4, 12, "#6c7661");
+  p.rect(454, 220, 5, 8, "#242a27");
+  p.rect(502, 220, 5, 8, "#242a27");
+  p.ellipse(443, 202, 12, 16, "#a88347");
+  p.ellipse(443, 202, 6, 10, "#242a27");
+  p.ellipse(517, 202, 12, 16, "#a88347");
+  p.ellipse(517, 202, 6, 10, "#242a27");
+  // Pressed botanical specimens and candles brighten the quilt-side wall.
+  for (const x of [310, 354]) {
+    p.rect(x, 164, 32, 40, "#a37843");
+    p.rect(x + 3, 167, 26, 34, "#d9c18d");
+    p.rect(x + 15, 173, 2, 23, "#5d7750");
+    for (let i = 0; i < 3; i++) {
+      p.ellipse(x + 11, 180 + i * 5, 10, 4, "#6a8755");
+      p.ellipse(x + 21, 177 + i * 5, 10, 4, "#7d9259");
+    }
+    p.rect(x + 7, 198, 16, 1, "#a88a58");
+  }
+  lamp(p, 576, 184);
+  plant(p, 740, 230, true);
+  p.rect(316, 228, 26, 3, "#ad8046");
+  bottle(p, 322, 228, "#789460", 15);
+  bottle(p, 338, 228, "#9e7358", 18);
 }
 
 // --- The four rooms ---------------------------------------------------------
@@ -282,9 +775,9 @@ const ROOMS = {
   // sketches, a crackling wood stove and an armchair to think in.
   projects: {
     label: "The Workshop",
-    wall: ["#6b5038", "#83654a", "#4f3a28"],
-    floor: ["#7a5a3c", "#8d6c4a", "#5c4330"],
-    rug: ["#2f6a45", "#c9b073", "#bfe0a2"],
+    wall: ["#68432e", "#97613b", "#382719"],
+    floor: ["#71482f", "#a27243", "#473020"],
+    rug: ["#722e32", "#b88b4d", "#d9aa6a"],
     solids: [
       [292, 222, 432, 266],
       [626, 222, 778, 276],
@@ -416,8 +909,8 @@ const ROOMS = {
   // a wall of books, charts, a globe and a writing desk by candlelight.
   career: {
     label: "The Observatory",
-    wall: ["#4f5a63", "#66737b", "#39434b"],
-    floor: ["#5e4a36", "#725a42", "#463626"],
+    wall: ["#594332", "#83603e", "#342a27"],
+    floor: ["#67442e", "#99693d", "#39281e"],
     rug: ["#2d4f8c", "#d7bd78", "#b9cdf2"],
     solids: [
       [182, 222, 318, 268],
@@ -477,7 +970,13 @@ const ROOMS = {
       for (let i = 0; i < 22; i++) {
         const a = s() * Math.PI * 2,
           d = s() * 40;
-        p.rect(640 + Math.cos(a) * d, 160 + Math.sin(a) * d, 2, 2, i % 4 ? "#c9d3e0" : "#f6dc8e");
+        p.rect(
+          640 + Math.cos(a) * d,
+          160 + Math.sin(a) * d,
+          2,
+          2,
+          i % 4 ? "#c9d3e0" : "#f6dc8e",
+        );
       }
       p.ellipse(660, 140, 18, 18, "#e5e4c7");
       p.ellipse(654, 136, 6, 4, "#c6ceb4");
@@ -572,6 +1071,7 @@ const ROOMS = {
       { y: 482, paint: (p) => plant(p, 560, 482) },
     ],
     animate(p, time) {
+      hearthFire(p, 250, 256, 52, time);
       const flick = p.reduced ? 0 : Math.round(Math.sin(time * 0.9)) * 2;
       p.rect(742, 454 + flick, 10, 4, "#5a5a5a");
       // A shooting star crosses the window now and then.
@@ -596,9 +1096,9 @@ const ROOMS = {
   // posters, a sofa and a beanbag for long sessions.
   gamedev: {
     label: "The Arcade",
-    wall: ["#5a4252", "#6e5466", "#3f2d3b"],
-    floor: ["#5a4636", "#6c5642", "#43332a"],
-    rug: ["#693c7e", "#d6b36f", "#e2bff0"],
+    wall: ["#583c39", "#7e5146", "#34232a"],
+    floor: ["#68432e", "#99673e", "#3d2922"],
+    rug: ["#783236", "#b2874b", "#d0a168"],
     solids: [
       [182, 222, 330, 272],
       [626, 222, 778, 268],
@@ -655,7 +1155,9 @@ const ROOMS = {
       // Shelf of game cartridges above the lectern.
       shelf(p, 430, 162, 100);
       for (let i = 0; i < 9; i++) {
-        const c = ["#8c2a2f", "#2f6a45", "#2d4f8c", "#c49a4a", "#693c7e"][i % 5];
+        const c = ["#8c2a2f", "#2f6a45", "#2d4f8c", "#c49a4a", "#693c7e"][
+          i % 5
+        ];
         p.rect(436 + i * 10, 146, 8, 16, "#59646a");
         p.rect(437 + i * 10, 148, 6, 8, c);
       }
@@ -728,9 +1230,9 @@ const ROOMS = {
       const lights = ["#f6cf5a", "#e48f7a", "#7fc0a0", "#b9cdf2", "#e2bff0"];
       for (let i = 0; i < 26; i++) {
         const x = 190 + i * 23.5,
-          sag = Math.round(Math.sin((i % 6) / 5 * Math.PI) * 5) * 2;
+          sag = Math.round(Math.sin(((i % 6) / 5) * Math.PI) * 5) * 2;
         p.rect(x, 108 + sag, 22, 2, "#2a1c12");
-        const on = p.reduced || (Math.floor(t * 2.5 + i * 0.7) % 4) !== 0;
+        const on = p.reduced || Math.floor(t * 2.5 + i * 0.7) % 4 !== 0;
         if (on) p.glow(x + 2, 114 + sag, 12, lights[i % 5]);
         p.rect(x, 110 + sag, 4, 6, on ? lights[i % 5] : "#4a3a40");
       }
@@ -751,7 +1253,13 @@ const ROOMS = {
               ["#7fc0a0", "#e48f7a", "#f6cf5a"][row],
             );
         p.rect(x + 8 + ((frame * 4) % 28), 188, 6, 4, "#e8e4d0");
-        p.rect(x + 11 + ((frame * 4) % 28), 176 + (frame % 4) * 2, 2, 4, "#f6ecd2");
+        p.rect(
+          x + 11 + ((frame * 4) % 28),
+          176 + (frame % 4) * 2,
+          2,
+          4,
+          "#f6ecd2",
+        );
         p.glow(x + 22, 178, 34, hue ? "#4a6fae" : "#8b5a9c");
       }
       // The CRT plays a little side-scroller.
@@ -775,9 +1283,9 @@ const ROOMS = {
   // a camera on its tripod and a little chemistry set.
   about: {
     label: "The Cabin",
-    wall: ["#6e4a35", "#865c42", "#523625"],
-    floor: ["#7c5a3a", "#8f6b48", "#5e4430"],
-    rug: ["#8c2a2f", "#d8b064", "#f3c58f"],
+    wall: ["#65432e", "#986338", "#392c20"],
+    floor: ["#72502e", "#a27341", "#46301f"],
+    rug: ["#2c4e3c", "#b49a57", "#8ca562"],
     solids: [
       [182, 222, 350, 336],
       [402, 222, 558, 274],
@@ -799,7 +1307,13 @@ const ROOMS = {
       const r = seeded(204);
       for (let y = 98; y < 270; y += 12)
         for (let x = 406 + ((y / 12) % 2) * 10; x < 552; x += 20)
-          p.rect(x, y, 18, 10, ["#7a7a70", "#6c6c64", "#85837a"][Math.floor(r() * 3)]);
+          p.rect(
+            x,
+            y,
+            18,
+            10,
+            ["#7a7a70", "#6c6c64", "#85837a"][Math.floor(r() * 3)],
+          );
       p.rect(398, 150, 164, 10, "#8a6440");
       p.rect(398, 148, 164, 4, "#a87c4a");
       p.rect(398, 160, 164, 2, WOOD_DARK);
@@ -928,7 +1442,13 @@ const ROOMS = {
           const rise = (time * 9 + i * 7) % 20;
           p.ctx.globalAlpha = (1 - rise / 20) * 0.6;
           p.rect(680 + Math.sin(time * 2 + i) * 2, 316 - rise, 2, 2, "#f6ecd2");
-          p.rect(612 + Math.sin(time * 1.6 + i) * 3, 192 - rise, 2, 2, "#e8e4d0");
+          p.rect(
+            612 + Math.sin(time * 1.6 + i) * 3,
+            192 - rise,
+            2,
+            2,
+            "#e8e4d0",
+          );
           p.ctx.globalAlpha = 1;
         }
     },
@@ -942,7 +1462,12 @@ export function interiorLabel(id) {
 
 // --- Movement ----------------------------------------------------------------
 
-const LECTERN_SOLID = [LECTERN.x - 34, LECTERN.y - 26, LECTERN.x + 34, LECTERN.y + 18];
+const LECTERN_SOLID = [
+  LECTERN.x - 34,
+  LECTERN.y - 26,
+  LECTERN.x + 34,
+  LECTERN.y + 18,
+];
 
 export function interiorWalkable(id, x, y) {
   const room = ROOMS[id];
@@ -958,7 +1483,8 @@ export function interiorWalkable(id, x, y) {
 
 // Returns "lectern", "exit" or null for the player's feet.
 export function interiorNear(x, y) {
-  if (Math.hypot(x - LECTERN.x, (y - LECTERN.y - 14) * 1.2) < 52) return "lectern";
+  if (Math.hypot(x - LECTERN.x, (y - LECTERN.y - 14) * 1.2) < 52)
+    return "lectern";
   if (y > 474 && Math.abs(x - DOOR.x) < 36) return "exit";
   return null;
 }
@@ -992,11 +1518,43 @@ export function paintInterior(p, id) {
   p.rect(left, WALL_FOOT, width, FLOOR_END - WALL_FOOT, floor);
   for (let y = WALL_FOOT + 4, row = 0; y < FLOOR_END; y += 14, row++) {
     p.rect(left, y + 12, width, 2, floorDark);
+    p.ctx.save();
+    p.ctx.globalAlpha = 0.28;
     p.rect(left, y, width, 2, floorLight);
+    p.ctx.restore();
     for (let x = left + ((row * 37) % 110); x < right; x += 110)
       p.rect(x, y, 2, 12, floorDark);
     if (row % 2) p.rect(left + ((row * 53) % width), y + 6, 2, 2, floorDark);
   }
+  // Grain is generated once with the room cache, at the same two-unit grid.
+  const grain = seeded(
+    902 + [...id].reduce((sum, c) => sum + c.charCodeAt(0), 0),
+  );
+  for (let y = WALL_FOOT + 6; y < FLOOR_END; y += 14)
+    for (let x = left + 16; x < right - 12; x += 42) {
+      const offset = Math.floor(grain() * 7) * 2;
+      p.rect(x + offset, y + 2, 12 + grain() * 14, 2, "#4c2b201f");
+      p.rect(x + offset + 3, y + 5, 8 + grain() * 12, 2, "#efbd7730");
+      if (grain() > 0.7) {
+        p.rect(x + offset, y + 6, 6, 2, "#442a225e");
+        p.rect(x + offset + 2, y + 4, 2, 6, "#442a222a");
+      }
+    }
+  // Stepped shadow at the cutaway and warm light beneath the original walls.
+  p.ctx.save();
+  for (let i = 0; i < 4; i++) {
+    p.ctx.globalAlpha = 0.03 + i * 0.015;
+    p.rect(left, FLOOR_END - 6 - i * 4, width, 6 + i * 4, "#171523");
+    p.rect(left + 14, WALL_FOOT, 12 + i * 4, FLOOR_END - WALL_FOOT, "#171523");
+    p.rect(
+      right - 26 - i * 4,
+      WALL_FOOT,
+      12 + i * 4,
+      FLOOR_END - WALL_FOOT,
+      "#171523",
+    );
+  }
+  p.ctx.restore();
   p.ctx.save();
   p.ctx.globalAlpha = 0.35;
   p.rect(left, WALL_FOOT, width, 10, "#000000");
@@ -1025,14 +1583,23 @@ export function paintInterior(p, id) {
   p.rect(DOOR.left - 4, FLOOR_END - 6, 4, 18, "#5a4330");
   p.rect(DOOR.right, FLOOR_END - 6, 4, 18, "#5a4330");
   // Doormat and the night beyond the open door.
-  p.rect(DOOR.left, FLOOR_END, DOOR.right - DOOR.left, bottom - FLOOR_END, "#101a17");
+  p.rect(
+    DOOR.left,
+    FLOOR_END,
+    DOOR.right - DOOR.left,
+    bottom - FLOOR_END,
+    "#101a17",
+  );
   p.rect(DOOR.x - 22, FLOOR_END - 10, 44, 12, "#8a6844");
   for (let x = DOOR.x - 20; x < DOOR.x + 22; x += 6)
     p.rect(x, FLOOR_END - 8, 2, 8, "#6b4a2e");
   // Warm lamplight pools on the floor.
   const [rugBase, rugEdge, rugAccent] = room.rug;
   rug(p, LECTERN.x, LECTERN.y + 4, 210, 92, rugBase, rugEdge, rugAccent);
+  if (id !== "career")
+    wovenRug(p, LECTERN.x, LECTERN.y + 4, 210, 92, rugBase, rugEdge, rugAccent);
   room.backdrop(p);
+  roomDetails(p, id);
   // A hanging lantern from the beam.
   p.rect(LECTERN.x - 1, top + 10, 2, 14, "#2a2a2a");
   p.rect(LECTERN.x - 8, top + 24, 16, 4, "#4a3a2a");
@@ -1045,7 +1612,10 @@ export function drawInteriorScene(p, id, time, drawPlayer, lecternLit) {
   const room = ROOMS[id];
   if (!room) return;
   const scene = [
-    ...room.props.map((prop) => ({ y: prop.y, draw: () => prop.paint(p, time) })),
+    ...room.props.map((prop) => ({
+      y: prop.y,
+      draw: () => prop.paint(p, time),
+    })),
     { y: LECTERN.y, draw: () => lectern(p, lecternLit) },
     { y: p.player.y, draw: drawPlayer },
   ].sort((a, b) => a.y - b.y);

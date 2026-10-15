@@ -36,9 +36,6 @@ const TOUCH = {
   drive: [
     ["left", "◀", "Steer left"],
     ["right", "▶", "Steer right"],
-    ["down", "Brake", "Brake"],
-    ["action", "Drift", "Handbrake"],
-    ["up", "Gas", "Accelerate"],
   ],
   hold: [["action", null, null]],
   tap: [],
@@ -130,50 +127,38 @@ function bestStore(id) {
   };
 }
 
-// The full-screen stage for one game: a bar with Exit, the title and live
-// stats; the pixel screen; overlay banners and toasts; touch controls.
+// The stage is deliberately bare: the game box, the score centred above it,
+// one short controls hint centred below and a small way out. On touch
+// screens only the pads the game needs are added.
+const coarse = () => matchMedia("(pointer: coarse)").matches;
 function buildStage(meta) {
   const root = element("section", "minigame");
   root.setAttribute("role", "dialog");
   root.setAttribute("aria-modal", "true");
-  root.setAttribute("aria-labelledby", "minigame-title");
+  root.setAttribute("aria-label", meta.title);
   root.dataset.game = meta.id;
-  const bar = element("header", "minigame-bar"),
-    exit = element("button", "minigame-exit");
+  const exit = element("button", "minigame-exit");
   exit.type = "button";
-  exit.innerHTML = '<span aria-hidden="true">◀</span> Exit <kbd>Esc</kbd>';
+  exit.innerHTML = '<span aria-hidden="true">◀</span> Exit';
   exit.setAttribute("aria-label", "Exit the game and return to the village");
-  const title = element("h2", "minigame-title", meta.title);
-  title.id = "minigame-title";
-  const stats = element("dl", "minigame-stats"),
-    cells = {};
-  for (const { id, label } of meta.stats) {
-    const cell = element("div", "minigame-stat"),
-      value = element("dd", null, "0");
-    cell.dataset.stat = id;
-    cell.append(element("dt", null, label), value);
-    stats.append(cell);
-    cells[id] = value;
-  }
-  bar.append(exit, title, stats);
+  const score = element("p", "minigame-score", "0");
+  score.setAttribute("aria-hidden", "true");
   const screen = element("div", "minigame-screen");
   screen.tabIndex = -1;
-  screen.setAttribute("aria-label", `${meta.title}. ${meta.help.keys}`);
+  screen.setAttribute("aria-label", meta.title);
   const frame = element("div", "minigame-frame"),
     canvas = element("canvas", "minigame-canvas");
   canvas.width = W;
   canvas.height = H;
   canvas.setAttribute("aria-hidden", "true");
-  const banner = element("div", "minigame-banner"),
-    floats = element("div", "minigame-floats"),
-    toasts = element("div", "minigame-toasts");
+  const banner = element("p", "minigame-banner"),
+    floats = element("div", "minigame-floats");
   banner.hidden = true;
+  banner.setAttribute("aria-hidden", "true");
   floats.setAttribute("aria-hidden", "true");
-  toasts.setAttribute("aria-hidden", "true");
-  frame.append(canvas, floats, banner, toasts);
+  frame.append(canvas, floats, banner);
   screen.append(frame);
-  const help = element("p", "minigame-help");
-  help.innerHTML = `<span class="minigame-keys">${meta.help.keys}</span><span class="minigame-taps">${meta.help.touch}</span>`;
+  const hint = element("p", "minigame-hint");
   const touch = element("div", "minigame-touch");
   touch.dataset.layout = meta.touch;
   for (const [action, glyph, label] of TOUCH[meta.touch]) {
@@ -185,8 +170,8 @@ function buildStage(meta) {
   }
   const status = element("p", "sr-only");
   status.setAttribute("role", "status");
-  root.append(bar, screen, help, touch, status);
-  return { root, exit, screen, frame, canvas, banner, floats, toasts, touch, status, cells };
+  root.append(exit, score, screen, hint, touch, status);
+  return { root, exit, score, screen, frame, canvas, banner, floats, hint, touch, status };
 }
 
 // Launches a minigame. `origin` is the viewport point the iris closes on;
@@ -263,7 +248,6 @@ export class Stage {
     this.raf = 0;
     this.last = 0;
     this.listeners = [];
-    this.bannerState = null;
     this.frame = this.frame.bind(this);
   }
   on(target, type, handler, options) {
@@ -281,13 +265,15 @@ export class Stage {
       reduced: reducedMotion(),
       held: (action) => this.held.has(action),
       best,
+      touch: coarse(),
       hud: {
-        set: (id, value) => {
-          const cell = parts.cells[id];
-          if (cell && cell.textContent !== String(value)) cell.textContent = value;
+        // The one line of score above the game.
+        score: (text) => {
+          if (parts.score.textContent !== String(text)) parts.score.textContent = text;
         },
-        banner: (title, detail = "", hint = "") => this.banner(title, detail, hint),
-        toast: (text, tone = "") => this.toast(text, tone),
+        // The one short controls hint below it: keyboard or touch wording.
+        hint: (keys, taps = keys) => this.hint(coarse() ? taps : keys),
+        banner: (title) => this.banner(title),
         float: (text, x, y, tone = "") => this.float(text, x, y, tone),
         announce: (text) => (parts.status.textContent = text),
       },
@@ -409,34 +395,29 @@ export class Stage {
     this.paused = paused;
     this.releaseAll();
     this.parts.root.classList.toggle("is-paused", paused);
+    const saved = [this.bannerText, this.hintText];
     if (paused) {
-      const saved = this.bannerState;
-      this.banner("Paused", "The game waits for you.", "Press Space, P or tap to carry on");
-      this.bannerState = saved;
+      this.banner("Paused");
+      this.hint(coarse() ? "Tap to resume" : "Space to resume");
+      [this.bannerText, this.hintText] = saved;
+      this.restore = saved;
     } else {
-      const saved = this.bannerState;
-      if (saved) this.banner(...saved);
-      else this.banner(null);
+      this.banner(this.restore?.[0] || null);
+      this.hint(this.restore?.[1] || "");
     }
   }
-  banner(title, detail, hint) {
+  banner(title) {
     const banner = this.parts.banner;
-    this.bannerState = title ? [title, detail, hint] : null;
-    if (!title) {
-      banner.hidden = true;
-      return;
+    this.bannerText = title;
+    banner.hidden = !title;
+    if (title) {
+      banner.textContent = title;
+      this.parts.status.textContent = title;
     }
-    banner.replaceChildren(element("strong", null, title));
-    if (detail) banner.append(element("span", "minigame-detail", detail));
-    if (hint) banner.append(element("span", "minigame-hint", hint));
-    banner.hidden = false;
-    this.parts.status.textContent = [title, detail, hint].filter(Boolean).join(". ");
   }
-  toast(text, tone) {
-    const chip = element("span", `minigame-toast ${tone}`, text);
-    this.parts.toasts.append(chip);
-    while (this.parts.toasts.children.length > 3) this.parts.toasts.firstChild.remove();
-    setTimeout(() => chip.remove(), 1900);
+  hint(text) {
+    this.hintText = text;
+    if (this.parts.hint.textContent !== text) this.parts.hint.textContent = text;
   }
   float(text, x, y, tone) {
     const chip = element("span", `minigame-float ${tone}`, text);

@@ -16,6 +16,21 @@
     />
     <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
     <link rel="preload" href="./fonts/vt323.ttf" as="font" type="font/ttf" crossorigin />
+    <link rel="preload" href="./fonts/pixelify-sans.ttf" as="font" type="font/ttf" crossorigin />
+    <link rel="preload" href="./photo.jpg" as="image" />
+    <link rel="modulepreload" href="./intro.js" />
+    <link rel="modulepreload" href="./plank.js" />
+    <link rel="modulepreload" href="./pillars.js" />
+    <link rel="modulepreload" href="./world.js" />
+    <link rel="modulepreload" href="./journey.js" />
+    <link rel="modulepreload" href="./interiors.js" />
+    <link rel="modulepreload" href="./lighting.js" />
+    <link rel="modulepreload" href="./ground.js" />
+    <link rel="modulepreload" href="./content.js" />
+    <link rel="modulepreload" href="./eggs.js" />
+    <link rel="modulepreload" href="./scroll-lock.js" />
+    <link rel="modulepreload" href="./minigames/stage.js" />
+    <link rel="modulepreload" href="./minigames/pixel.js" />
     <link rel="stylesheet" href="./style.css" />
     <style>
       html.intro-pending,
@@ -29,14 +44,19 @@
     <script>
       // Mirrors shouldPlayIntro() so the page never flashes before the title.
       (function () {
+        var root = document.documentElement;
+        root.classList.add("js");
         var nav = performance.getEntriesByType && performance.getEntriesByType("navigation")[0];
         if (location.hash || /[?&]intro=0\b/.test(location.search) || (nav && nav.type === "back_forward")) return;
-        var root = document.documentElement;
         root.classList.add("intro-pending");
-        // Never leave the page hidden if the scripts fail to start.
+        // The title only stays away if the scripts never start; then the
+        // page shows itself rather than staying dark.
+        window.introFailed = function () {
+          root.classList.remove("intro-pending");
+        };
         setTimeout(function () {
-          if (!document.querySelector(".intro")) root.classList.remove("intro-pending");
-        }, 4000);
+          if (!document.querySelector(".intro")) window.introFailed();
+        }, 15000);
       })();
     </script>
     <noscript
@@ -448,8 +468,10 @@
           aria-label="A fisherman's lakeside camp with a tent, a smoking fire and a dock"
         >
           <span class="sr-only"
-            >A fisherman's lakeside camp: his patched canvas tent, a campfire
-            with fish smoking on a rack between two logs, and a lamplit dock
+            >A fisherman's lakeside camp: his patched canvas tent with a
+            woodpile beside it, a campfire with fish smoking on a rack between
+            two logs and a coffee pot on the coals, a little lantern on the
+            ground, his tackle crate and rods by the path, and a lamplit dock
             where he lands fish into a bucket beside his canoe and two ducks.</span
           >
         </aside>
@@ -465,6 +487,7 @@
         <button id="return-world">Close section <kbd>ESC</kbd></button>
       </div>
     </dialog>
+    <script type="module" src="./boot.js" onerror="window.introFailed && introFailed()"></script>
     <script type="module" src="./app.js"></script>
   </body>
 </html>

@@ -365,13 +365,20 @@ const COVE = [
   [900, 344],
   [990, 352],
 ];
+// His camp sits close together: the tent, the fire between its two logs,
+// a woodpile, a ground lantern and his tackle by the path to the dock.
+const CAMP = { tentX: 292, tentBase: 262, fireX: 446, fireY: 330 };
 export function campsiteGeometry(area) {
   const top = area.y;
   const box = (left, t, right, bottom) => ({ left, right, top: top + t, bottom: top + bottom });
+  const { tentX, tentBase, fireX, fireY } = CAMP;
   return {
-    tent: box(214, 150, 396, 256),
-    fire: box(460, 300, 546, 384),
-    logs: [box(392, 370, 456, 392), box(560, 370, 624, 392)],
+    tent: box(tentX - 92, tentBase - 96, tentX + 90, tentBase + 10),
+    fire: box(fireX - 42, fireY - 60, fireX + 44, fireY + 24),
+    logs: [box(fireX - 110, fireY + 10, fireX - 46, fireY + 32), box(fireX + 56, fireY + 10, fireX + 120, fireY + 32)],
+    woodpile: box(338, 290, 394, 322),
+    lantern: box(306, 318, 336, 362),
+    tackle: box(574, 290, 632, 364),
     dock: box(670, 356, 764, 532),
     bucket: box(684, 498, 702, 518),
     cove: COVE.map(([x, y]) => [x, top + y]),
@@ -668,22 +675,101 @@ function duck(p, x, y, facing) {
   p.rect(x + facing * 10 - (facing < 0 ? 4 : 0), y - 5, 5, 2, "#d0a050");
   p.rect(x + facing * 6, y - 7, 2, 2, "#10140f");
 }
+// A split-log woodpile, end grain out, with the axe left in the block.
+function woodpile(p, x, y) {
+  p.ellipse(x + 2, y + 10, 60, 10, "#1c2416");
+  for (const [dx, dy] of [[-18, 4], [-6, 4], [6, 4], [18, 4], [-12, -6], [0, -6], [12, -6], [-6, -16], [6, -16]]) {
+    p.ellipse(x + dx, y + dy, 13, 11, "#4b3c2c");
+    p.ellipse(x + dx, y + dy, 9, 7, "#aa8b59");
+    p.rect(x + dx - 1, y + dy - 1, 2, 2, "#6c5038");
+  }
+  p.rect(x + 26, y - 2, 14, 12, "#5c4632");
+  p.rect(x + 26, y - 2, 14, 3, "#8a6a44");
+  p.rect(x + 31, y - 18, 3, 18, "#6b4a2e");
+  p.rect(x + 27, y - 20, 9, 5, "#9aa0a8");
+}
+// A small brass camp lantern on the ground, its light pooling on the dirt.
+function campLantern(p, x, y) {
+  p.ellipse(x, y + 2, 20, 6, "#1c2416");
+  p.rect(x - 6, y - 4, 12, 4, "#3a2a1c");
+  p.rect(x - 5, y - 16, 10, 12, "#24151a");
+  p.rect(x - 3, y - 14, 6, 8, "#ffb347");
+  p.rect(x - 1, y - 13, 2, 6, "#fff1b8");
+  p.rect(x - 6, y - 18, 12, 2, "#3a2a1c");
+  p.rect(x - 4, y - 24, 8, 2, "#5a4a3a");
+  p.rect(x - 4, y - 24, 2, 6, "#5a4a3a");
+  p.rect(x + 2, y - 24, 2, 6, "#5a4a3a");
+  p.light({ kind: "point", x, y: y - 10, r: 74, color: "#ffc070", power: 0.85 });
+  p.light({ kind: "emit", x: x - 3, y: y - 14, w: 6, h: 8 });
+}
+// His tackle by the path: a crate, a bait bucket and two rods leaning on it.
+function tackle(p, x, y) {
+  p.ellipse(x + 10, y + 12, 64, 10, "#1c2416");
+  for (const [lean, color] of [[-10, "#8a6a4a"], [-2, "#6b5234"]]) {
+    for (let i = 0; i <= 20; i++) p.rect(x - 6 + lean + i * 0.9, y - 56 + i * 3, 2, 2, color);
+    p.rect(x - 4 + lean + 10, y - 26, 4, 4, "#3a3028");
+  }
+  p.rect(x - 12, y - 14, 30, 22, "#6a3a24");
+  p.rect(x - 12, y - 14, 30, 3, "#9a5a34");
+  p.rect(x - 12, y - 4, 30, 2, "#4a2818");
+  p.rect(x - 2, y - 10, 10, 4, "#c9ad7a");
+  p.rect(x + 24, y - 8, 14, 16, "#4a2a1c");
+  p.rect(x + 25, y - 7, 12, 14, "#7a4a2a");
+  p.rect(x + 25, y - 8, 12, 3, "#1c2650");
+  p.rect(x + 23, y - 12, 2, 6, "#4a4048");
+  p.rect(x + 37, y - 12, 2, 6, "#4a4048");
+  p.rect(x + 23, y - 13, 16, 2, "#4a4048");
+  p.rect(x + 28, y - 10, 2, 3, "#c4a070");
+  // A coil of net on the crate lid.
+  for (let k = 0; k < 5; k++) p.rect(x - 8 + k * 4, y - 18 + (k % 2) * 2, 4, 2, "#8a8a7a");
+}
 function campsite(p, area, includeActors) {
-  const top = area.y;
-  dirtOval(p, 420, top + 300, 240, 120, 4470, ["#2c3a24", "#3a4a2c", "#34442a", "#4a3a28"]);
+  const top = area.y,
+    { tentX, tentBase, fireX, fireY } = CAMP;
+  // A trodden clearing just big enough for the camp, and a worn path of
+  // stepping stones down to his dock.
+  dirtOval(p, 418, top + 300, 196, 92, 4470, ["#2c3a24", "#3a4a2c", "#34442a", "#4a3a28"]);
+  dirtOval(p, 596, top + 368, 70, 22, 4472, ["#33402a", "#4a3a28", "#3e2c1e"]);
   cove(p, area);
   dock(p, area);
-  fisherTent(p, 306, top + 246);
-  smokingFire(p, 502, top + 360);
-  for (const [x, y] of [[560, 250], [610, 214], [180, 330], [380, 430]]) {
-    p.ellipse(x, top + y, 22, 12, "#4a4e6c");
+  for (const [x, y] of [[606, 382], [632, 372], [656, 366], [678, 374]]) {
+    p.ellipse(x, top + y, 16, 8, "#55597a");
+    p.rect(x - 5, top + y - 3, 8, 2, "#80859f");
+  }
+  fisherTent(p, tentX, top + tentBase);
+  woodpile(p, 364, top + 306);
+  smokingFire(p, fireX, top + fireY);
+  // His coffee pot keeps warm on a flat stone at the edge of the coals.
+  p.ellipse(fireX + 30, top + fireY + 14, 16, 6, "#6e7282");
+  p.rect(fireX + 25, top + fireY + 2, 10, 10, "#5a6a72");
+  p.rect(fireX + 25, top + fireY + 2, 10, 2, "#8a9aa2");
+  p.rect(fireX + 35, top + fireY + 4, 3, 2, "#5a6a72");
+  p.rect(fireX + 23, top + fireY + 4, 2, 5, "#3a4a52");
+  campLantern(p, 320, top + 356);
+  tackle(p, 590, top + 346);
+  for (const [x, y] of [[198, 300], [548, 252], [236, 352], [508, 392], [610, 214], [150, 360]]) {
+    p.ellipse(x, top + y, 20, 10, "#4a4e6c");
     p.rect(x - 6, top + y - 4, 10, 2, "#80859f");
     paintFern(p, x + 12, top + y + 6, 0.7);
   }
-  for (const [x, y] of [[250, 380], [300, 420], [600, 440], [170, 290]]) mushroom(p, x, top + y);
+  for (const [x, y] of [[226, 392], [530, 236], [470, 410], [178, 262], [640, 300]]) mushroom(p, x, top + y);
+  // Tufts of grass where the dirt gives way to the forest floor.
+  const tufts = random(4473);
+  for (let i = 0; i < 46; i++) {
+    const a = tufts() * Math.PI * 2,
+      x = 418 + Math.cos(a) * (196 + tufts() * 26),
+      y = 300 + Math.sin(a) * (92 + tufts() * 14);
+    p.rect(x, top + y, 2, 4, "#3e5a2e");
+    p.rect(x + 2, top + y - 2, 2, 6, "#5a7a3a");
+  }
   // The woods close in around his camp in clumps, deepest at the edges.
-  const geometry = campsiteGeometry({ y: 0 });
-  const busy = [geometry.tent, geometry.fire, ...geometry.logs, { left: 196, right: 640, top: 150, bottom: 450 }];
+  const geometry = campsiteGeometry({ y: 0 }),
+    pad = (b, n) => ({ left: b.left - n, right: b.right + n, top: b.top - n, bottom: b.bottom + n });
+  const busy = [
+    ...[geometry.tent, geometry.fire, ...geometry.logs, geometry.woodpile, geometry.lantern, geometry.tackle].map((b) => pad(b, 10)),
+    { left: 236, right: 600, top: 214, bottom: 384 },
+    { left: 560, right: 700, top: 344, bottom: 396 },
+  ];
   const rand = random(6631);
   const trees = [];
   for (let y = 10; y < 640; y += 26)
@@ -697,13 +783,21 @@ function campsite(p, area, includeActors) {
       if (wet || busy.some((b) => intersects(box, b))) continue;
       trees.push({ ...tree, y: top + tree.y });
     }
+  // Young trees fill the pockets between the camp and the water.
+  for (const [x, y, size] of [[540, 206, 0.6], [602, 268, 0.55], [684, 300, 0.6], [232, 446, 0.65], [520, 452, 0.6], [178, 414, 0.7], [640, 238, 0.5]]) {
+    const half = 42 * size + 8,
+      box = { left: x - half, right: x + half, top: y - 70 * size - 10, bottom: y + 10 };
+    if (busy.slice(0, -2).some((b) => intersects(box, b)) || inCove(x, y + 20)) continue;
+    if (trees.some((t) => Math.hypot(t.x - x, t.y - top - y) < 30)) continue;
+    trees.push({ x, y: top + y, s: size, tone: 0.3 });
+  }
   for (const tree of trees.sort((a, b) => a.y - b.y)) p.tree(tree);
   if (includeActors) animateCampsite(p, area, 0, true);
 }
 function animateCampsite(p, area, time, reduced) {
   const top = area.y,
-    fx = 502,
-    fy = top + 360,
+    fx = CAMP.fireX,
+    fy = top + CAMP.fireY,
     frame = reduced ? 1 : Math.floor(time * 8) % 4;
   p.rect(fx - 12, fy - 10 - (frame % 2) * 2, 24, 12, "#d8501c");
   p.rect(fx - 9, fy - 18 + (frame % 3) * 2, 18, 16, "#f08a28");

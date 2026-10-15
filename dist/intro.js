@@ -2,14 +2,10 @@
 // plank that drops in on its ropes, then a camera swoop onto the
 // About cabin where the player steps outside to greet the visitor. It only
 // borrows the live world canvases, so the final frame matches the page.
-import { destinations } from "./world.js";
 import { mountPlank } from "./plank.js";
 
 const GREETING =
   "Hey, I’m Issam! Welcome to my little corner of the internet. Walk into any cabin and read the book on the lectern to get to know me a bit better.";
-const about = destinations.find((d) => d.id === "about");
-const START = { x: about.doorX, y: about.y + about.h - 2 },
-  STOP = { x: about.doorX, y: about.y + about.h + 34 };
 // Letters per second, and the time the dialogue plank takes to settle.
 const TYPE_RATE = 38,
   SETTLE = 0.7;
@@ -129,8 +125,27 @@ function paintGlints(glints, rand) {
   });
 }
 
-export function runIntro(world, { onFinish } = {}) {
-  const reduced = () => world.reduced;
+// The title is shown by the tiny boot module before the village's own code
+// has even run, so a first visit only ever sees the opening. The live world
+// attaches later, once it, the fonts and the hero's art are ready; a click
+// or Escape before that is remembered and carried out on arrival.
+let opened = null;
+export const pendingIntro = () => opened;
+export function runIntro(world, options) {
+  const intro = openIntro();
+  intro.attach(world, options);
+  return intro;
+}
+export function openIntro() {
+  if (opened) return opened;
+  let world = null,
+    onFinish = null,
+    about = null,
+    queued = null,
+    START = null,
+    STOP = null;
+  const reduced = () =>
+    world ? world.reduced : matchMedia("(prefers-reduced-motion: reduce)").matches;
   const journey = document.querySelector("#journey-world");
   const root = document.createElement("div");
   root.className = "intro";
@@ -181,6 +196,11 @@ export function runIntro(world, { onFinish } = {}) {
     proceed = root.querySelector(".intro-continue");
   mountPlank(start.querySelector(".intro-plank"), 7);
   start.focus({ preventScroll: true });
+  // The lettering waits for its pixel face rather than flashing a fallback.
+  Promise.race([
+    document.fonts.load("24px VT323").catch(() => {}),
+    new Promise((resolve) => setTimeout(resolve, 2000)),
+  ]).then(() => root.classList.add("is-lettered"));
 
   let phase = "title",
     clock = 0,
@@ -322,6 +342,10 @@ export function runIntro(world, { onFinish } = {}) {
 
   function begin() {
     if (phase !== "title") return;
+    if (!world) {
+      queued = queued || "begin";
+      return;
+    }
     scrollTo(0, 0);
     phase = "zoom-in";
     world.suspended = false;
@@ -374,6 +398,10 @@ export function runIntro(world, { onFinish } = {}) {
     onFinish?.();
   }
   function skip() {
+    if (!world) {
+      queued = "skip";
+      return;
+    }
     if (phase === "title") scrollTo(0, 0);
     finish();
   }
@@ -397,8 +425,6 @@ export function runIntro(world, { onFinish } = {}) {
     else if (phase === "ready") leave();
   }
   addEventListener("keydown", onKey, true);
-  // The live village is hidden behind the title, so it rests until play.
-  world.suspended = true;
   start.addEventListener("click", (event) => {
     event.stopPropagation();
     begin();
@@ -413,5 +439,22 @@ export function runIntro(world, { onFinish } = {}) {
   });
   root.addEventListener("click", advance);
   raf = requestAnimationFrame(loop);
-  return { skip, root };
+  opened = {
+    root,
+    skip,
+    attach(live, options = {}) {
+      if (world) return;
+      world = live;
+      onFinish = options.onFinish;
+      about = options.about;
+      START = { x: about.doorX, y: about.y + about.h - 2 };
+      STOP = { x: about.doorX, y: about.y + about.h + 34 };
+      // The live village is hidden behind the title, so it rests until play.
+      world.suspended = true;
+      root.classList.add("is-ready");
+      if (queued === "skip") skip();
+      else if (queued === "begin") begin();
+    },
+  };
+  return opened;
 }

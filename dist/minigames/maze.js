@@ -5,21 +5,7 @@
 // createGame.
 import { W, H, painter, sprite, surface, format, seeded } from "./pixel.js";
 
-export const meta = {
-  id: "maze",
-  title: "Maze Munch",
-  stats: [
-    { id: "score", label: "Score" },
-    { id: "best", label: "Best" },
-    { id: "lives", label: "Lives" },
-    { id: "level", label: "Level" },
-  ],
-  help: {
-    keys: "<kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> or arrows to steer · <kbd>P</kbd> pause · <kbd>Esc</kbd> exit",
-    touch: "Swipe or tap where to go, or use the pad",
-  },
-  touch: "dpad",
-};
+export const meta = { id: "maze", title: "Maze Munch", touch: "dpad" };
 
 // # wall · x outside the maze · . firefly · o lantern · - wisp door
 // G wisp house · P start · space open floor. Row 9 wraps through tunnels.
@@ -267,7 +253,8 @@ export function createGame(api) {
     level = 1;
     newLevel();
     state = "ready";
-    hud.banner("Maze Munch", "Munch every firefly. Lanterns turn the wisps blue.", "Press an arrow, swipe or tap to start");
+    hud.banner(null);
+    hud.hint("Arrow keys to move", "Swipe to move");
   }
   function newLevel() {
     pellet = pellets();
@@ -323,7 +310,7 @@ export function createGame(api) {
     if (!pellet.size) {
       state = "clear";
       clock = 0;
-      hud.toast(`Level ${level} cleared!`, "is-gold");
+      hud.banner("Cleared!");
     }
   }
 
@@ -451,11 +438,12 @@ export function createGame(api) {
           state = "over";
           best.save(score);
           bestScore = Math.max(bestScore, score);
-          hud.banner("Game over", `Score ${format(score)} · Best ${format(bestScore)}`, "Press Space or tap to play again");
+          hud.banner("Game over");
+          hud.hint("Space to play again", "Tap to play again");
         } else {
           resetActors();
           state = "ready";
-          hud.banner("Ready!", `${lives} ${lives === 1 ? "life" : "lives"} left`, "Press an arrow, swipe or tap to go");
+          hud.banner("Ready");
         }
       }
     } else if (state === "clear") {
@@ -464,13 +452,10 @@ export function createGame(api) {
         level++;
         newLevel();
         state = "ready";
-        hud.banner(`Level ${level}`, "The wisps are getting quicker.", "Press an arrow, swipe or tap to go");
+        hud.banner(`Level ${level}`);
       }
     }
-    hud.set("score", format(score));
-    hud.set("best", format(Math.max(bestScore, score)));
-    hud.set("lives", Math.max(0, lives));
-    hud.set("level", level);
+    hud.score(format(score));
   }
 
   function steer(dir) {

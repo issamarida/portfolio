@@ -1,8 +1,7 @@
 import { World, destinations, cabinSign } from "./world.js";
 import { areas } from "./content.js";
 import { interiorLabel } from "./interiors.js";
-import { runIntro, shouldPlayIntro } from "./intro.js";
-import { mountPillars } from "./pillars.js";
+import { pendingIntro } from "./intro.js";
 import { lockPage, unlockPage } from "./scroll-lock.js";
 import { mountEggs } from "./eggs.js";
 import { minigameActive } from "./minigames/stage.js";
@@ -35,6 +34,17 @@ function placePrompt() {
   interact.style.left = `${Math.min(width - half - 4, Math.max(half + 4, x * scale))}px`;
   interact.style.top = `${below ? (y + 10) * scale : (y - 52) * scale - interact.offsetHeight}px`;
 }
+// Behind the opening title (put up by boot.js), let it paint before the
+// village is built, and build the village once, with its real fonts, so the
+// reading sections never reflow and the scene is never painted twice.
+const intro = pendingIntro();
+const capped = (promise, ms) =>
+  Promise.race([promise.catch(() => {}), new Promise((resolve) => setTimeout(resolve, ms))]);
+if (intro) await new Promise((resolve) => requestAnimationFrame(() => setTimeout(resolve)));
+await capped(
+  Promise.all(["24px VT323", '24px "Pixelify Sans"'].map((font) => document.fonts.load(font))),
+  intro ? 4000 : 1200,
+);
 const world = new World(canvas, (near, kind) => {
   interact.hidden = !near;
   const label = near ? prompt(near, kind) : "";
@@ -371,7 +381,6 @@ matchMedia("(prefers-reduced-motion: reduce)").addEventListener(
     world.reduced = e.matches;
   },
 );
-mountPillars(document.querySelector(".shell"));
 // Leaving a minigame comes straight back to the hero section, with the
 // village exactly as it was; the iris reopens on the player.
 eggs = mountEggs({
@@ -388,27 +397,22 @@ eggs = mountEggs({
     };
   },
 });
-// Key phrases light up one after another as each passage scrolls into view.
-if ("IntersectionObserver" in window) {
-  const reveal = new IntersectionObserver(
-    (entries) => {
-      for (const entry of entries) {
-        if (!entry.isIntersecting) continue;
-        entry.target.classList.add("is-lit");
-        reveal.unobserve(entry.target);
-      }
-    },
-    { rootMargin: "0px 0px -15% 0px" },
+// The hero is only revealed once its portrait and board art are decoded,
+// so nothing pops in when the opening hands over.
+if (intro) {
+  const art = ["./photo.jpg", ...["plank-sign", "cabin-board", "chain", "eyelet", "timber-frame", "timber-beam", "parchment"].map((name) => `./art/${name}.svg`)];
+  await capped(
+    Promise.all(
+      art.map((src) => {
+        const image = new Image();
+        image.src = src;
+        return image.decode();
+      }),
+    ),
+    4000,
   );
-  document.querySelectorAll(".reading-section mark.kw").forEach((mark) => {
-    const order = [...mark.parentElement.querySelectorAll(":scope > mark.kw")].indexOf(mark);
-    mark.style.setProperty("--kw-delay", `${order * 0.22}s`);
-    reveal.observe(mark);
-  });
-  document.documentElement.classList.add("kw-ready");
-}
-if (shouldPlayIntro()) {
-  runIntro(world, {
+  intro.attach(world, {
+    about: destinations.find((d) => d.id === "about"),
     onFinish: () => {
       updateViewport();
       canvas.focus({ preventScroll: true });

@@ -131,7 +131,7 @@ test("rarer fish bite more often on long, clean casts", () => {
   assert.equal(new Set(FISH.map((fish) => fish.behaviour)).size, FISH.length, "every fish swims its own way");
 });
 
-test("holding the net on the fish lands it in a few seconds; letting go loses it", () => {
+test("a steady net lands a fish quickly and a few slips never lose it", () => {
   const fight = { zone: 0.3, zv: 0, size: 0.3, fish: 0.45, target: 0.45, timer: 1, clock: 0, progress: REEL.start, inside: false };
   let result = "fighting",
     time = 0;
@@ -141,11 +141,18 @@ test("holding the net on the fish lands it in a few seconds; letting go loses it
     time += 1 / 60;
   }
   assert.equal(result, "caught");
-  assert.ok(time > 2 && time < 4, `caught in ${time.toFixed(2)}s`);
+  assert.ok(time > 0.8 && time < 2, `caught in ${time.toFixed(2)}s`);
+  // Two seconds out of the net still leaves the fish on the line.
+  const slip = { zone: 0, zv: 0, size: 0.4, fish: 0.9, target: 0.9, timer: 1, clock: 0, progress: REEL.start, inside: false };
+  for (let i = 0; i < 120; i++) assert.equal(reelStep(slip, false, 1 / 60), "fighting");
   const lost = { zone: 0, zv: 0, size: 0.2, fish: 0.9, target: 0.9, timer: 1, clock: 0, progress: REEL.start, inside: false };
   let outcome = "fighting";
   for (let i = 0; i < 600 && outcome === "fighting"; i++) outcome = reelStep(lost, false, 1 / 60);
   assert.equal(outcome, "escaped");
+  // Common fish leave a wider net and swim slower than the rare ones.
+  const [perch, , , pike, koi] = FISH;
+  assert.ok(perch.zone >= 0.4 && perch.zone > pike.zone && pike.zone > koi.zone);
+  assert.ok(perch.agility < pike.agility && pike.agility < koi.agility);
   // Fish stay inside the bar whatever they do.
   const random = seeded(9);
   for (const species of FISH) {

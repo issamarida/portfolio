@@ -16,8 +16,9 @@ try {
     true,
   );
   assert.equal(await page.locator(".shell").evaluate((el) => el.inert), true);
+  // Escape skips, as soon as the hero behind the title is ready.
   await page.keyboard.press("Escape");
-  assert.equal(await page.locator(".intro").count(), 0);
+  await page.locator(".intro").waitFor({ state: "detached" });
   assert.equal(await page.locator(".shell").evaluate((el) => el.inert), false);
   for (const id of ["projects", "career", "gamedev", "about"]) {
     const button = page.locator(`[data-area="${id}"]`);
@@ -84,26 +85,31 @@ try {
     await page.locator("body").innerText(),
     /back to the woodlands|a page from the archive/i,
   );
-  const scenery = await page.evaluate(async () => {
-    const styles = [
-      getComputedStyle(document.querySelector("#journey-world"))
-        .backgroundImage,
-    ];
-    const sources = styles.join(",").matchAll(/url\("?([^"\)]+)"?\)/g);
-    return Promise.all(
-      [...sources].map(
-        ([, src]) =>
-          new Promise((resolve) => {
-            const image = new Image();
-            image.onload = () => resolve(image.naturalWidth > 0);
-            image.onerror = () => resolve(false);
-            image.src = src;
-          }),
-      ),
-    );
-  });
-  assert.equal(scenery.length, 1);
-  assert.ok(scenery.every(Boolean));
+  // The live canvas paints the scenery; the baked image is never fetched.
+  assert.equal(
+    await page.locator("#journey-world").evaluate((el) => getComputedStyle(el).backgroundImage),
+    "none",
+  );
+  assert.equal(
+    await page.evaluate(() =>
+      performance.getEntriesByType("resource").some((entry) => entry.name.endsWith("/art/journey.png")),
+    ),
+    false,
+  );
+  // Key phrases are lit from the start rather than swept in on scroll, the
+  // portrait has no ring, and the reading sign is a cabin billboard.
+  assert.deepEqual(
+    await page
+      .locator("#career mark.kw")
+      .first()
+      .evaluate((el) => [getComputedStyle(el).backgroundSize, getComputedStyle(el).animationName]),
+    ["100% 100%", "none"],
+  );
+  assert.equal(await page.locator(".identity img").evaluate((el) => getComputedStyle(el).boxShadow), "none");
+  assert.match(
+    await page.locator(".reading-invitation a").evaluate((el) => getComputedStyle(el).borderImageSource),
+    /cabin-board\.svg/,
+  );
   assert.equal(
     await page
       .locator(".shell")
@@ -291,8 +297,13 @@ try {
     still,
   );
   await reduced.close();
-  const plain = await browser.newPage({ javaScriptEnabled: false });
+  const plain = await browser.newPage({ javaScriptEnabled: false }),
+    fetched = [];
+  plain.on("response", (response) => fetched.push([new URL(response.url()).pathname, response.status()]));
   await plain.goto(process.env.TEST_URL || "http://localhost:5173");
+  await plain.waitForLoadState("networkidle");
+  // Without scripts the baked woodland scene stands in for the canvas.
+  assert.ok(fetched.some(([path, status]) => path.endsWith("/art/journey.png") && status === 200));
   assert.equal(await plain.locator(".intro").count(), 0);
   assert.equal(await plain.locator(".reading-section").count(), 4);
   assert.equal(await plain.locator(".building-access").isVisible(), false);
@@ -459,7 +470,7 @@ try {
   await extras.keyboard.up("d");
   await extras.keyboard.up("w");
   assert.equal(await extras.evaluate(() => scrollY), lockedAt, "driving never scrolls the page");
-  assert.notEqual(await extras.locator('.minigame-stat[data-stat="time"] dd').textContent(), "1:30");
+  assert.doesNotMatch(await extras.locator(".minigame-score").textContent(), /1:30$/);
   await extras.keyboard.press("Escape");
   await backHome();
   // The fisherman offers his rod first; Escape declines, Enter accepts.

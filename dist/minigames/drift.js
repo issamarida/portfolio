@@ -6,28 +6,15 @@
 // crash. Physics and scoring are pure and exported for tests.
 import { W, H, painter, surface, format, seeded, rotations, clamp } from "./pixel.js";
 
-export const meta = {
-  id: "drift",
-  title: "Clearing Drift",
-  stats: [
-    { id: "score", label: "Score" },
-    { id: "drift", label: "Drift" },
-    { id: "combo", label: "Combo" },
-    { id: "time", label: "Time" },
-    { id: "best", label: "Best" },
-  ],
-  help: {
-    keys: "<kbd>W</kbd>/<kbd>↑</kbd> gas · <kbd>A</kbd><kbd>D</kbd>/<kbd>←</kbd><kbd>→</kbd> steer · <kbd>S</kbd>/<kbd>↓</kbd> brake · <kbd>Space</kbd> handbrake · <kbd>Esc</kbd> exit",
-    touch: "Steer on the left, gas, brake and handbrake on the right",
-  },
-  touch: "drive",
-};
+// The truck keeps its foot down by itself, so steering is all there is to
+// learn. Brake (S) and handbrake (Space) still work for those who find them.
+export const meta = { id: "drift", title: "Clearing Drift", touch: "drive" };
 
 export const ROUND = 90;
 export const ARENA = { x: 240, y: 146, rx: 206, ry: 104 };
 export const OBSTACLES = [
   { x: 240, y: 146, r: 15, kind: "boulders" },
-  { x: 146, y: 116, r: 7, kind: "stump" },
+  { x: 296, y: 226, r: 7, kind: "stump" },
   { x: 336, y: 176, r: 8, kind: "rock" },
   { x: 318, y: 104, r: 6, kind: "rock" },
   { x: 168, y: 186, r: 6, kind: "stump" },
@@ -336,24 +323,19 @@ export function createGame(api) {
     sinceCrash = 1;
     skids.ctx.clearRect(0, 0, W, H);
     state = "ready";
-    hud.banner(
-      "Clearing Drift",
-      "Turn hard at speed and let the rear slide. Wide, long drifts build the combo; a crash loses it.",
-      "Press W, ↑ or Gas to start",
-    );
+    hud.banner(null);
+    hud.hint("A / D to steer", "◀ ▶ to steer");
   }
   const input = () => ({
-    gas: api.held("up"),
+    gas: !api.held("down"),
     brake: api.held("down"),
     left: api.held("left"),
     right: api.held("right"),
     handbrake: api.held("action"),
   });
   function press(action) {
-    if (state === "ready" && (action === "up" || action === "action")) {
-      state = "play";
-      hud.banner(null);
-    } else if (state === "over" && idle > 0.6 && (action === "action" || action === "up")) reset();
+    if (state === "ready") state = "play";
+    else if (state === "over" && idle > 0.6 && action === "action") reset();
   }
   function finish() {
     if (score.pending > 0) bank(score);
@@ -362,8 +344,8 @@ export function createGame(api) {
     const record = score.total > bestScore && score.total > 0;
     best.save(score.total);
     bestScore = Math.max(bestScore, score.total);
-    if (record) hud.toast("New best!", "is-gold");
-    hud.banner("Time!", `Score ${format(score.total)} · Best ${format(bestScore)}`, "Press Space or Gas to drive again");
+    hud.banner(record ? "New best!" : "Time!");
+    hud.hint("Space to drive again", "Tap to drive again");
   }
 
   function update(dt) {
@@ -392,7 +374,6 @@ export function createGame(api) {
         const banked = scoreStep(score, car, h);
         if (banked && banked.points > 0) {
           hud.float(`+${format(banked.points)}`, car.x, car.y - 16, "is-gold");
-          if (banked.combo >= 4) hud.toast(`${["", "", "", "", "Great", "Sweet", "Wild", "Insane", "Legendary", "Legendary"][banked.combo]} drift! ×${banked.combo}`, "is-gold");
         }
       }
       leaveMarks(dt);
@@ -410,11 +391,8 @@ export function createGame(api) {
       d.vy *= 1 - dt * 2;
     }
     dust = dust.filter((d) => d.life > 0);
-    hud.set("score", format(score.total));
-    hud.set("drift", format(score.pending * score.combo));
-    hud.set("combo", `×${score.combo}`);
-    hud.set("time", `${Math.floor(Math.ceil(time) / 60)}:${String(Math.ceil(time) % 60).padStart(2, "0")}`);
-    hud.set("best", format(Math.max(bestScore, score.total)));
+    const clock = `${Math.floor(Math.ceil(time) / 60)}:${String(Math.ceil(time) % 60).padStart(2, "0")}`;
+    hud.score(`${format(score.total)} · ×${score.combo} · ${clock}`);
   }
   // Rear tyres leave marks and kick up dust while they slide.
   function leaveMarks(dt) {

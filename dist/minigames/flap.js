@@ -3,19 +3,7 @@
 // pillars is a point, and each gap is lit by a lantern hanging above it.
 import { W, H, painter, sprite, surface, format, seeded, nightSky, horizon } from "./pixel.js";
 
-export const meta = {
-  id: "flap",
-  title: "Night Owl",
-  stats: [
-    { id: "score", label: "Score" },
-    { id: "best", label: "Best" },
-  ],
-  help: {
-    keys: "<kbd>Space</kbd>, <kbd>W</kbd> or <kbd>↑</kbd> to flap · <kbd>P</kbd> pause · <kbd>Esc</kbd> exit",
-    touch: "Tap anywhere to flap",
-  },
-  touch: "tap",
-};
+export const meta = { id: "flap", title: "Night Owl", touch: "tap" };
 
 export const FLIGHT = {
   gravity: 760,
@@ -126,7 +114,8 @@ export function createGame(api) {
     state = "ready";
     let x = W + 40;
     for (let i = 0; i < 4; i++, x += FLIGHT.spacing) pillars.push(newPillar(x, pillars.at(-1)));
-    hud.banner("Night Owl", "Fly through the lantern-lit gaps.", "Press Space or tap to flap");
+    hud.banner(null);
+    hud.hint("Space to flap", "Tap to flap");
   }
   function newPillar(x, previous) {
     const gap = gapFor(score),
@@ -172,8 +161,6 @@ export function createGame(api) {
         if (!pillar.scored && pillar.x + FLIGHT.width < owl.x) {
           pillar.scored = true;
           score++;
-          hud.float("+1", owl.x, owl.y - 16, "is-gold");
-          if (score % 10 === 0) hud.toast(`${score} gates!`, "is-gold");
         }
         if (hitsPillar(owl, pillar, pillar.gap)) return crash();
       }
@@ -192,13 +179,12 @@ export function createGame(api) {
           const record = score > bestScore;
           best.save(score);
           bestScore = Math.max(bestScore, score);
-          if (record && score > 0) hud.toast("New best!", "is-gold");
-          hud.banner("Game over", `${score} ${score === 1 ? "gate" : "gates"} · Best ${format(bestScore)}`, "Press Space or tap to fly again");
+          hud.banner(record && score > 0 ? "New best!" : "Game over");
+          hud.hint("Space to fly again", "Tap to fly again");
         }
       }
     }
-    hud.set("score", format(score));
-    hud.set("best", format(Math.max(bestScore, score)));
+    hud.score(format(score));
   }
 
   function draw() {

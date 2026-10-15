@@ -1,24 +1,25 @@
 // Moonlit Angler: the fisherman lends you his rod at the same night lake as
 // his camp at the bottom of the page. Everything is one key: Space casts,
 // a bite hooks itself, and holding Space reels, keeping the fish inside the
-// net zone until the meter fills. Each fish swims its own way and some are
-// rarer than others. One night lasts 75 seconds; no inventory, no menus.
+// net zone until the meter fills. Each fish swims its own way, rarer ones
+// are worth far more, and a catch that never leaves the net counts double.
+// One night lasts 75 seconds; no inventory, no menus.
 import { W, H, painter, surface, format, seeded, nightSky, horizon, clamp } from "./pixel.js";
 
 export const meta = { id: "fishing", title: "Moonlit Angler", touch: "hold", touchLabel: "Hold" };
 
 export const NIGHT = 75;
 
-// Species: weight is how common they are; behaviour shapes the fight.
-// Common fish drift slowly and leave a net over half the water, so they
-// come in almost at once; the rare ones are only a little quicker and
-// narrower, so there is still something to chase without it turning mean.
+// Species: weight is how common they are; behaviour shapes the fight and
+// points are what a catch is worth. Common fish already need watching: a
+// net about a third of the water and the odd sudden flick. The rare ones
+// are quick, sly and narrow, and pay for it.
 export const FISH = [
-  { id: "perch", name: "Moon Perch", rarity: "Common", weight: 46, behaviour: "smooth", agility: 0.7, zone: 0.56, size: [14, 24], body: "#8aa0a0", back: "#5a7a7a", belly: "#c8d8d0", fin: "#c4552e" },
-  { id: "bream", name: "Reed Bream", rarity: "Common", weight: 30, behaviour: "floater", agility: 0.6, zone: 0.56, size: [20, 34], body: "#c49a4a", back: "#8a6a3a", belly: "#e8d098", fin: "#8a6a3a" },
-  { id: "trout", name: "Lantern Trout", rarity: "Uncommon", weight: 15, behaviour: "dart", agility: 1.1, zone: 0.5, size: [26, 44], body: "#7fa07a", back: "#4a6a4a", belly: "#e8d7ad", fin: "#e48f7a" },
-  { id: "pike", name: "Mossback Pike", rarity: "Rare", weight: 7, behaviour: "sinker", agility: 1.6, zone: 0.42, size: [50, 80], body: "#5a7a44", back: "#3a4a2a", belly: "#b8c888", fin: "#749151" },
-  { id: "koi", name: "Starlit Koi", rarity: "Legendary", weight: 2, behaviour: "mixed", agility: 2.1, zone: 0.36, size: [40, 62], body: "#f0ece0", back: "#e4573d", belly: "#fff8e8", fin: "#f0a040" },
+  { id: "perch", name: "Moon Perch", rarity: "Common", points: 10, weight: 46, behaviour: "smooth", agility: 2, flick: 0.6, zone: 0.32, size: [14, 24], body: "#8aa0a0", back: "#5a7a7a", belly: "#c8d8d0", fin: "#c4552e" },
+  { id: "bream", name: "Reed Bream", rarity: "Common", points: 10, weight: 30, behaviour: "floater", agility: 1.9, flick: 0.55, zone: 0.32, size: [20, 34], body: "#c49a4a", back: "#8a6a3a", belly: "#e8d098", fin: "#8a6a3a" },
+  { id: "trout", name: "Lantern Trout", rarity: "Uncommon", points: 25, weight: 15, behaviour: "dart", agility: 2.4, flick: 0.8, zone: 0.3, size: [26, 44], body: "#7fa07a", back: "#4a6a4a", belly: "#e8d7ad", fin: "#e48f7a" },
+  { id: "pike", name: "Mossback Pike", rarity: "Rare", points: 60, weight: 7, behaviour: "sinker", agility: 3.2, flick: 1, zone: 0.26, size: [50, 80], body: "#5a7a44", back: "#3a4a2a", belly: "#b8c888", fin: "#749151" },
+  { id: "koi", name: "Starlit Koi", rarity: "Legendary", points: 150, weight: 2, behaviour: "mixed", agility: 3.6, flick: 1.3, zone: 0.21, size: [40, 62], body: "#f0ece0", back: "#e4573d", belly: "#fff8e8", fin: "#f0a040" },
 ];
 const RARITY_BOOST = { Common: 0, Uncommon: 1, Rare: 2, Legendary: 3 };
 
@@ -35,10 +36,9 @@ export function pickFish(roll, power = 0, perfect = false) {
 
 // The fight: the net zone rises while held and sinks when released,
 // bouncing off the bottom; the meter fills while the fish is in the net.
-// Forgiving by design: the net moves gently, the meter starts at half,
-// fills in about a second and drains slowly, so even several seconds
-// out of the net never loses a fish.
-export const REEL = { lift: 2.1, sink: 1.6, fill: 0.5, drain: 0.055, start: 0.5 };
+// It takes a few seconds of real tracking to land anything, and a fish
+// left alone for a few seconds is gone, but one slip never loses it.
+export const REEL = { lift: 2.5, sink: 1.9, fill: 0.3, drain: 0.21, start: 0.45 };
 export function reelStep(fight, holding, dt) {
   fight.zv += (holding ? REEL.lift : -REEL.sink) * dt;
   fight.zone += fight.zv * dt;
@@ -55,36 +55,38 @@ export function reelStep(fight, holding, dt) {
   return fight.progress >= 1 ? "caught" : fight.progress <= 0 ? "escaped" : "fighting";
 }
 // Where each kind of fish wants to be next, and how fast it gets there.
-// Every fish holds a course for a couple of seconds and keeps to the
-// middle of the water, so the net can follow it without guessing.
+// Each holds a course for a while, but any of them can flick to a new
+// depth without warning (some far more often than others), so the net has
+// to be watched, not just parked.
 export function swimStep(fight, species, dt, random) {
   fight.timer -= dt;
   fight.clock += dt;
   const pick = (low, high) => low + random() * (high - low);
+  if (fight.timer > 0 && random() < species.flick * dt) fight.timer = 0;
   if (fight.timer <= 0) {
     switch (species.behaviour) {
       case "smooth":
-        fight.timer = pick(2.4, 3.4);
-        fight.target = pick(0.38, 0.62);
+        fight.timer = pick(1, 1.8);
+        fight.target = pick(0.08, 0.92);
         break;
       case "floater":
-        fight.timer = pick(2.6, 3.6);
-        fight.target = pick(0.5, 0.72);
+        fight.timer = pick(1.1, 1.9);
+        fight.target = random() < 0.65 ? pick(0.5, 0.95) : pick(0.08, 0.45);
         break;
       case "dart":
-        fight.timer = pick(1.9, 2.7);
-        fight.target = random() < 0.5 ? pick(0.25, 0.42) : pick(0.58, 0.75);
+        fight.timer = pick(0.8, 1.5);
+        fight.target = random() < 0.5 ? pick(0.08, 0.35) : pick(0.65, 0.92);
         break;
       case "sinker":
-        fight.timer = pick(1.8, 2.6);
-        fight.target = random() < 0.75 ? pick(0.18, 0.42) : pick(0.55, 0.72);
+        fight.timer = pick(0.6, 1.1);
+        fight.target = random() < 0.55 ? pick(0.04, 0.3) : pick(0.55, 0.96);
         break;
       default:
-        fight.timer = pick(1.5, 2.2);
-        fight.target = pick(0.15, 0.85);
+        fight.timer = pick(0.45, 1);
+        fight.target = pick(0.03, 0.97);
     }
   }
-  const wobble = species.behaviour === "smooth" ? Math.sin(fight.clock * 1.2) * 0.02 : 0;
+  const wobble = Math.sin(fight.clock * (2 + species.agility)) * 0.025 * species.agility;
   fight.fish = clamp(fight.fish + (fight.target + wobble - fight.fish) * Math.min(1, dt * species.agility), 0, 1);
   return fight.fish;
 }
@@ -120,7 +122,7 @@ export function createGame(api) {
     p = painter(ctx),
     random = seeded(Date.now() & 0xffff);
   const backdrop = paintBackdrop();
-  let state, clock, timer, night, started, catches, cast, bob, fight, species, landing, particles, ripples, bestCatch, ended;
+  let state, clock, timer, night, started, catches, points, cast, bob, fight, species, landing, particles, ripples, bestCatch, ended;
   bestCatch = best.get();
 
   function paintBackdrop() {
@@ -221,6 +223,7 @@ export function createGame(api) {
     started = false;
     ended = false;
     catches = [];
+    points = 0;
     cast = null;
     bob = null;
     fight = null;
@@ -270,6 +273,7 @@ export function createGame(api) {
       clock: 0,
       progress: REEL.start,
       inside: false,
+      slipped: false,
     };
     state = "fight";
     timer = 0;
@@ -283,7 +287,7 @@ export function createGame(api) {
   function land() {
     const [low, high] = species.size,
       size = Math.round(low + random() * (high - low));
-    landing = { species, size, t: 0, from: { x: bob.x, y: bob.y } };
+    landing = { species, size, t: 0, from: { x: bob.x, y: bob.y }, perfect: !fight.slipped };
     state = "landing";
     timer = 0;
     splash(bob.x, bob.y, 14);
@@ -343,10 +347,13 @@ export function createGame(api) {
       case "fight": {
         swimStep(fight, species, dt, random);
         const result = reelStep(fight, api.held("action"), dt);
+        // A fish that never leaves the net is a perfect catch.
+        if (!fight.inside && timer > 0.3) fight.slipped = true;
         // The fish thrashes at the float.
         if (random() < dt * 8) particles.push({ x: bob.x + (random() - 0.5) * 8, y: bob.y, vx: (random() - 0.5) * 40, vy: -20 - random() * 30, life: 0.4, color: "#a8c8e8" });
         if (result === "caught") land();
         else if (result === "escaped") {
+          hud.float("It got away", bob.x, bob.y - 18, "is-bad");
           hud.announce("It got away.");
           reelIn();
         }
@@ -357,7 +364,7 @@ export function createGame(api) {
         if (landing.t >= 1.25) {
           splash(BUCKET.x, BUCKET.y - 10, 6);
           catches.push(landing);
-          hud.announce(`Caught a ${landing.species.name}, ${landing.size} centimetres, ${landing.species.rarity}.`);
+          reward(landing);
           landing = null;
           bob = null;
           state = night === 0 ? "done" : "idle";
@@ -386,7 +393,24 @@ export function createGame(api) {
     particles = particles.filter((particle) => particle.life > 0);
     for (const ripple of ripples) ripple.age += dt;
     ripples = ripples.filter((ripple) => ripple.age < 1.2);
-    hud.score(catches.length);
+    hud.score(points);
+  }
+  // A catch rises from the bucket as points; rare fish name themselves and
+  // a perfect catch doubles its worth, with gold sparks for both.
+  function reward({ species: kind, size, perfect }) {
+    const value = kind.points * (perfect ? 2 : 1),
+      rare = kind.rarity === "Rare" || kind.rarity === "Legendary";
+    points += value;
+    hud.pop();
+    hud.float(`+${value}`, BUCKET.x, BUCKET.y - 26, rare || perfect ? "is-big" : "");
+    if (perfect) hud.float("Perfect catch", 240, 40, "is-good");
+    else if (rare) hud.float(`${kind.name}!`, 240, 40, "is-big");
+    if ((perfect || rare) && !api.reduced)
+      for (let i = 0; i < 12; i++)
+        particles.push({ x: BUCKET.x, y: BUCKET.y - 14, vx: (random() - 0.5) * 70, vy: -50 - random() * 50, life: 0.5 + random() * 0.3, color: i % 2 ? "#f6cf5a" : "#fff0b0" });
+    hud.announce(
+      `Caught a ${kind.name}, ${size} centimetres, ${kind.rarity}${perfect ? ", a perfect catch" : ""}, for ${value} points.`,
+    );
   }
   function endNight() {
     if (ended) return;
@@ -395,9 +419,9 @@ export function createGame(api) {
     fight = null;
     state = "done";
     clock = 0;
-    best.save(catches.length);
-    const record = catches.length > bestCatch && catches.length > 0;
-    bestCatch = Math.max(bestCatch, catches.length);
+    best.save(points);
+    const record = points > bestCatch && points > 0;
+    bestCatch = Math.max(bestCatch, points);
     hud.banner(record ? "New best!" : "Game over");
     hud.hint("SPACE to play again", "TAP to play again");
   }

@@ -29,6 +29,7 @@ import {
   carStep,
   collide,
   crash,
+  CRASH_TOLL,
   makeCar,
   makeScore,
   scoreStep,
@@ -131,7 +132,8 @@ test("rarer fish bite more often on long, clean casts", () => {
   assert.equal(new Set(FISH.map((fish) => fish.behaviour)).size, FISH.length, "every fish swims its own way");
 });
 
-test("a steady net lands a fish quickly and a few slips never lose it", () => {
+test("fishing takes skill: commons reward attention, rare fish are a real chase", () => {
+  // A steady, well-kept net lands a fish in under two seconds.
   const fight = { zone: 0.3, zv: 0, size: 0.3, fish: 0.45, target: 0.45, timer: 1, clock: 0, progress: REEL.start, inside: false };
   let result = "fighting",
     time = 0;
@@ -141,44 +143,53 @@ test("a steady net lands a fish quickly and a few slips never lose it", () => {
     time += 1 / 60;
   }
   assert.equal(result, "caught");
-  assert.ok(time > 0.8 && time < 2, `caught in ${time.toFixed(2)}s`);
-  // Five seconds out of the net still leaves the fish on the line.
+  assert.ok(time > 1 && time < 2.2, `caught in ${time.toFixed(2)}s`);
+  // One slip of a second never loses a fish; leaving it alone does.
   const slip = { zone: 0, zv: 0, size: 0.4, fish: 0.9, target: 0.9, timer: 1, clock: 0, progress: REEL.start, inside: false };
-  for (let i = 0; i < 300; i++) assert.equal(reelStep(slip, false, 1 / 60), "fighting");
+  for (let i = 0; i < 60; i++) assert.equal(reelStep(slip, false, 1 / 60), "fighting");
   const lost = { zone: 0, zv: 0, size: 0.2, fish: 0.9, target: 0.9, timer: 1, clock: 0, progress: REEL.start, inside: false };
   let outcome = "fighting";
-  for (let i = 0; i < 600 && outcome === "fighting"; i++) outcome = reelStep(lost, false, 1 / 60);
+  for (let i = 0; i < 300 && outcome === "fighting"; i++) outcome = reelStep(lost, false, 1 / 60);
   assert.equal(outcome, "escaped");
-  // Common fish leave a wider net and swim slower than the rare ones.
-  const [perch, , , pike, koi] = FISH;
-  assert.ok(perch.zone >= 0.5 && perch.zone > pike.zone && pike.zone > koi.zone);
+  // Nets shrink and fish quicken with rarity, and rarer fish pay more.
+  const [perch, bream, trout, pike, koi] = FISH;
+  assert.ok(perch.zone <= 0.36 && perch.zone > pike.zone && pike.zone > koi.zone);
   assert.ok(perch.agility < pike.agility && pike.agility < koi.agility);
-  // A player who only reacts a beat late still lands every common fish in
-  // well under two seconds; the rarest take a little longer, never forever.
-  const landingOnce = (species, random) => {
-    const fight = { zone: 0.5 - species.zone / 2, zv: 0, size: species.zone, fish: 0.5, target: 0.5, timer: 0, clock: 0, progress: REEL.start, inside: false },
-      seen = [];
-    let result = "fighting",
-      time = 0,
-      hold = false;
-    while (result === "fighting" && time < 20) {
-      swimStep(fight, species, 1 / 60, random);
-      seen.push(fight.fish);
-      if (seen.length % 12 === 0) hold = fight.zone + fight.size / 2 < seen[Math.max(0, seen.length - 30)];
-      result = reelStep(fight, hold, 1 / 60);
-      time += 1 / 60;
+  assert.ok(perch.points < trout.points && trout.points < pike.points && pike.points < koi.points);
+  // Play many fights with different players: one who watches the fish
+  // with a human beat of lag, and lazy ones who hold, never hold or tap a
+  // rhythm without looking.
+  const players = {
+    attentive: (f, lagged, noise) => f.zone + f.size / 2 + f.zv * 0.25 + (noise() - 0.5) * 0.06 < lagged,
+    hold: () => true,
+    idle: () => false,
+  };
+  const rate = (species, player) => {
+    const random = seeded(11),
+      noise = seeded(5);
+    let caught = 0;
+    for (let trial = 0; trial < 200; trial++) {
+      const f = { zone: 0.5 - species.zone / 2, zv: 0, size: species.zone, fish: 0.5, target: 0.5, timer: 0, clock: 0, progress: REEL.start, inside: false },
+        seen = [];
+      let state = "fighting",
+        hold = false;
+      for (let frame = 0; state === "fighting" && frame < 60 * 40; frame++) {
+        swimStep(f, species, 1 / 60, random);
+        seen.push(f.fish);
+        if (seen.length % 6 === 0) hold = players[player](f, seen[Math.max(0, seen.length - 15)], noise);
+        state = reelStep(f, hold, 1 / 60);
+      }
+      if (state === "caught") caught++;
     }
-    assert.equal(result, "caught", species.id);
-    return time;
+    return caught / 200;
   };
-  const landing = (species) => {
-    const random = seeded(3);
-    let total = 0;
-    for (let i = 0; i < 40; i++) total += landingOnce(species, random);
-    return total / 40;
-  };
-  assert.ok(landing(perch) < 1.5 && landing(FISH[1]) < 1.5);
-  assert.ok(landing(koi) > landing(perch) && landing(koi) < 4);
+  for (const species of [perch, bream]) {
+    assert.ok(rate(species, "attentive") >= 0.9, `${species.id} rewards attention`);
+    assert.ok(rate(species, "hold") < 0.4 && rate(species, "idle") < 0.4, `${species.id} needs more than one key held`);
+  }
+  assert.ok(rate(pike, "attentive") < rate(trout, "attentive"));
+  assert.ok(rate(koi, "attentive") < rate(pike, "attentive"));
+  assert.ok(rate(koi, "attentive") > 0.08, "the koi can still be landed");
   // Fish stay inside the bar whatever they do.
   const random = seeded(9);
   for (const species of FISH) {
@@ -218,6 +229,13 @@ test("crashes cost the pending drift, and the ring and obstacles hold", () => {
   assert.equal(crash(score), 1200);
   assert.equal(score.pending, 0);
   assert.equal(score.combo, 1);
+  // Once there is a bank, every crash dents it a little, never below zero.
+  score.total = 500;
+  assert.equal(crash(score), CRASH_TOLL);
+  assert.equal(score.total, 500 - CRASH_TOLL);
+  score.total = 20;
+  assert.equal(crash(score), 20);
+  assert.equal(score.total, 0);
   assert.deepEqual(bank(makeScore()), { points: 0, combo: 1 });
   const wall = makeCar(ARENA.x + ARENA.rx + 20, ARENA.y, 0);
   wall.vx = 150;

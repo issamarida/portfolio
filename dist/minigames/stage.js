@@ -131,7 +131,9 @@ function bestStore(id) {
 // alone centred above, the game in the middle and one controls hint centred
 // below, in one scheme ("A / D to steer") even where more keys work. A
 // small way out sits in the corner; on touch screens only the pads the game
-// needs are added. Nothing else is drawn over the play.
+// needs are added. The only things laid over the play are brief: a score
+// that pops when it changes and a small number or word that rises and fades
+// where something happened.
 const coarse = () => matchMedia("(pointer: coarse)").matches;
 function buildStage(meta) {
   const root = element("section", "minigame");
@@ -153,10 +155,12 @@ function buildStage(meta) {
   canvas.width = W;
   canvas.height = H;
   canvas.setAttribute("aria-hidden", "true");
-  const banner = element("p", "minigame-banner");
+  const banner = element("p", "minigame-banner"),
+    floats = element("div", "minigame-floats");
   banner.hidden = true;
   banner.setAttribute("aria-hidden", "true");
-  frame.append(canvas, banner);
+  floats.setAttribute("aria-hidden", "true");
+  frame.append(canvas, floats, banner);
   screen.append(frame);
   const hint = element("p", "minigame-hint");
   const touch = element("div", "minigame-touch");
@@ -171,7 +175,7 @@ function buildStage(meta) {
   const status = element("p", "sr-only");
   status.setAttribute("role", "status");
   root.append(exit, score, screen, hint, touch, status);
-  return { root, exit, score, screen, frame, canvas, banner, hint, touch, status };
+  return { root, exit, score, screen, frame, canvas, banner, floats, hint, touch, status };
 }
 
 // Launches a minigame. `origin` is the viewport point the iris closes on;
@@ -271,6 +275,11 @@ export class Stage {
         score: (text) => {
           if (parts.score.textContent !== String(text)) parts.score.textContent = text;
         },
+        // A short bump of the score: gold for a gain, red for a loss.
+        pop: (bad = false) => this.pop(bad),
+        // A small word or number that rises from a point in the game and
+        // fades within a second ("+120", "Perfect catch").
+        float: (text, x, y, tone = "") => this.float(text, x, y, tone),
         // The one short controls hint below it: keyboard or touch wording.
         hint: (keys, taps = keys) => this.hint(coarse() ? taps : keys),
         // Only for the end of a run (and pausing): big lettering on the game.
@@ -405,6 +414,22 @@ export class Stage {
       this.banner(this.restore?.[0] || null);
       this.hint(this.restore?.[1] || "");
     }
+  }
+  pop(bad) {
+    const score = this.parts.score;
+    score.classList.remove("is-pop", "is-drop");
+    // Restart the animation even when pops follow each other closely.
+    void score.offsetWidth;
+    score.classList.add(bad ? "is-drop" : "is-pop");
+  }
+  float(text, x, y, tone) {
+    const chip = element("span", `minigame-float ${tone}`.trim(), text);
+    chip.style.left = `${Math.min(92, Math.max(8, (x / W) * 100))}%`;
+    chip.style.top = `${Math.min(92, Math.max(8, (y / H) * 100))}%`;
+    this.parts.floats.append(chip);
+    // Never more than a few at once.
+    while (this.parts.floats.childElementCount > 4) this.parts.floats.firstChild.remove();
+    setTimeout(() => chip.remove(), 950);
   }
   banner(title) {
     const banner = this.parts.banner;

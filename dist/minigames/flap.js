@@ -74,7 +74,7 @@ export function createGame(api) {
   const sky = paintSky(),
     ridge = paintRidge(),
     column = paintColumn();
-  let state, owl, pillars, score, travelled, clock, deadClock, bestScore = best.get();
+  let state, owl, pillars, score, travelled, clock, deadClock, sparks, pulses, bestScore = best.get();
 
   function paintSky() {
     const { canvas, ctx: c } = surface(W, H);
@@ -111,6 +111,8 @@ export function createGame(api) {
     score = 0;
     travelled = 0;
     clock = 0;
+    sparks = [];
+    pulses = [];
     state = "ready";
     let x = W + 40;
     for (let i = 0; i < 4; i++, x += FLIGHT.spacing) pillars.push(newPillar(x, pillars.at(-1)));
@@ -140,6 +142,23 @@ export function createGame(api) {
     else if (state === "over" && deadClock > 0.45) reset();
   }
 
+  // Through a gap: the score pops, its lantern flares, and a few gold
+  // sparks and one quick ring burst from the owl. Every tenth gap and a
+  // new best on the way get a word of their own.
+  function reward(pillar) {
+    hud.pop();
+    pillar.flare = 0.5;
+    if (!api.reduced) {
+      pulses.push({ x: owl.x, y: owl.y, age: 0 });
+      for (let i = 0; i < 7; i++) {
+        const a = (i / 7) * Math.PI * 2 + random() * 0.6,
+          v = 40 + random() * 40;
+        sparks.push({ x: owl.x, y: owl.y, vx: Math.cos(a) * v - 30, vy: Math.sin(a) * v, life: 0.35 + random() * 0.2 });
+      }
+    }
+    if (bestScore > 0 && score === bestScore + 1) hud.float("New best!", owl.x, owl.y - 22, "is-good");
+    else if (score % 10 === 0) hud.float(`${score}!`, owl.x, owl.y - 22, "is-big");
+  }
   function crash() {
     state = "dead";
     deadClock = 0;
@@ -161,6 +180,7 @@ export function createGame(api) {
         if (!pillar.scored && pillar.x + FLIGHT.width < owl.x) {
           pillar.scored = true;
           score++;
+          reward(pillar);
         }
         if (hitsPillar(owl, pillar, pillar.gap)) return crash();
       }
@@ -184,6 +204,19 @@ export function createGame(api) {
         }
       }
     }
+    for (const pillar of pillars) pillar.flare = Math.max(0, (pillar.flare || 0) - dt);
+    for (const spark of sparks) {
+      spark.life -= dt;
+      spark.x += spark.vx * dt;
+      spark.y += spark.vy * dt;
+      spark.vy += 120 * dt;
+    }
+    sparks = sparks.filter((spark) => spark.life > 0);
+    for (const pulse of pulses) {
+      pulse.age += dt;
+      pulse.x -= speedFor(score) * dt;
+    }
+    pulses = pulses.filter((pulse) => pulse.age < 0.3);
     hud.score(format(score));
   }
 
@@ -218,7 +251,20 @@ export function createGame(api) {
       p.rect(x + 11, FLIGHT.ground + 17, 3, 2, "#55597a");
       p.rect(x + 7, FLIGHT.ground - 2, 2, 2, "#749151");
     }
+    // The reward ring: a stepped pixel circle that widens and thins out.
+    for (const pulse of pulses) {
+      const k = pulse.age / 0.3,
+        r = 6 + k * 12;
+      ctx.save();
+      ctx.globalAlpha = 0.8 * (1 - k);
+      for (let i = 0; i < 20; i++) {
+        const a = (i / 20) * Math.PI * 2;
+        p.rect(pulse.x + Math.cos(a) * r, pulse.y + Math.sin(a) * r * 0.9, 1, 1, "#ffe9a0");
+      }
+      ctx.restore();
+    }
     drawOwl(time);
+    for (const spark of sparks) p.rect(spark.x, spark.y, spark.life > 0.25 ? 2 : 1, spark.life > 0.25 ? 2 : 1, spark.life > 0.2 ? "#fff0b0" : "#f6cf5a");
   }
   function drawPillar(pillar, time) {
     const x = Math.round(pillar.x),
@@ -242,7 +288,7 @@ export function createGame(api) {
     const lx = x + FLIGHT.width / 2,
       sway = api.reduced ? 0 : Math.round(Math.sin(time * 2 + pillar.x * 0.05));
     p.rect(lx, top, 1, 6, "#2a2a2a");
-    p.glow(lx + sway, top + 11, 18, "#f6cf5a", 0.12);
+    p.glow(lx + sway, top + 11, 18 + (pillar.flare || 0) * 30, "#f6cf5a", 0.12 + (pillar.flare || 0) * 0.3);
     p.rect(lx - 3 + sway, top + 6, 7, 2, "#4a3a2a");
     p.rect(lx - 2 + sway, top + 8, 5, 6, "#f6cf5a");
     p.rect(lx - 1 + sway, top + 9, 2, 3, "#fff0b0");

@@ -105,13 +105,18 @@ try {
       .evaluate((el) => [getComputedStyle(el).backgroundSize, getComputedStyle(el).animationName]),
     ["100% 100%", "none"],
   );
-  assert.equal(await page.locator(".identity img").evaluate((el) => getComputedStyle(el).boxShadow), "none");
-  assert.match(
-    await page.locator(".reading-invitation a").evaluate((el) => getComputedStyle(el).borderImageSource),
-    /cabin-board\.svg/,
+  // The portrait sits in a dark carved recess on its board: no blue ring.
+  assert.doesNotMatch(
+    await page.locator(".identity img").evaluate((el) => getComputedStyle(el).boxShadow),
+    /61, 104, 176|42, 76, 138/,
   );
-  // With scripts the sign is painted on the billboards' grid, words kept.
-  assert.equal(await page.locator(".reading-invitation.is-painted .sign-paint").count(), 1);
+  // The reading sign is fixed pixel art painted like the cabin billboards,
+  // with its words kept in the link.
+  assert.match(
+    await page.locator(".reading-invitation a").evaluate((el) => getComputedStyle(el).backgroundImage),
+    /reading-sign\.svg/,
+  );
+  assert.equal(await page.locator(".reading-invitation canvas").count(), 0);
   assert.match(await page.locator(".reading-invitation a").innerText(), /Prefer reading instead of playing\?/i);
   assert.equal(
     await page
@@ -534,7 +539,8 @@ try {
   await extras.locator('.egg-arcade[data-game="flap"]').click();
   await extras.locator('.minigame[data-game="flap"]').waitFor();
   assert.equal(await extras.locator(".minigame-hint").textContent(), "SPACE to flap");
-  assert.equal(await extras.locator(".minigame-float, .minigame-floats").count(), 0);
+  // Feedback only appears when something happens, never at rest.
+  assert.equal(await extras.locator(".minigame-float").count(), 0);
   await extras.locator(".minigame-exit").click();
   await backHome();
   await extras.close();

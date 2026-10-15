@@ -83,7 +83,7 @@ const SIGN_TEXT = {
   gamedev: "GAME DEV",
   about: "ABOUT",
 };
-// The reading sign (reading-sign.js) letters with the same face, so the
+// The reading sign (scripts/generate-sign-art.mjs) letters with the same face, so the
 // set also carries the letters and the narrow stops its words need.
 export const GLYPHS = {
   A: [".###.", "#...#", "#...#", "#####", "#...#", "#...#", "#...#"],

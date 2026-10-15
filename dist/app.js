@@ -5,7 +5,6 @@ import { pendingIntro } from "./intro.js";
 import { lockPage, unlockPage } from "./scroll-lock.js";
 import { mountEggs } from "./eggs.js";
 import { minigameActive } from "./minigames/stage.js";
-import { mountReadingSign } from "./reading-sign.js";
 const canvas = document.querySelector("#world"),
   panel = document.querySelector("#panel"),
   interact = document.querySelector("#interact");
@@ -45,12 +44,6 @@ if (intro) await new Promise((resolve) => requestAnimationFrame(() => setTimeout
 await capped(
   Promise.all(["24px VT323", '24px "Pixelify Sans"'].map((font) => document.fonts.load(font))),
   intro ? 4000 : 1200,
-);
-// The reading sign is painted on the billboards' pixel grid once its
-// words have their real font, so its board never changes after reveal.
-mountReadingSign(
-  document.querySelector(".reading-invitation a"),
-  document.querySelector("#journey-world"),
 );
 const world = new World(canvas, (near, kind) => {
   interact.hidden = !near;
@@ -410,7 +403,7 @@ eggs = mountEggs({
 // The hero is only revealed once its portrait and board art are decoded,
 // so nothing pops in when the opening hands over.
 if (intro) {
-  const art = ["./photo.jpg", ...["plank-sign", "cabin-board", "chain", "eyelet", "timber-frame", "timber-beam", "parchment"].map((name) => `./art/${name}.svg`)];
+  const art = ["./photo.jpg", ...["reading-sign", "reading-sign-compact", "hanging-board", "plank-sign", "chain", "eyelet", "timber-frame", "timber-beam", "parchment"].map((name) => `./art/${name}.svg`)];
   await capped(
     Promise.all(
       art.map((src) => {

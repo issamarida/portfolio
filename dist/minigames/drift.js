@@ -152,8 +152,13 @@ export function bank(score) {
   score.combo = 1;
   return { points, combo };
 }
+// A crash throws away the drift in progress and dents the bank a little,
+// so every crash costs something once there is anything to lose.
+export const CRASH_TOLL = 50;
 export function crash(score) {
-  const lost = Math.round(score.pending * score.combo);
+  const toll = Math.min(CRASH_TOLL, score.total),
+    lost = Math.round(score.pending * score.combo) + toll;
+  score.total -= toll;
   score.pending = 0;
   score.chain = 0;
   score.combo = 1;
@@ -205,7 +210,7 @@ export function createGame(api) {
     frames = rotations(truckSprite(), 64),
     arena = paintArena(),
     skids = surface(W, H);
-  let state, car, score, time, dust, shake, bestScore = best.get(), crashFlash, idle, sinceCrash;
+  let state, car, score, time, dust, shake, bestScore = best.get(), crashFlash, idle, sinceCrash, shownCombo;
 
   function paintArena() {
     const { canvas, ctx: c } = surface(W, H),
@@ -319,6 +324,7 @@ export function createGame(api) {
     dust = [];
     shake = 0;
     crashFlash = 0;
+    shownCombo = 1;
     idle = 0;
     sinceCrash = 1;
     skids.ctx.clearRect(0, 0, W, H);
@@ -367,10 +373,24 @@ export function createGame(api) {
           sinceCrash = 0;
           const lost = crash(score);
           shake = 0.25;
-          crashFlash = 0.3;
+          crashFlash = 0.45;
+          shownCombo = 1;
+          hud.float(lost ? `−${format(lost)}` : "Crash!", car.x, car.y - 18, "is-bad");
+          if (lost) hud.pop(true);
           hud.announce(lost ? `Crashed and lost ${format(lost)} points.` : "Crashed.");
         }
-        scoreStep(score, car, h);
+        const banked = scoreStep(score, car, h);
+        // Drifting well shows as it happens: the multiplier as it climbs,
+        // then the points as the slide banks.
+        if (score.combo > shownCombo) {
+          shownCombo = score.combo;
+          hud.float(`×${score.combo}`, car.x, car.y - 22, "is-good");
+        }
+        if (banked && banked.points > 0) {
+          shownCombo = 1;
+          hud.float(`+${format(banked.points)}`, car.x, car.y - 18, banked.points >= 1000 ? "is-big" : "");
+          hud.pop();
+        }
       }
       leaveMarks(dt);
       if (time === 0) finish();
@@ -450,9 +470,18 @@ export function createGame(api) {
       const pulse = Math.floor(time2 * 8) % 2;
       p.rect(car.x - 1, car.y - 18 - pulse, 2, 2, score.combo > 3 ? "#f6cf5a" : "#fff3d6");
     }
+    // A crash glares red at the edges of the screen for a moment, in
+    // stepped bands, and leaves the middle of the play clear.
     if (crashFlash > 0) {
-      ctx.globalAlpha = crashFlash;
-      p.rect(0, 0, W, H, "#e4573d");
+      const k = crashFlash / 0.45;
+      for (let i = 0; i < 4; i++) {
+        ctx.globalAlpha = 0.34 * k * (1 - i / 4);
+        const inset = i * 6;
+        p.rect(inset, inset, W - inset * 2, 6, "#e4573d");
+        p.rect(inset, H - inset - 6, W - inset * 2, 6, "#e4573d");
+        p.rect(inset, inset + 6, 6, H - inset * 2 - 12, "#e4573d");
+        p.rect(W - inset - 6, inset + 6, 6, H - inset * 2 - 12, "#e4573d");
+      }
       ctx.globalAlpha = 1;
     }
     ctx.restore();

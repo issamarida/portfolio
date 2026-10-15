@@ -115,13 +115,19 @@ try {
         return {
           boardBottom: rect(".reading-invitation").bottom,
           controlsBar: document.querySelectorAll(".keyboard-hint").length,
-          boardCentered: (() => {
-            const a = rect(".reading-invitation a"),
-              h = rect(".reading-invitation strong"),
-              d = rect(".billboard-detail");
+          // The reading sign is one fixed piece of art: its box is exactly
+          // the art at the village's pixel size, whatever the screen.
+          signArt: (() => {
+            const a = document.querySelector(".reading-invitation a"),
+              box = a.getBoundingClientRect(),
+              journey = document.querySelector("#journey-world").getBoundingClientRect(),
+              cp = Math.max(2, journey.width / 480),
+              phone = innerWidth <= 740,
+              [cols, rows] = phone ? [92, 67] : [119, 51];
             return (
-              Math.abs((h.top + d.bottom) / 2 - (a.top + a.bottom) / 2) < 1 &&
-              Math.abs((h.left + h.right) / 2 - (a.left + a.right) / 2) < 1
+              getComputedStyle(a).backgroundImage.includes(phone ? "reading-sign-compact.svg" : "reading-sign.svg") &&
+              Math.abs(box.width - cols * cp) < 1 &&
+              Math.abs(box.height - rows * cp) < 1
             );
           })(),
           roofLabels: [
@@ -142,18 +148,6 @@ try {
                   l.bottom <= s.top ||
                   l.top >= s.bottom,
               )
-            );
-          }),
-          boardInset: [
-            ...document.querySelectorAll(".reading-invitation a > :not(.sign-paint)"),
-          ].every((e) => {
-            const a = rect(".reading-invitation a"),
-              b = e.getBoundingClientRect();
-            return (
-              b.left >= a.left + 10 &&
-              b.right <= a.right - 10 &&
-              b.top >= a.top + 20 &&
-              b.bottom <= a.bottom - 20
             );
           }),
           portraitTop: rect(".identity img").top,
@@ -210,10 +204,7 @@ try {
         };
       });
       assert.equal(opening.controlsBar, 0, "No controls bar above the moon");
-      assert.ok(
-        opening.boardInset,
-        "Reading sign content must stay inset within its wood face",
-      );
+      assert.ok(opening.signArt, `The reading sign keeps its fixed art size at ${width}px`);
       assert.equal(opening.clouds.count, 4);
       assert.ok(opening.clouds.apart, `Cloud text must not overlap at ${width}px`);
       assert.ok(opening.clouds.inside);
@@ -235,10 +226,7 @@ try {
           "The reading sign stands under the fountain in the opening view",
         );
       }
-      assert.ok(
-        opening.boardCentered,
-        "Reading lettering must center on both axes",
-      );
+
       assert.ok(
         opening.roofLabels,
         "Cabin plaques must stay on the roof, clear of entrances",

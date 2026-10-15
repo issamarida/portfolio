@@ -4687,6 +4687,86 @@ html.is-minigame body > :not(.minigame):not(.minigame-iris) {
   letter-spacing: 0.04em;
   color: #b8a888;
 }
+/* Brief feedback only: a word or number rises a little and fades. */
+.minigame-floats {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+.minigame-float {
+  position: absolute;
+  font: 400 clamp(15px, 2vw, 21px) / 1 var(--pixel);
+  letter-spacing: 0.04em;
+  color: #ffe3a0;
+  white-space: nowrap;
+  text-shadow:
+    2px 2px 0 #120a0c,
+    -1px -1px 0 #120a0c;
+  transform: translate(-50%, -50%);
+  animation: minigame-float 0.9s steps(6, end) both;
+}
+.minigame-float.is-bad {
+  color: #ff8a7a;
+}
+.minigame-float.is-good {
+  color: #b4ecbc;
+}
+.minigame-float.is-big {
+  font-size: clamp(19px, 2.6vw, 27px);
+  color: #fff3c4;
+}
+@keyframes minigame-float {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -20%);
+  }
+  18%,
+  65% {
+    opacity: 1;
+    transform: translate(-50%, -60%);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -140%);
+  }
+}
+.minigame-score.is-pop {
+  animation: minigame-pop 0.32s steps(4, end);
+}
+.minigame-score.is-drop {
+  animation: minigame-drop 0.4s steps(4, end);
+}
+@keyframes minigame-pop {
+  40% {
+    color: #fff8dc;
+    transform: scale(1.22);
+  }
+}
+@keyframes minigame-drop {
+  25% {
+    color: #ff8a7a;
+    transform: translateX(-3px);
+  }
+  50% {
+    color: #ff8a7a;
+    transform: translateX(3px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .minigame-float {
+    animation: minigame-fade 0.9s steps(3, end) both;
+  }
+  .minigame-score.is-pop,
+  .minigame-score.is-drop {
+    animation: none;
+  }
+}
+@keyframes minigame-fade {
+  to {
+    opacity: 0;
+  }
+}
 .minigame-touch {
   display: none;
 }
@@ -4789,118 +4869,116 @@ html.is-minigame body > :not(.minigame):not(.minigame-iris) {
   visibility: hidden;
 }
 
-/* The reading sign is lettered like the cabin billboards: the same walnut
-   board with a dark notched outline, a moonlit top bevel and iron nails,
-   a plank face brightest under two gooseneck lamps, and cream pixel
-   letters with a hard shadow, standing on the cabins' timber posts. Sizes
-   follow the village's own art pixel (--cp). */
+/* The reading sign is one fixed piece of pixel art, painted by
+   scripts/generate-sign-art.mjs exactly like the cabin billboards: walnut
+   planks, notched outline, bevel, nails, moss, gooseneck lamps, timber
+   posts and the billboards' own letters. It is shown at the village's art
+   pixel (--cp), so it keeps one size per screen and never measures,
+   repaints or resizes itself. Its words stay in the link for keyboards and
+   screen readers. */
 .reading-invitation a {
-  --post: 2.2cqw;
-  border: calc(3 * var(--cp)) solid transparent;
-  border-image: url("./art/cabin-board.svg") 3 fill / calc(3 * var(--cp)) stretch;
-  background:
-    linear-gradient(#a0582e, #a0582e) calc(3 * var(--cp)) 0 / calc(8 * var(--cp)) calc(2 * var(--cp)) no-repeat,
-    linear-gradient(#a0582e, #a0582e) calc(100% - 3 * var(--cp)) 0 / calc(8 * var(--cp)) calc(2 * var(--cp)) no-repeat,
-    repeating-linear-gradient(transparent 0 calc(9 * var(--cp)), #4b241e calc(9 * var(--cp)) calc(10 * var(--cp))),
-    linear-gradient(#86442a 0 calc(3 * var(--cp)), #6e3622 calc(3 * var(--cp)) calc(6 * var(--cp)), #5c2d1f calc(6 * var(--cp)));
-  background-origin: padding-box;
-  background-clip: padding-box;
-  image-rendering: pixelated;
-  box-shadow: 0 calc(2 * var(--cp)) 0 #08162666;
-  filter: none;
-  color: #ffe7b4;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  text-shadow:
-    var(--cp) var(--cp) 0 #2b1f14,
-    0 0 calc(5 * var(--cp)) #ffcf7b33;
+  --sign-w: 119;
+  --sign-h: 51;
+  box-sizing: border-box;
+  display: block;
+  width: calc(var(--sign-w) * var(--cp));
+  height: calc(var(--sign-h) * var(--cp));
+  min-width: 0;
+  min-height: 0;
+  max-width: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-image: none;
+  background: url("./art/reading-sign.svg") center / 100% 100% no-repeat;
+  box-shadow: none;
+  filter: drop-shadow(0 var(--cp) 0 #08162666);
+  color: transparent;
+  text-shadow: none;
+  transition: opacity 0.25s steps(3);
 }
-.reading-invitation strong {
-  color: #fffbea;
+.reading-invitation a::before,
+.reading-invitation a::after {
+  content: none;
 }
-.reading-invitation .billboard-detail {
-  color: #f4c886;
+.reading-invitation a :is(strong, .billboard-detail) {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
 }
 .reading-invitation a:hover,
 .reading-invitation a:focus-visible {
-  color: #fff4d2;
-  filter: brightness(1.1);
+  color: transparent;
+  filter: brightness(1.12) drop-shadow(0 var(--cp) 0 #08162666);
 }
-/* Two gooseneck lamps lean over the top edge and light the lettering. */
-.reading-invitation a::before {
-  content: "";
-  position: absolute;
-  z-index: 1;
-  inset: auto calc(1 * var(--cp)) calc(100% + 1 * var(--cp)) calc(1 * var(--cp));
-  top: auto;
-  width: auto;
-  height: calc(7 * var(--cp));
-  margin: 0;
-  border: 0;
-  clip-path: none;
-  background:
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 6 7' shape-rendering='crispEdges'%3E%3Cpath fill='%231b1418' d='M0 0h4v1H1v6H0z'/%3E%3Cpath fill='%2324151a' d='M2 0h4v2H2z'/%3E%3Cpath fill='%23fff1b8' d='M3 2h3v1H3z'/%3E%3C/svg%3E") left bottom / calc(6 * var(--cp)) calc(7 * var(--cp)) no-repeat,
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 6 7' shape-rendering='crispEdges'%3E%3Cpath fill='%231b1418' d='M2 0h4v1H5v6H6z'/%3E%3Cpath fill='%231b1418' d='M5 0h1v7H5z'/%3E%3Cpath fill='%2324151a' d='M0 0h4v2H0z'/%3E%3Cpath fill='%23fff1b8' d='M0 2h3v1H0z'/%3E%3C/svg%3E") right bottom / calc(6 * var(--cp)) calc(7 * var(--cp)) no-repeat;
-  image-rendering: pixelated;
-  filter: drop-shadow(0 0 calc(3 * var(--cp)) #ffd77a88);
-}
-/* Timber posts, as under the cabin billboards. */
-.reading-invitation a::after {
-  content: "";
-  position: absolute;
-  z-index: -1;
-  top: calc(100% - 2px);
-  right: 18%;
-  bottom: auto;
-  left: 18%;
-  width: auto;
-  height: var(--post);
-  margin: 0;
-  border: 0;
-  clip-path: none;
-  background:
-    linear-gradient(90deg, #6b5234 0 var(--cp), #4a3824 var(--cp) calc(2 * var(--cp)), #2a2016 calc(2 * var(--cp)) calc(3 * var(--cp))) left top / calc(3 * var(--cp)) 100% no-repeat,
-    linear-gradient(90deg, #6b5234 0 var(--cp), #4a3824 var(--cp) calc(2 * var(--cp)), #2a2016 calc(2 * var(--cp)) calc(3 * var(--cp))) right top / calc(3 * var(--cp)) 100% no-repeat;
-  filter: none;
-}
-@media (max-width: 740px) {
-  .reading-invitation a {
-    --post: 38px;
-  }
+.reading-invitation a:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 4px;
 }
 @media (min-width: 741px) {
-  /* The board's edge comes out of the padding, so the sign keeps its size. */
+  /* Centred on the fountain (x 482), its lamps from village y 382. */
   .reading-invitation a {
-    padding: calc(max(21px, 2.1cqw) - 3 * var(--cp)) calc(max(12px, 1.4cqw) - 3 * var(--cp))
-      calc(max(22px, 2.2cqw) - 3 * var(--cp));
+    position: absolute;
+    left: 50.2cqw;
+    top: calc(15.625cqw + 39.8cqw);
+    transform: translateX(-50%);
+  }
+}
+@media (max-width: 740px) {
+  /* Phones stack the words on a narrower board between the fire and the
+     relics, below the river. */
+  .reading-invitation a {
+    --sign-w: 92;
+    --sign-h: 67;
+    position: relative;
+    margin: 0 auto;
+    background-image: url("./art/reading-sign-compact.svg");
   }
 }
 
-/* With scripts the sign is painted by reading-sign.js exactly like the
-   cabin billboards; the words stay in place, unseen, for focus, screen
-   readers and selection, and the CSS board above remains the fallback. */
-.reading-invitation .sign-paint {
-  position: absolute;
-  z-index: 0;
-  pointer-events: none;
-  image-rendering: pixelated;
+/* The hanging boards are built from the cabin billboards' wood: the same
+   dark walnut, notched outline, moonlit bevel, lamp-lit top planks, seams
+   and nails, lettered in cream with the billboards' hard shadow. The
+   board tiles rather than stretches, so seams stay one art pixel thick. */
+.sky-header .header .sky-cloud,
+.sky-header .header .social-links a.sky-cloud {
+  color: #ffe7b4;
+  text-shadow: var(--cp) var(--cp) 0 #2b1f14;
 }
-.reading-invitation.is-painted a {
-  color: transparent;
-  text-shadow: none;
-  background: none;
-  box-shadow: none;
+.sky-header .header .sky-cloud::before {
+  border-image: url("./art/hanging-board.svg") 8 fill / calc(8 * var(--cp)) round;
+  filter: drop-shadow(0 calc(2 * var(--cp)) 0 #050a1899);
+  -webkit-filter: drop-shadow(0 calc(2 * var(--cp)) 0 #050a1899);
 }
-.reading-invitation.is-painted strong,
-.reading-invitation.is-painted .billboard-detail {
-  position: relative;
-  z-index: 1;
-  color: transparent;
+.sky-header .header .sky-cloud:hover,
+.sky-header .header .sky-cloud:focus-visible {
+  color: #fffbea;
 }
-.reading-invitation.is-painted a::before {
-  content: none;
+.sky-header .header .sky-cloud:hover::before,
+.sky-header .header .sky-cloud:focus-visible::before {
+  filter: brightness(1.15) drop-shadow(0 calc(2 * var(--cp)) 0 #050a1899);
+  -webkit-filter: brightness(1.15) drop-shadow(0 calc(2 * var(--cp)) 0 #050a1899);
 }
-.reading-invitation.is-painted a:hover,
-.reading-invitation.is-painted a:focus-visible {
-  color: transparent;
+.sky-header .header .identity h1,
+.sky-header .header .social-links a.sky-cloud {
+  color: #ffe7b4;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  text-shadow: var(--cp) var(--cp) 0 #2b1f14;
+}
+.sky-header .header .identity h1 {
+  color: #fffbea;
+}
+.sky-header .contact .email-link {
+  color: #f4c886;
+}
+/* The photo stays as it is, set into the board in a dark carved recess. */
+.sky-header .identity img {
+  box-shadow:
+    0 0 0 var(--cp) #241b12,
+    0 0 0 calc(2 * var(--cp)) #3c201e;
 }

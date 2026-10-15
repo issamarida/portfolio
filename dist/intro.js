@@ -1,8 +1,10 @@
 // Opening sequence: the village lake at night behind a broken wooden
-// plank that drops in on its ropes, then a camera swoop onto the
-// About cabin where the player steps outside to greet the visitor. The
-// camera moves the real page, so whatever it shows is the finished hero,
-// boards and signs included, and the last frame simply is the page.
+// plank that drops in on its ropes. Exploring fades straight onto an
+// ordinary shot of the About cabin; the door opens, the player steps out,
+// pauses and greets the visitor, then the camera pulls smoothly back to
+// reveal the whole hero. The camera moves the real page, so whatever it
+// shows is the finished hero, boards and signs included, and the last
+// frame simply is the page.
 import { mountPlank } from "./plank.js";
 
 const GREETING =
@@ -204,6 +206,7 @@ export function openIntro() {
 
   let phase = "title",
     clock = 0,
+    shot = 0,
     typed = 0,
     camera = null,
     raf = 0,
@@ -226,42 +229,29 @@ export function openIntro() {
       cy: (innerHeight / 2 - home.top) / home.scale,
     };
   }
+  // The one shot of the cabin: the whole cabin and its roof sign at an
+  // ordinary, comfortable scale, held in the upper part of the screen so
+  // the greeting below never covers it, and never past the village's edge.
   function cabinView() {
-    const scale = Math.max(
-      home.scale * 1.6,
-      Math.min(innerWidth / 250, innerHeight / 200),
-    );
-    const sky = world.layout.skyHeight || 0;
-    // The dialogue sits low, so frame the doorway in the upper half.
-    return { scale, cx: about.doorX, cy: sky + 412 + (innerHeight * 0.2) / scale };
-  }
-  // The swoop starts inside the clearing, never on the whole hero: wide
-  // enough to read as arriving, close enough to keep the sky out of frame.
-  // Tall phones cannot fit more of the village than the cabin shot, so
-  // there the camera pans across from the fountain instead.
-  function arrivalView() {
-    const end = cabinView(),
+    const scale = Math.max(home.scale * 1.6, Math.min(innerWidth / 300, innerHeight / 290)),
       sky = world.layout.skyHeight || 0,
-      scale = Math.max(
-        end.scale * 0.55,
-        innerWidth / 960,
-        Math.min(end.scale, innerHeight / 470),
-      ),
       halfW = innerWidth / 2 / scale,
-      halfH = innerHeight / 2 / scale;
-    const clamp = (value, low, high) => (low > high ? (low + high) / 2 : Math.min(high, Math.max(low, value)));
+      centre = about.x + about.w / 2;
     return {
       scale,
-      cx: clamp(480 + (about.doorX - 480) * 0.45, halfW, 960 - halfW),
-      cy: clamp(sky + 300, sky + halfH, sky + 540 - halfH),
+      cx: halfW < 480 ? Math.min(960 - halfW, Math.max(halfW, centre)) : 480,
+      cy: sky + about.y + about.h / 2 - 8 + (innerHeight * 0.16) / scale,
     };
   }
-  function mixView(a, b, t) {
-    return {
-      scale: Math.exp(Math.log(a.scale) + (Math.log(b.scale) - Math.log(a.scale)) * t),
-      cx: a.cx + (b.cx - a.cx) * t,
-      cy: a.cy + (b.cy - a.cy) * t,
-    };
+  // Pulling back from the cabin to the page: the visible width grows
+  // smoothly on a log scale and the view's edges move in proportion, so
+  // the shot widens around one steady point, with no swing or overshoot.
+  function pullBack(a, b, t) {
+    const wa = innerWidth / a.scale,
+      wb = innerWidth / b.scale,
+      w = Math.exp(Math.log(wa) + (Math.log(wb) - Math.log(wa)) * t),
+      u = Math.abs(wb - wa) < 1e-6 ? t : (w - wa) / (wb - wa);
+    return { scale: innerWidth / w, cx: a.cx + (b.cx - a.cx) * u, cy: a.cy + (b.cy - a.cy) * u };
   }
   // Puts the world point (cx, cy) in the middle of the screen at the given
   // scale by transforming the page itself, snapped to device pixels.
@@ -278,25 +268,31 @@ export function openIntro() {
       Math.abs(k - 1) < 1e-4 && !x && !y ? "" : `translate(${x}px, ${y}px) scale(${k})`;
   }
   function onResize() {
-    if (!camera || finished) return;
+    if (phase === "title" || finished) return;
     measure();
-    if (phase === "ready" || phase === "talk" || phase === "walk") frame(cabinView());
+    if (phase !== "zoom-out") frame(cabinView());
   }
 
   // The title backdrop is painted once; only its two glint layers move,
   // on the compositor.
   paintNight(backdrop, [...root.querySelectorAll(".intro-glints")]);
 
-  // The script: door opens, Issam steps out, waves and starts talking.
+  // The script, in seconds from the moment the cabin is on screen: a beat
+  // to take it in, the door opens, Issam steps out and waves, a short pause,
+  // then he starts talking.
+  const DOOR = 0.8,
+    OUT = 1.4,
+    STEPPED = 2.6,
+    TALK = 3.1;
   function script(dt) {
     clock += dt;
     const t = clock;
-    world.doorOpen = clamp01((t - 1.6) / 0.5);
-    if (t < 2.2) {
+    world.doorOpen = clamp01((t - DOOR) / 0.5);
+    if (t < OUT) {
       world.player = { ...START, facing: "down" };
       world.walking = false;
-    } else if (t < 3.4) {
-      const k = (t - 2.2) / 1.2;
+    } else if (t < STEPPED) {
+      const k = (t - OUT) / (STEPPED - OUT);
       world.player = {
         x: START.x,
         y: START.y + (STOP.y - START.y) * k,
@@ -307,11 +303,11 @@ export function openIntro() {
       world.player = { ...STOP, facing: "down" };
       world.walking = false;
       world.emerging = false;
-      world.doorOpen = clamp01(1 - (t - 3.6) / 0.5);
-      world.waving = t < 5.2;
-      if (phase === "walk") showDialog();
+      world.doorOpen = clamp01(1 - (t - STEPPED - 0.2) / 0.5);
+      world.waving = phase !== "zoom-out" && phase !== "pause" && t < STEPPED + 1.8;
+      if (phase === "scene" && t >= TALK) showDialog();
     }
-    world.emerging = t >= 2 && t < 3.4;
+    world.emerging = t >= DOOR + 0.4 && t < STEPPED;
   }
   function showDialog() {
     phase = "talk";
@@ -337,16 +333,23 @@ export function openIntro() {
     last = now;
     if (phase === "title") return;
     if (document.hidden) return;
-    if (phase === "zoom-in") {
-      const k = reduced() ? 1 : clamp01(clock / 1.5);
-      frame(mixView(camera.from, cabinView(), ease(k)));
-    } else if (phase === "zoom-out") {
-      clock += dt;
-      const k = reduced() ? 1 : clamp01(clock / 1.1);
-      frame(mixView(camera.from, pageView(), ease(k)));
+    if (phase === "pause") {
+      // A breath between the goodbye and the pull-back.
+      shot += dt;
+      if (shot >= 0.35 || reduced()) {
+        phase = "zoom-out";
+        shot = 0;
+      }
+      return;
+    }
+    if (phase === "zoom-out") {
+      shot += dt;
+      const k = reduced() ? 1 : clamp01(shot / 2);
+      frame(pullBack(camera.from, pageView(), ease(k)));
       if (k >= 1) finish();
       return;
-    } else frame(cabinView());
+    }
+    frame(cabinView());
     if (phase === "talk") {
       typed = Math.min(GREETING.length, typed + dt * TYPE_RATE);
       line.textContent = GREETING.slice(0, Math.max(0, Math.floor(typed)));
@@ -365,38 +368,30 @@ export function openIntro() {
     }
     scrollTo(0, 0);
     measure();
-    phase = "zoom-in";
+    phase = "scene";
     world.suspended = false;
-    camera = { from: arrivalView() };
-    // The camera is on the clearing before the night lifts.
-    frame(camera.from);
+    // The cabin shot is set before the night lifts: no zoom to arrive.
+    frame(cabinView());
     root.classList.add("is-playing");
-    clock = 0;
+    clock = reduced() ? TALK : 0;
     world.active = false;
     world.keys.clear();
     world.near = null;
     world.player = { ...START, facing: "down" };
-    world.cutscene = (dt) => {
-      script(dt);
-      if (phase === "zoom-in" && clock >= 1.5) phase = "walk";
-      if (reduced() && phase === "zoom-in") {
-        clock = 3.4;
-        phase = "walk";
-      }
-    };
+    world.cutscene = script;
     // Esc still skips, but the button is only offered on the title.
     root.tabIndex = -1;
     root.focus({ preventScroll: true });
   }
   function leave() {
-    if (phase === "zoom-out" || finished) return;
-    phase = "zoom-out";
+    if (phase === "zoom-out" || phase === "pause" || finished) return;
+    phase = "pause";
     world.talking = false;
     world.waving = false;
     dialog.hidden = true;
     root.classList.add("is-leaving");
     camera = { from: cabinView() };
-    clock = 0;
+    shot = 0;
   }
   function finish() {
     if (finished) return;

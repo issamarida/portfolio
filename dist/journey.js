@@ -1400,6 +1400,79 @@ function bonfireFlames(p, x, y, time, reduced) {
   }
 }
 
+// A worn trail joins the band below the river to the village: it leaves
+// the bridge, then forks left to the camper's fire and right to the sword
+// memorial, lit by the village's own lamp posts, so the page reads as one
+// walk downhill rather than stacked scenes.
+export function trailPoints(layout) {
+  if (!layout.invitation || !layout.divider) return [];
+  const area = layout.divider,
+    middle = layout.invitation.y + layout.invitation.height / 2,
+    top = riverY(area, 480) + Math.min(52, area.height * 0.3) + 4,
+    fork = { x: 480, y: Math.max(top + 20, middle - 30) },
+    points = [];
+  for (let y = top; y < fork.y; y += 10) points.push([480 + Math.sin(y * 0.07) * 3, y]);
+  const branch = (end, bend) => {
+    for (let t = 0.06; t <= 1.001; t += 0.06) {
+      const u = 1 - t;
+      points.push([
+        u * u * fork.x + 2 * u * t * bend[0] + t * t * end[0],
+        u * u * fork.y + 2 * u * t * bend[1] + t * t * end[1],
+      ]);
+    }
+  };
+  branch([232, middle + 26], [372, middle + 34]);
+  branch([706, middle + 34], [590, middle + 40]);
+  return points;
+}
+const trailBoxes = (layout) =>
+  trailPoints(layout).map(([x, y]) => ({ left: x - 24, right: x + 24, top: y - 16, bottom: y + 14 }));
+export function trailLamps(layout) {
+  if (!layout.invitation || !layout.divider) return [];
+  const middle = layout.invitation.y + layout.invitation.height / 2;
+  return [
+    [446, middle - 34],
+    [330, middle + 6],
+    [640, middle + 8],
+  ];
+}
+function trail(p, layout) {
+  const points = trailPoints(layout);
+  points.forEach(([x, y], i) =>
+    dirtOval(p, x, y, 15, 8, 6100 + i, ["#3e2c1e", "#4a3424", "#5a4030", "#34442a"]),
+  );
+  // Stepping stones and moss at the edges, a little like the dock paths.
+  points.forEach(([x, y], i) => {
+    if (i % 3) return;
+    p.ellipse(x + (i % 2 ? 5 : -5), y, 12, 6, "#4a4e6c");
+    p.rect(x + (i % 2 ? 1 : -9), y - 2, 7, 2, "#6a6e86");
+  });
+  const rand = random(6151);
+  for (const [x, y] of points)
+    for (const side of [-1, 1]) {
+      if (rand() < 0.5) continue;
+      p.rect(x + side * (16 + rand() * 6), y - 2, 2, 4, "#3e5a2e");
+      p.rect(x + side * (18 + rand() * 6), y - 4, 2, 6, "#5a7a3a");
+    }
+}
+// Mossy, uneven ground under each landmark so its clearing grows out of
+// the forest floor instead of sitting on it.
+function groundPatches(p, layout) {
+  if (!layout.invitation) return;
+  const middle = layout.invitation.y + layout.invitation.height / 2,
+    rand = random(6163);
+  for (const [cx, cy, spread] of [
+    [150, middle + 10, 150],
+    [800, middle + 20, 130],
+    [480, middle - 10, 120],
+  ])
+    for (let i = 0; i < 7; i++) {
+      const a = rand() * Math.PI * 2,
+        d = spread * (0.55 + rand() * 0.45);
+      dirtOval(p, cx + Math.cos(a) * d, cy + Math.sin(a) * d * 0.45, 26 + rand() * 18, 9 + rand() * 6, 6170 + i, ["#2c3a24", "#34442a", "#3a4a2c", "#4a3a28"]);
+    }
+}
+
 function landmarks(layout) {
   const scenes = layout.invitation
     ? [
@@ -1482,6 +1555,9 @@ export function paintJourney(painter, layout, includeActors = true) {
       bottom: s.y + s.height,
     })),
   );
+  groundPatches(p, layout);
+  trail(p, layout);
+  const pathway = trailBoxes(layout);
   const trees = [];
   for (let y = start + 35; y < layout.height + 90; y += 62) {
     for (let x = 25; x < WIDTH; x += 54) {
@@ -1489,14 +1565,16 @@ export function paintJourney(painter, layout, includeActors = true) {
         ty = y + (rand() - 0.5) * 34;
       const tree = { x: tx, y: ty, s: 0.75 + rand() * 0.45, tone: rand() };
       const footprint = treeFootprint(tree);
-      const scenicOpening = scenery.some((scene) =>
-        intersects(footprint, {
-          left: scene.x - scene.rx,
-          right: scene.x + scene.rx,
-          top: scene.y - scene.ry,
-          bottom: scene.y + scene.ry,
-        }),
-      );
+      const scenicOpening =
+        pathway.some((box) => intersects(footprint, box)) ||
+        scenery.some((scene) =>
+          intersects(footprint, {
+            left: scene.x - scene.rx,
+            right: scene.x + scene.rx,
+            top: scene.y - scene.ry,
+            bottom: scene.y + scene.ry,
+          }),
+        );
       if (!scenicOpening) trees.push(tree);
     }
   }
@@ -1515,6 +1593,7 @@ export function paintJourney(painter, layout, includeActors = true) {
     };
     const footprint = treeFootprint(extra);
     if (
+      !pathway.some((box) => intersects(footprint, box)) &&
       !scenery.some((scene) =>
         intersects(footprint, {
           left: scene.x - scene.rx,
@@ -1569,6 +1648,7 @@ export function paintJourney(painter, layout, includeActors = true) {
       const footprint = treeFootprint(tree);
       if (
         intersects(footprint, notice) ||
+        pathway.some((box) => intersects(footprint, box)) ||
         scenery.some((scene) =>
           intersects(footprint, {
             left: scene.x - scene.rx,
@@ -1582,7 +1662,34 @@ export function paintJourney(painter, layout, includeActors = true) {
       framingTrees.push(tree);
     }
   }
+  // The band round the camper and the memorial fills in densely, so the
+  // two clearings sit inside one continuous wood.
+  if (layout.invitation) {
+    const band = layout.invitation,
+      fill = random(6199),
+      clear = (footprint) =>
+        !pathway.some((box) => intersects(footprint, box)) &&
+        !scenery.some((scene) =>
+          intersects(footprint, {
+            left: scene.x - scene.rx + 10,
+            right: scene.x + scene.rx - 10,
+            top: scene.y - scene.ry + 10,
+            bottom: scene.y + scene.ry - 10,
+          }),
+        ) &&
+        !(layout.sections || []).some((section) =>
+          intersects(footprint, { left: section.x, right: section.x + section.width, top: section.y, bottom: section.y + section.height }),
+        );
+    for (let y = band.y + 18; y < band.y + band.height + 30; y += 34)
+      for (let x = 20 + ((y / 34) % 2) * 23; x < WIDTH; x += 46) {
+        const tree = { x: x + (fill() - 0.5) * 18, y: y + (fill() - 0.5) * 12, s: 0.55 + fill() * 0.3, tone: fill() };
+        if (!clear(treeFootprint(tree))) continue;
+        if ([...trees, ...framingTrees].some((t) => Math.hypot(t.x - tree.x, t.y - tree.y) < 30)) continue;
+        framingTrees.push(tree);
+      }
+  }
   for (const tree of framingTrees.sort((a, b) => a.y - b.y)) p.tree(tree);
+  for (const [x, y] of trailLamps(layout)) p.lantern(x, y);
   for (const scene of scenery) {
     if (scene.paint === campsite) campsite(p, layout.stable, includeActors);
     else if (scene.paint === river) river(p, layout.divider);

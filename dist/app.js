@@ -212,6 +212,7 @@ function resizeJourney() {
   );
   if (signature !== layoutSignature) {
     world.setLayout(layout);
+    eggs?.place(layout);
     layoutSignature = signature;
   }
   // On desktop the reading sign stands in the village; phones keep it
@@ -403,7 +404,7 @@ eggs = mountEggs({
 // The hero is only revealed once its portrait and board art are decoded,
 // so nothing pops in when the opening hands over.
 if (intro) {
-  const art = ["./photo.jpg", ...["reading-sign", "reading-sign-compact", "hanging-board", "plank-sign", "chain", "eyelet", "timber-frame", "timber-beam", "parchment"].map((name) => `./art/${name}.svg`)];
+  const art = ["./photo.jpg", ...["reading-sign", "hanging-board", "plank-sign", "chain", "eyelet", "timber-frame", "timber-beam", "parchment"].map((name) => `./art/${name}.svg`)];
   await capped(
     Promise.all(
       art.map((src) => {

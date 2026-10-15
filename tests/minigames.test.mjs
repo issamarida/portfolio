@@ -30,6 +30,7 @@ import {
   collide,
   crash,
   CRASH_TOLL,
+  DRIFT,
   makeCar,
   makeScore,
   scoreStep,
@@ -37,11 +38,13 @@ import {
   speedOf,
 } from "../dist/minigames/drift.js";
 import { minigameIds } from "../dist/minigames/stage.js";
+import { COMBO_WINDOW, GRAVITY, ROUND as SLICE_ROUND, TARGETS, comboBonus, launch, segmentDistance, wave } from "../dist/minigames/slice.js";
+import { GRADES, STRIKES, cookTime, judge, toastColor } from "../dist/minigames/toast.js";
 
 const seeded = (seed) => () => ((seed = (seed * 1664525 + 1013904223) >>> 0) / 4294967296);
 
 test("every hidden extra has a minigame module", () => {
-  assert.deepEqual([...minigameIds].sort(), ["drift", "fishing", "flap", "maze"]);
+  assert.deepEqual([...minigameIds].sort(), ["drift", "fishing", "flap", "maze", "slice", "toast"]);
   for (const cabinet of ARCADES) assert.ok(minigameIds.includes(cabinet.game));
 });
 
@@ -201,19 +204,54 @@ test("fishing takes skill: commons reward attention, rare fish are a real chase"
   }
 });
 
-test("turning hard at speed slides the rear out and builds a combo", () => {
-  const car = makeCar(0, 0, 0),
-    score = makeScore();
-  for (let i = 0; i < 150; i++) carStep(car, { gas: true }, 1 / 120);
-  assert.ok(slipAngle(car) < 3, "drives straight with grip");
-  let widest = 0;
-  for (let i = 0; i < 360; i++) {
-    carStep(car, { gas: true, right: true }, 1 / 120);
+test("the truck grips until the player commits to a drift, then can hold or recover it", () => {
+  const drive = (car, input, seconds, each) => {
+    let widest = 0;
+    for (let i = 0; i < seconds * 120; i++) {
+      carStep(car, input, 1 / 120);
+      widest = Math.max(widest, slipAngle(car));
+      each?.(i);
+    }
+    return widest;
+  };
+  // Straight, gentle and slow driving keep the tyres planted.
+  const car = makeCar(0, 0, 0);
+  assert.ok(drive(car, { gas: true }, 1.5) < 1, "drives straight with grip");
+  const tapping = makeCar(0, 0, 0);
+  drive(tapping, { gas: true }, 1.5);
+  let taps = 0;
+  for (let k = 0; k < 6; k++) taps = Math.max(taps, drive(tapping, { gas: true, right: k % 2 === 0 }, 0.2));
+  assert.ok(taps < DRIFT.minAngle, `quick steering corrections grip (${taps.toFixed(1)}°)`);
+  const slow = makeCar(0, 0, 0);
+  drive(slow, { gas: true }, 0.35);
+  assert.ok(drive(slow, { right: true }, 2) < DRIFT.minAngle, "slow turns never slide");
+  // A held hard turn at speed steps the rear out progressively and settles
+  // into a drift that can be held for as long as the turn is.
+  const score = makeScore(),
+    trace = [];
+  drive(car, { gas: true, right: true }, 3, (i) => {
     scoreStep(score, car, 1 / 120);
-    widest = Math.max(widest, slipAngle(car));
+    if (i % 12 === 0) trace.push(slipAngle(car));
+  });
+  assert.ok(trace[1] < DRIFT.minAngle, "the first instant of a turn still grips");
+  assert.ok(Math.max(...trace) > 30, `the rear steps out (${Math.max(...trace).toFixed(0)}°)`);
+  assert.ok(trace.slice(-8).every((angle) => angle > 15 && angle < 40), "a held turn holds a steady drift");
+  assert.ok(score.pending > 0 && score.combo >= 2, "a held drift builds a combo");
+  // Letting go straightens the truck within a moment, and opposite lock
+  // catches a slide faster still.
+  const released = [];
+  drive(car, { gas: true }, 1, (i) => i % 12 === 0 && released.push(slipAngle(car)));
+  assert.ok(released[3] < 6, "releasing the turn regains grip");
+  const caught = makeCar(0, 0, 0),
+    loose = makeCar(0, 0, 0);
+  for (const c of [caught, loose]) {
+    drive(c, { gas: true }, 1.5);
+    drive(c, { gas: true, right: true }, 1.1);
   }
-  assert.ok(widest > 25, `rear slides out (${widest.toFixed(0)}°)`);
-  assert.ok(score.pending > 0 && score.combo >= 2);
+  drive(caught, { gas: true, left: true }, 0.15);
+  drive(loose, { gas: true }, 0.15);
+  assert.ok(caught.slide < loose.slide, "opposite lock catches the slide");
+  // The settled drift banks its points once it is over.
   let banked = null;
   for (let i = 0; i < 240 && !banked; i++) {
     carStep(car, { gas: true }, 1 / 120);
@@ -251,4 +289,62 @@ test("crashes cost the pending drift, and the ring and obstacles hold", () => {
   const start = makeCar();
   assert.equal(collide(start), 0);
   assert.equal(speedOf(start), 0);
+});
+
+test("the blade cuts what it crosses and the sky fills up as the round goes on", () => {
+  // Distance to the stroke, not to its endpoints.
+  assert.equal(segmentDistance(5, 3, 0, 0, 10, 0), 3);
+  assert.equal(segmentDistance(-4, 3, 0, 0, 10, 0), 5);
+  assert.equal(segmentDistance(2, 2, 2, 2, 2, 2), 0);
+  // A launch from the fire peaks where it was aimed, inside the box.
+  const random = seeded(3);
+  for (const apex of [30, 80, 120]) {
+    const t = launch(200, apex, random);
+    let top = t.y;
+    for (let i = 0; i < 400; i++) {
+      t.vy += GRAVITY / 120;
+      t.y += t.vy / 120;
+      t.x += t.vx / 120;
+      top = Math.min(top, t.y);
+    }
+    assert.ok(Math.abs(top - apex) < 3, `apex ${top.toFixed(1)} vs ${apex}`);
+  }
+  // Later waves bring more targets, more hazards and less time between.
+  const early = wave(0, () => 0.5),
+    late = wave(SLICE_ROUND, () => 0.5);
+  assert.ok(late.count > early.count && late.hazards > early.hazards && late.gap < early.gap);
+  // Hazards cost points, everything else scores, and combos pay from three.
+  for (const [kind, target] of Object.entries(TARGETS))
+    assert.ok(target.hazard ? target.points < 0 : target.points > 0, kind);
+  assert.equal(comboBonus(2), 0);
+  assert.ok(comboBonus(4) > comboBonus(3) && comboBonus(3) > 0);
+  assert.ok(COMBO_WINDOW > 0.3 && COMBO_WINDOW < 1);
+});
+
+test("marshmallows score best golden, worse early or late, and cost points burnt", () => {
+  assert.equal(judge(0.62).grade, "perfect");
+  assert.equal(judge(0.62).points, 10);
+  assert.equal(judge(0.45).grade, "early");
+  assert.equal(judge(0.8).grade, "late");
+  assert.equal(judge(0.1).grade, "raw");
+  assert.equal(judge(0.95).grade, "burnt");
+  assert.ok(judge(0.95).points < 0);
+  const best = Math.max(...GRADES.map((g) => g.points));
+  assert.equal(GRADES.find((g) => g.points === best).grade, "perfect");
+  // Colour darkens steadily from raw to burnt.
+  const lightness = (hex) => [1, 3, 5].reduce((sum, i) => sum + parseInt(hex.slice(i, i + 2), 16), 0);
+  let previous = Infinity;
+  for (let done = 0; done <= 1; done += 0.1) {
+    const value = lightness(toastColor(done));
+    assert.ok(value <= previous);
+    previous = value;
+  }
+  // The fire speeds up with the score, within sensible bounds.
+  assert.ok(cookTime(0) > cookTime(60) && cookTime(60) > cookTime(200));
+  assert.ok(cookTime(1000) >= 1.5 && cookTime(0) <= 3.5);
+  // The golden window stays catchable even at full heat.
+  const golden = GRADES.find((g) => g.grade === "perfect"),
+    early = GRADES.find((g) => g.grade === "early");
+  assert.ok((golden.below - early.below) * cookTime(1000) > 0.2);
+  assert.equal(STRIKES, 3);
 });

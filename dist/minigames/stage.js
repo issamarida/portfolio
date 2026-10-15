@@ -11,6 +11,8 @@ const GAMES = {
   flap: () => import("./flap.js"),
   fishing: () => import("./fishing.js"),
   drift: () => import("./drift.js"),
+  slice: () => import("./slice.js"),
+  toast: () => import("./toast.js"),
 };
 export const minigameIds = Object.keys(GAMES);
 
@@ -127,13 +129,13 @@ function bestStore(id) {
   };
 }
 
-// The stage is deliberately bare and the same for every game: the score
-// alone centred above, the game in the middle and one controls hint centred
-// below, in one scheme ("A / D to steer") even where more keys work. A
-// small way out sits in the corner; on touch screens only the pads the game
-// needs are added. The only things laid over the play are brief: a score
-// that pops when it changes and a small number or word that rises and fades
-// where something happened.
+// The stage is deliberately bare and the same for every game: one centred
+// unit of a small wooden score plank, the game box right under it and one
+// controls hint right under that, in one scheme ("A / D to steer") even
+// where more keys work. A small way out sits in the corner; on touch
+// screens only the pads the game needs are added. The only things laid
+// over the play are brief: a score that pops when it changes and a small
+// number or word that rises and fades where something happened.
 const coarse = () => matchMedia("(pointer: coarse)").matches;
 function buildStage(meta) {
   const root = element("section", "minigame");
@@ -161,8 +163,9 @@ function buildStage(meta) {
   banner.setAttribute("aria-hidden", "true");
   floats.setAttribute("aria-hidden", "true");
   frame.append(canvas, floats, banner);
-  screen.append(frame);
   const hint = element("p", "minigame-hint");
+  // Score plank, game box and controls hint travel together as one unit.
+  screen.append(score, frame, hint);
   const touch = element("div", "minigame-touch");
   touch.dataset.layout = meta.touch;
   for (const [action, glyph, label] of TOUCH[meta.touch]) {
@@ -174,7 +177,7 @@ function buildStage(meta) {
   }
   const status = element("p", "sr-only");
   status.setAttribute("role", "status");
-  root.append(exit, score, screen, hint, touch, status);
+  root.append(exit, screen, touch, status);
   return { root, exit, score, screen, frame, canvas, banner, floats, hint, touch, status };
 }
 
@@ -298,6 +301,7 @@ export class Stage {
     });
     this.on(parts.exit, "click", () => this.onExit());
     this.on(parts.screen, "pointerdown", (e) => this.pointer(e, "down"));
+    this.on(parts.screen, "pointermove", (e) => this.pointer(e, "move"));
     this.on(parts.screen, "pointerup", (e) => this.pointer(e, "up"));
     this.on(parts.screen, "pointercancel", (e) => this.pointer(e, "up"));
     this.on(parts.screen, "contextmenu", (e) => e.preventDefault());
@@ -323,10 +327,15 @@ export class Stage {
   }
   // Integer scaling when there is room, so every game pixel stays square.
   fit() {
-    // The wooden frame's border and shadow sit outside the canvas.
-    const { screen, frame } = this.parts,
+    // The wooden frame's border and shadow sit outside the canvas, and the
+    // score plank and the hint share the column with it.
+    const { screen, frame, score, hint } = this.parts,
       box = screen.getBoundingClientRect(),
-      room = { width: box.width - 26, height: box.height - 30 };
+      gap = parseFloat(getComputedStyle(screen).rowGap) || 0,
+      room = {
+        width: box.width - 26,
+        height: box.height - 30 - score.offsetHeight - hint.offsetHeight - gap * 2,
+      };
     let scale = Math.min(room.width / W, room.height / H);
     if (scale >= 2) scale = Math.floor(scale);
     scale = Math.max(0.5, scale);
@@ -383,6 +392,8 @@ export class Stage {
   }
   pointer(event, kind) {
     if (event.target.closest("button")) return;
+    // Only games that follow the pointer (the blade) care about moves.
+    if (kind === "move" && (!this.game.pointer || this.paused)) return;
     if (kind === "down") {
       event.preventDefault();
       this.parts.screen.setPointerCapture?.(event.pointerId);

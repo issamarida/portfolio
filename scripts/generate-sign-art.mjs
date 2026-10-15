@@ -1,48 +1,23 @@
-// Paints the "Prefer reading instead of playing?" sign once, the way the
-// world paints its cabin billboards (World.paintSign): walnut planks under a
-// notched outline, a moonlit bevel, iron nails, moss, two gooseneck lamps,
-// timber posts and the billboards' own 5×7 letters with a hard shadow, plus
-// a 3×5 face for the smaller line. Each art pixel is one SVG unit, so CSS
-// shows the sign at a fixed art-pixel scale with crisp edges and nothing is
-// measured or repainted at runtime. Run after changing the sign's words.
+// Paints the board of the "Prefer reading instead of playing?" sign once,
+// the way the world paints its cabin billboards (World.paintSign): walnut
+// planks under a notched outline, a moonlit bevel, iron nails, moss, two
+// gooseneck lamps and timber posts, one step dimmer than the cabins' boards
+// so the sign reads as a quiet second choice. Its words are real text laid
+// over it in the page, in the site's mixed-case pixel face. Each art pixel
+// is one SVG unit, so CSS shows the board at a fixed art-pixel scale with
+// crisp edges and nothing is measured or repainted at runtime.
 import fs from "node:fs/promises";
-import { GLYPHS } from "../dist/world.js";
 
-const SMALL = {
-  A: [".#.", "#.#", "###", "#.#", "#.#"],
-  B: ["##.", "#.#", "##.", "#.#", "##."],
-  D: ["##.", "#.#", "#.#", "#.#", "##."],
-  E: ["###", "#..", "##.", "#..", "###"],
-  F: ["###", "#..", "##.", "#..", "#.."],
-  I: ["###", ".#.", ".#.", ".#.", "###"],
-  L: ["#..", "#..", "#..", "#..", "###"],
-  M: ["#...#", "##.##", "#.#.#", "#...#", "#...#"],
-  O: [".#.", "#.#", "#.#", "#.#", ".#."],
-  P: ["##.", "#.#", "##.", "#..", "#.."],
-  R: ["##.", "#.#", "##.", "#.#", "#.#"],
-  T: ["###", ".#.", ".#.", ".#.", ".#."],
-  W: ["#...#", "#...#", "#.#.#", "##.##", "#...#"],
-  Y: ["#.#", "#.#", ".#.", ".#.", ".#."],
-  ".": [".", ".", ".", ".", "#"],
-};
-const HEAD = ["#fffbea", "#fffbea", "#ffe7b4", "#ffe7b4", "#ffe7b4", "#f4c886", "#f4c886"],
-  SUB = ["#f4c886", "#f4c886", "#e0a868", "#e0a868", "#c98f52"];
 const LAMP = 7,
-  POST = 8,
-  MARGIN = 6;
-
-const width = (font, text) => [...text].reduce((w, ch) => w + (ch === " " ? 2 : font[ch][0].length) + 1, -1);
+  POST = 6;
+export const BOARD = { cols: 92, rows: 27 };
 
 function seeded(seed) {
   let value = seed >>> 0;
   return () => ((value = (value * 1664525 + 1013904223) >>> 0) / 4294967296);
 }
 
-function paint({ head, sub }) {
-  const cols = Math.max(...head.map((t) => width(GLYPHS, t)), ...sub.map((t) => width(SMALL, t))) + MARGIN * 2;
-  const textTop = 5,
-    subTop = textTop + head.length * 9 + 2,
-    rows = subTop + sub.length * 7 - 2 + 1 + 3 + 2;
+function paint({ cols, rows }) {
   const height = LAMP + rows + POST,
     grid = Array.from({ length: height }, () => new Array(cols).fill(null));
   const px = (x, y, w, h, color) => {
@@ -68,14 +43,15 @@ function paint({ head, sub }) {
   px(1, 2, 1, rows - 3, "#8a4c2a");
   px(cols - 2, 2, 1, rows - 3, "#3c201e");
   px(2, rows - 2, cols - 3, 1, "#3c201e");
-  // Plank face, brightest under the two lamps in the billboards' bands.
+  // Plank face, warmest under the two lamps in the billboards' bands, one
+  // step dimmer than the cabins' boards.
   const lamps = [Math.round(cols * 0.22), Math.round(cols * 0.78)],
     reachX = cols * 0.34,
     reachY = rows * 0.95;
   for (let y = 2; y < rows - 2; y++)
     for (let x = 2; x < cols - 2; x++) {
       const light = Math.min(...lamps.map((lx) => Math.hypot((x - lx) / reachX, (y - 1) / reachY)));
-      px(x, y, 1, 1, light < 0.3 ? "#a0582e" : light < 0.62 ? "#86442a" : light < 0.92 ? "#6e3622" : "#5c2d1f");
+      px(x, y, 1, 1, light < 0.4 ? "#86442a" : light < 0.8 ? "#6e3622" : "#5c2d1f");
     }
   for (let seam = 5; seam < rows - 3; seam += 4) {
     px(2, seam, cols - 4, 1, "#4b241e");
@@ -90,24 +66,6 @@ function paint({ head, sub }) {
     [cols - 3, rows - 3],
   ])
     px(x, y, 1, 1, "#c9ad7a");
-  // Lettering: shadows first, then the lit faces, each line centred.
-  const lines = [
-    ...head.map((text, i) => [text, GLYPHS, HEAD, textTop + i * 9]),
-    ...sub.map((text, i) => [text, SMALL, SUB, subTop + i * 7]),
-  ];
-  for (const pass of [0, 1])
-    for (const [text, font, tones, top] of lines) {
-      let cursor = Math.round((cols - width(font, text)) / 2);
-      for (const ch of text) {
-        if (ch !== " ")
-          font[ch].forEach((row, gy) => {
-            for (let gx = 0; gx < row.length; gx++)
-              if (row[gx] === "#")
-                pass ? px(cursor + gx, top + gy, 1, 1, tones[gy]) : px(cursor + gx + 1, top + gy + 1, 1, 1, "#2b1f14");
-          });
-        cursor += (ch === " " ? 2 : font[ch][0].length) + 1;
-      }
-    }
   // Moss creeping over the top edge.
   for (let i = 0; i < cols / 5; i++) {
     const x = 1 + Math.floor(rand() * (cols - 4)),
@@ -123,7 +81,7 @@ function paint({ head, sub }) {
     px(lx, -5, 1, 5, "#1b1418");
     px(dir > 0 ? lx : lx - 3, -6, 4, 1, "#1b1418");
     px(dir > 0 ? lx + 2 : lx - 5, -6, 4, 2, "#24151a");
-    px(dir > 0 ? lx + 2 : lx - 4, -4, 3, 1, "#fff1b8");
+    px(dir > 0 ? lx + 2 : lx - 4, -4, 3, 1, "#e8d49a");
   }
   return { cols, height, grid };
 }
@@ -144,12 +102,6 @@ function svg({ cols, height, grid }) {
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${cols}" height="${height}" viewBox="0 0 ${cols} ${height}" shape-rendering="crispEdges">\n${paths}\n</svg>\n`;
 }
 
-const signs = {
-  "reading-sign.svg": { head: ["PREFER READING", "INSTEAD OF PLAYING?"], sub: ["READ MY PORTFOLIO BELOW."] },
-  "reading-sign-compact.svg": { head: ["PREFER READING", "INSTEAD OF", "PLAYING?"], sub: ["READ MY PORTFOLIO", "BELOW."] },
-};
-for (const [file, words] of Object.entries(signs)) {
-  const art = paint(words);
-  await fs.writeFile(new URL(`../dist/art/${file}`, import.meta.url), svg(art));
-  console.log(`${file}: ${art.cols} × ${art.height} art pixels`);
-}
+const art = paint(BOARD);
+await fs.writeFile(new URL("../dist/art/reading-sign.svg", import.meta.url), svg(art));
+console.log(`reading-sign.svg: ${art.cols} × ${art.height} art pixels`);

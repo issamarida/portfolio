@@ -1,9 +1,11 @@
 // Clearing Drift: take the wheel of the dark pickup that loops the forest
 // clearing on the page. A compact top-down arena with arcade physics: the
-// rear lets go when you turn hard at speed (or pull the handbrake) and
-// slides out naturally. Drift angle, speed and an unbroken chain earn
-// points; the combo grows the longer the chain lasts and is lost on a
-// crash. Physics and scoring are pure and exported for tests.
+// truck grips the dirt until you hold a hard turn at speed (or pull the
+// handbrake); then the rear steps out progressively, the slide can be held,
+// caught with opposite lock or simply let go, and the truck straightens up
+// as grip returns. Drift angle, speed and an unbroken chain earn points;
+// the combo grows the longer the chain lasts and is lost on a crash.
+// Physics and scoring are pure and exported for tests.
 import { W, H, painter, surface, format, seeded, rotations, clamp } from "./pixel.js";
 
 // The truck keeps its foot down by itself, so steering is all there is to
@@ -20,21 +22,33 @@ export const OBSTACLES = [
   { x: 168, y: 186, r: 6, kind: "stump" },
 ];
 export const CAR = {
-  accel: 230,
+  accel: 210,
   brake: 320,
   reverse: 110,
-  maxSpeed: 190,
+  maxSpeed: 185,
   maxReverse: 60,
   drag: 0.5,
-  steer: 3.2,
-  gripHigh: 9,
-  gripLow: 2.1,
+  steer: 2.8,
+  gripHigh: 22,
+  gripLow: 1.4,
   handbrakeGrip: 0.9,
   radius: 7,
+  // The slide: a held turn above `breakaway` speed for `commit` seconds
+  // starts to break the rear loose, building at `build` per second at full
+  // load. Without load it settles at `settle`, faster with opposite lock
+  // (`counter`) and below `breakaway` speed. While loose, the rear swings
+  // the nose into the turn (`swing`) and the slide scrubs speed (`scrub`).
+  breakaway: 100,
+  commit: 0.3,
+  build: 1.8,
+  settle: 1.6,
+  counter: 4.2,
+  swing: 1.9,
+  scrub: 0.32,
 };
 
 export function makeCar(x = 112, y = 150, heading = -Math.PI / 2) {
-  return { x, y, heading, vx: 0, vy: 0 };
+  return { x, y, heading, vx: 0, vy: 0, slide: 0, side: 0, held: 0 };
 }
 export const speedOf = (car) => Math.hypot(car.vx, car.vy);
 // Angle between where the nose points and where the truck is going.
@@ -47,9 +61,10 @@ export function slipAngle(car) {
 }
 
 // One physics step. Velocity is split along the nose and across it: gas
-// and brakes act along it, tyre grip bleeds off the sideways part. Turning
-// hard at speed loosens grip, so the heading outruns the velocity and the
-// rear slides out.
+// and brakes act along it, tyre grip bleeds off the sideways part. Grip
+// stays high until the player commits to a hard turn at speed; the slide
+// then builds, holds while the turn is held and fades when it is released,
+// countered or the truck slows down.
 export function carStep(car, input, dt) {
   const fx = Math.cos(car.heading),
     fy = Math.sin(car.heading);
@@ -57,24 +72,46 @@ export function carStep(car, input, dt) {
     vr = -car.vx * fy + car.vy * fx;
   const speed = Math.hypot(vf, vr),
     steer = (input.right ? 1 : 0) - (input.left ? 1 : 0);
+  car.slide ??= 0;
+  car.side ??= 0;
+  car.held ??= 0;
+  // How long the current turn has been held, in one direction.
+  car.held = steer && Math.sign(steer) === Math.sign(car.heldSide || 0) ? car.held + dt : steer ? dt : 0;
+  car.heldSide = steer;
   if (input.gas) vf += CAR.accel * dt * (1 - clamp(vf / CAR.maxSpeed, 0, 1));
   if (input.brake) vf = vf > 8 ? vf - CAR.brake * dt : Math.max(-CAR.maxReverse, vf - CAR.reverse * dt);
   vf *= 1 - CAR.drag * dt * (input.gas ? 0.25 : 1);
-  const load = clamp((speed - 70) / 80, 0, 1) * Math.abs(steer);
-  let grip = CAR.gripHigh + (CAR.gripLow - CAR.gripHigh) * load;
+  const over = clamp((speed - CAR.breakaway) / 45, 0, 1),
+    load = Math.abs(steer) * over * clamp((car.held - CAR.commit) / 0.25, 0, 1),
+    countering = car.slide > 0.05 && steer && Math.sign(steer) === -car.side;
+  if (input.handbrake && speed > 40) {
+    car.slide = Math.min(1, car.slide + 3 * dt);
+    if (steer) car.side = Math.sign(steer);
+  } else if (load > car.slide && !countering) {
+    // The rear steps out towards how hard the turn is being pushed.
+    if (car.slide < 0.05) car.side = Math.sign(steer);
+    car.slide = Math.min(load, car.slide + CAR.build * dt);
+  } else if (load > 0 && !countering) {
+    car.slide = Math.max(load, car.slide - CAR.settle * dt);
+  } else {
+    const slow = speed < CAR.breakaway * 0.75 ? 2 : 1;
+    car.slide = Math.max(0, car.slide - (countering ? CAR.counter : CAR.settle * slow) * dt);
+  }
+  let grip = CAR.gripHigh + (CAR.gripLow - CAR.gripHigh) * Math.sqrt(car.slide);
   if (input.handbrake) {
-    grip = CAR.handbrakeGrip;
+    grip = Math.min(grip, CAR.handbrakeGrip);
     vf *= 1 - 0.8 * dt;
   }
+  // A loose rear scrubs speed off; some of the scrubbed slide still carries
+  // the truck forward out of the drift.
+  vf *= 1 - CAR.scrub * car.slide * dt;
   const kept = vr * Math.exp(-grip * dt);
-  // Some of the scrubbed slide carries the truck forward out of a drift.
-  vf += Math.sign(vf || 1) * Math.abs(vr - kept) * 0.22;
+  vf += Math.sign(vf || 1) * Math.abs(vr - kept) * 0.18;
   vr = kept;
   car.vx = vf * fx - vr * fy;
   car.vy = vf * fy + vr * fx;
-  const turn = clamp(Math.abs(vf) / 70, 0, 1) * Math.sign(vf || 1),
-    slide = clamp(Math.abs(vr) / 90, 0, 1);
-  car.heading += steer * CAR.steer * turn * (1 + slide * 0.5) * dt;
+  const turn = clamp(Math.abs(vf) / 70, 0, 1) * Math.sign(vf || 1);
+  car.heading += (steer * CAR.steer * turn + car.side * car.slide * CAR.swing * turn) * dt;
   car.x += car.vx * dt;
   car.y += car.vy * dt;
   return car;
@@ -127,7 +164,7 @@ export function collide(car) {
 export function makeScore() {
   return { total: 0, pending: 0, chain: 0, combo: 1, grace: 0, drifting: false };
 }
-export const DRIFT = { minSpeed: 55, minAngle: 12, maxAngle: 110, grace: 0.6, comboStep: 1.25, maxCombo: 9 };
+export const DRIFT = { minSpeed: 55, minAngle: 15, maxAngle: 110, grace: 0.6, comboStep: 1.25, maxCombo: 9 };
 export function scoreStep(score, car, dt) {
   const speed = speedOf(car),
     angle = slipAngle(car);

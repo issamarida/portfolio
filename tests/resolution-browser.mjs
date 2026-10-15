@@ -122,12 +122,17 @@ try {
               box = a.getBoundingClientRect(),
               journey = document.querySelector("#journey-world").getBoundingClientRect(),
               cp = Math.max(2, journey.width / 480),
-              phone = innerWidth <= 740,
-              [cols, rows] = phone ? [92, 67] : [119, 51];
+              pixel = innerWidth <= 400 ? 1.75 : cp,
+              strong = a.querySelector("strong").getBoundingClientRect(),
+              detail = a.querySelector(".billboard-detail").getBoundingClientRect();
             return (
-              getComputedStyle(a).backgroundImage.includes(phone ? "reading-sign-compact.svg" : "reading-sign.svg") &&
-              Math.abs(box.width - cols * cp) < 1 &&
-              Math.abs(box.height - rows * cp) < 1
+              getComputedStyle(a).backgroundImage.includes("reading-sign.svg") &&
+              Math.abs(box.width - 92 * pixel) < 1 &&
+              Math.abs(box.height - 40 * pixel) < 1 &&
+              // Its words sit on the board, not on the lamps or posts.
+              strong.top >= box.top + 7 * pixel &&
+              detail.bottom <= box.bottom - 6 * pixel &&
+              strong.left >= box.left && strong.right <= box.right
             );
           })(),
           roofLabels: [

@@ -485,18 +485,28 @@ try {
   assert.equal(await extras.locator(".minigame-hint").textContent(), "A / D to steer");
   await extras.keyboard.press("Escape");
   await backHome();
-  // The fisherman offers his rod first; Escape declines, Enter accepts.
+  // The fisherman lends his rod straight away: no popup in between.
   await extras.locator(".stable-clearing").scrollIntoViewIfNeeded();
   await extras.locator(".egg-angler").click({ force: true });
-  await extras.locator(".egg-offer").waitFor();
-  assert.equal(await extras.evaluate(() => document.activeElement.className), "egg-offer-yes");
-  await extras.keyboard.press("Escape");
-  assert.equal(await extras.locator(".egg-offer").isVisible(), false);
-  assert.match(await extras.evaluate(() => document.activeElement.className), /egg-angler/);
-  await extras.keyboard.press("Enter");
-  await extras.keyboard.press("Enter");
+  assert.equal(await extras.locator(".egg-offer").count(), 0);
   await extras.locator('.minigame[data-game="fishing"]').waitFor();
   assert.equal(await extras.locator(".minigame-hint").textContent(), "SPACE to reel");
+  // Score plank, game box and hint stack as one centred unit.
+  {
+    const unit = await extras.evaluate(() => {
+      const box = (s) => document.querySelector(s).getBoundingClientRect(),
+        score = box(".minigame-score"),
+        frame = box(".minigame-frame"),
+        hint = box(".minigame-hint"),
+        mid = (r) => r.left + r.width / 2;
+      return {
+        stacked: score.bottom <= frame.top && frame.top - score.bottom < 40 && hint.top >= frame.bottom && hint.top - frame.bottom < 40,
+        centred: Math.abs(mid(score) - mid(frame)) < 2 && Math.abs(mid(hint) - mid(frame)) < 2,
+        wood: getComputedStyle(document.querySelector(".minigame-score")).borderImageSource.includes("hanging-board"),
+      };
+    });
+    assert.deepEqual(unit, { stacked: true, centred: true, wood: true });
+  }
   await extras.keyboard.down(" ");
   await extras.waitForTimeout(400);
   await extras.keyboard.up(" ");
@@ -505,6 +515,20 @@ try {
   assert.equal(await extras.locator(".minigame-hint").textContent(), "SPACE to reel");
   await extras.locator(".minigame-exit").click();
   await backHome();
+  // The camper and the sword memorial by the reading sign open their games.
+  for (const [spot, game, hint] of [
+    [".egg-camper", "toast", "SPACE to pull"],
+    [".egg-memorial", "slice", "DRAG to slice"],
+  ]) {
+    await extras.locator(spot).scrollIntoViewIfNeeded();
+    await extras.locator(spot).click({ force: true });
+    await extras.locator(`.minigame[data-game="${game}"]`).waitFor();
+    assert.equal(await extras.locator(".minigame-hint").textContent(), hint);
+    await extras.keyboard.press(" ");
+    await extras.waitForTimeout(300);
+    await extras.keyboard.press("Escape");
+    await backHome();
+  }
   // Both cabinets in the Game Dev cabin: walk up to the left one and press
   // E, then step across and click the right one.
   const held = async (key, ms) => {

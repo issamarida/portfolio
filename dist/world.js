@@ -1880,7 +1880,7 @@ export class World {
     this.rect(x - 2, y - 51, 6, 10, "#ffe9a0");
     this.rect(x, y - 50, 2, 7, "#fffbe0");
     this.rect(x - 7, y - 40, 16, 3, "#24151a");
-    this.light({ kind: "point", x: x + 1, y: y - 22, r: 62, color: "#ffc070" });
+    this.light({ kind: "point", x: x + 1, y: y - 22, r: 56, color: "#ffc070", power: 0.8 });
     this.light({ kind: "emit", x: x - 4, y: y - 52, w: 10, h: 12 });
   }
   character() {
@@ -2090,12 +2090,13 @@ export class World {
   }
   villageLights() {
     const lights = [
-      // The campfire throws its light low and wide across the flagstones.
-      { kind: "point", x: 482, y: 322, r: 175, color: "#ff9a40", power: 1.35, flatten: 1.7 },
+      // The campfire throws a soft, low light across the flagstones: warm,
+      // but quieter than the cabins, which are what the player looks for.
+      { kind: "point", x: 482, y: 322, r: 150, color: "#ff9a40", power: 1.05, flatten: 1.7 },
       { kind: "emit", x: 470, y: 290, w: 24, h: 34 },
     ];
     for (const [x, y] of LAMPS) {
-      lights.push({ kind: "point", x: x + 1, y: y - 22, r: 70, color: "#ffc070", power: 1.1 });
+      lights.push({ kind: "point", x: x + 1, y: y - 22, r: 56, color: "#ffc070", power: 0.8 });
       lights.push({ kind: "emit", x: x - 4, y: y - 52, w: 10, h: 12 });
     }
     for (const d of destinations) lights.push(...this.cabinLights(d));

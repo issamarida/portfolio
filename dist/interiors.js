@@ -1236,31 +1236,50 @@ const ROOMS = {
         if (on) p.glow(x + 2, 114 + sag, 12, lights[i % 5]);
         p.rect(x, 110 + sag, 4, 6, on ? lights[i % 5] : "#4a3a40");
       }
-      // Attract-mode screens on the cabinets.
-      for (const [x, hue] of [
-        [208, 0],
-        [272, 1],
-      ]) {
-        const frame = Math.floor(t * 4 + hue * 2) % 8;
-        p.rect(x + 4, 164, 36, 30, hue ? "#0c1830" : "#180c24");
-        for (let row = 0; row < 3; row++)
-          for (let col = 0; col < 4; col++)
-            p.rect(
-              x + 8 + col * 8 + (frame % 2) * 2,
-              168 + row * 6,
-              4,
-              4,
-              ["#7fc0a0", "#e48f7a", "#f6cf5a"][row],
-            );
-        p.rect(x + 8 + ((frame * 4) % 28), 188, 6, 4, "#e8e4d0");
-        p.rect(
-          x + 11 + ((frame * 4) % 28),
-          176 + (frame % 4) * 2,
-          2,
-          4,
-          "#f6ecd2",
-        );
-        p.glow(x + 22, 178, 34, hue ? "#4a6fae" : "#8b5a9c");
+      // Attract-mode screens preview the two playable cabinets: a muncher
+      // clearing a corridor with a wisp on its tail, and an owl flapping
+      // between mossy pillars.
+      {
+        const x = 208,
+          run = (t * 10) % 44,
+          mx = x + 2 + Math.floor(run / 2) * 2,
+          inside = (left) => left >= x + 4 && left <= x + 34;
+        p.rect(x + 4, 164, 36, 30, "#0b0614");
+        p.rect(x + 4, 164, 36, 2, "#8b5a9c");
+        p.rect(x + 4, 192, 36, 2, "#8b5a9c");
+        p.rect(x + 12, 170, 20, 4, "#5a3a68");
+        p.rect(x + 12, 184, 20, 4, "#5a3a68");
+        for (let dx = 6; dx < 34; dx += 6)
+          if (x + 4 + dx > mx + 4) p.rect(x + 4 + dx, 178, 2, 2, "#f6e08a");
+        if (inside(mx)) {
+          p.rect(mx, 176, 6, 6, "#f6cf5a");
+          if (Math.floor(t * 8) % 2) p.rect(mx + 4, 178, 2, 2, "#0b0614");
+        }
+        if (inside(mx - 12)) {
+          p.rect(mx - 12, 176, 6, 6, "#e4573d");
+          p.rect(mx - 10, 178, 2, 2, "#fff3d6");
+        }
+        p.glow(x + 22, 178, 34, "#8b5a9c");
+      }
+      {
+        const x = 272,
+          scroll = Math.floor(((t * 12) % 18) / 2) * 2,
+          bob = Math.round(Math.sin(t * 5)) * 2;
+        p.rect(x + 4, 164, 36, 30, "#101a3e");
+        p.rect(x + 32, 168, 4, 4, "#f3c46e");
+        for (let k = 0; k < 3; k++) {
+          const px = x + 40 - scroll - k * 18,
+            gap = 172 + (k % 2) * 4;
+          if (px < x + 4 || px > x + 36) continue;
+          p.rect(px, 164, 4, gap - 164, "#5d6a66");
+          p.rect(px, gap + 12, 4, 194 - gap - 12, "#5d6a66");
+          p.rect(px, gap + 12, 4, 2, "#3d704f");
+        }
+        p.rect(x + 12, 176 + bob, 6, 6, "#a8673a");
+        p.rect(x + 12, 176 + bob, 2, 2, "#f6e08a");
+        p.rect(x + 16, 176 + bob, 2, 2, "#f6e08a");
+        p.rect(x + 4, 192, 36, 2, "#3d704f");
+        p.glow(x + 22, 178, 34, "#4a6fae");
       }
       // The CRT plays a little side-scroller.
       const run = Math.floor(t * 6) % 24;
@@ -1456,6 +1475,16 @@ const ROOMS = {
 };
 
 export const interiorIds = Object.keys(ROOMS);
+// The two cabinets in the Game Dev cabin are playable: standing in front of
+// one (or clicking it) opens its minigame in its own stage.
+export const ARCADES = [
+  { game: "maze", title: "Maze Munch", x: 204, w: 52, top: 132, bottom: 268 },
+  { game: "flap", title: "Night Owl", x: 268, w: 52, top: 132, bottom: 268 },
+];
+export function interiorArcade(id, x, y) {
+  if (id !== "gamedev" || y > 306) return null;
+  return ARCADES.find((a) => Math.abs(x - (a.x + a.w / 2)) < a.w / 2 + 4)?.game || null;
+}
 export function interiorLabel(id) {
   return ROOMS[id]?.label || "";
 }

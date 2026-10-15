@@ -3,13 +3,18 @@ import { areas } from "./content.js";
 import { interiorLabel } from "./interiors.js";
 import { runIntro, shouldPlayIntro } from "./intro.js";
 import { mountPillars } from "./pillars.js";
+import { lockPage, unlockPage } from "./scroll-lock.js";
+import { mountEggs } from "./eggs.js";
+import { minigameActive } from "./minigames/stage.js";
 const canvas = document.querySelector("#world"),
   panel = document.querySelector("#panel"),
   interact = document.querySelector("#interact");
-let returnFocus = null;
+let returnFocus = null,
+  eggs = null;
 const status = document.querySelector("#world-status");
 function prompt(near, kind) {
   if (kind === "exit") return "Leave the cabin";
+  if (kind === "arcade") return `Play ${eggs?.arcadeTitle(near) || "the arcade"}`;
   if (kind === "lectern")
     return `Open to read about ${near === "about" ? "me" : areas[near].name}`;
   const section =
@@ -34,6 +39,7 @@ const world = new World(canvas, (near, kind) => {
   interact.hidden = !near;
   const label = near ? prompt(near, kind) : "";
   interact.querySelector("span").textContent = label;
+  eggs?.setNear(kind === "arcade" ? near : null);
   status.textContent = label && `Press E to ${label.toLowerCase()}`;
   placePrompt();
 });
@@ -56,6 +62,7 @@ document.querySelectorAll(".building-access button").forEach((button) => {
 });
 world.onScene = (id) => {
   worldWrap.classList.toggle("is-inside", Boolean(id));
+  worldWrap.dataset.room = id || "";
   status.textContent = id
     ? `Inside ${interiorLabel(id)}. Walk to the lectern and press E to read about ${areas[id].name}, or press Escape to leave.`
     : "Back in the village.";
@@ -69,6 +76,7 @@ function act() {
   if (!world.near || world.iris) return;
   if (world.nearKind === "cabin") world.enterCabin(world.near);
   else if (world.nearKind === "exit") world.leaveCabin();
+  else if (world.nearKind === "arcade") eggs.play(world.near);
   else openArea(world.near);
 }
 const journey = document.querySelector("#journey-world");
@@ -253,6 +261,8 @@ function openArea(id) {
   title.textContent = area.name;
   document.querySelector("#panel-content").replaceChildren(title, body);
   panel.showModal();
+  // Reading scrolls the book alone: the page underneath stays put.
+  lockPage("panel");
   panel.scrollTop = 0;
   document.querySelector("#close-panel").focus();
 }
@@ -260,6 +270,7 @@ function closeArea() {
   panel.close();
 }
 panel.addEventListener("close", () => {
+  unlockPage("panel");
   world.active = true;
   world.keys.clear();
   returnFocus?.focus();
@@ -293,7 +304,7 @@ const movement = {
   ArrowRight: "right",
 };
 window.addEventListener("keydown", (e) => {
-  if (panel.open || !world.gameVisible || e.ctrlKey || e.metaKey || e.altKey)
+  if (minigameActive() || panel.open || !world.gameVisible || e.ctrlKey || e.metaKey || e.altKey)
     return;
   const key = e.key.length === 1 ? e.key.toLowerCase() : e.key;
   const focused = document.activeElement;
@@ -361,6 +372,22 @@ matchMedia("(prefers-reduced-motion: reduce)").addEventListener(
   },
 );
 mountPillars(document.querySelector(".shell"));
+// Leaving a minigame comes straight back to the hero section, with the
+// village exactly as it was; the iris reopens on the player.
+eggs = mountEggs({
+  world,
+  restore() {
+    scrollTo(0, 0);
+    resizeJourney();
+    canvas.focus({ preventScroll: true });
+    const frame = worldWrap.getBoundingClientRect(),
+      scale = frame.width / 960;
+    return {
+      x: frame.left + world.player.x * scale,
+      y: frame.top + (world.player.y - 22) * scale,
+    };
+  },
+});
 // Key phrases light up one after another as each passage scrolls into view.
 if ("IntersectionObserver" in window) {
   const reveal = new IntersectionObserver(

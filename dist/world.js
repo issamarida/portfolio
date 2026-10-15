@@ -6,6 +6,7 @@ import {
   EXIT_Y,
   INTERIOR_SPAWN,
   drawInteriorScene,
+  interiorArcade,
   interiorNear,
   interiorWalkable,
   paintInterior,
@@ -672,7 +673,9 @@ export class World {
       const id = nearbyArea(x, y);
       return this.setNear(id, id && "cabin");
     }
-    const spot = interiorNear(x, y);
+    const spot = interiorNear(x, y),
+      arcade = !spot && interiorArcade(this.interior, x, y);
+    if (arcade) return this.setNear(arcade, "arcade");
     this.setNear(
       spot === "lectern" ? this.interior : spot === "exit" ? "exit" : null,
       spot,

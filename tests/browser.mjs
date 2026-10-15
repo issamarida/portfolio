@@ -117,11 +117,14 @@ try {
     "Game Dev",
     "About",
   ]);
-  assert.ok(
-    await page
+  // The name board hangs smaller than it once did: the portrait stays
+  // recognisable without the board dominating the sky.
+  {
+    const portrait = await page
       .locator(".identity img")
-      .evaluate((el) => el.getBoundingClientRect().width >= 90),
-  );
+      .evaluate((el) => el.getBoundingClientRect().width);
+    assert.ok(portrait >= 56 && portrait <= 72, `desktop portrait is ${portrait}px`);
+  }
   assert.ok(
     await page
       .locator(".reading-invitation a")
@@ -238,11 +241,12 @@ try {
     true,
   );
   assert.equal(await page.locator(".touch-pad").isVisible(), true);
-  assert.ok(
-    await page
+  {
+    const portrait = await page
       .locator(".identity img")
-      .evaluate((el) => el.getBoundingClientRect().width >= 76),
-  );
+      .evaluate((el) => el.getBoundingClientRect().width);
+    assert.ok(portrait >= 44 && portrait <= 56, `phone portrait is ${portrait}px`);
+  }
   assert.ok(
     await page
       .locator(".reading-invitation a")
@@ -397,13 +401,126 @@ try {
   await intro.locator(".world-wrap.is-inside").waitFor({ state: "detached" });
   assert.equal(await intro.locator(".reading-invitation a").isVisible(), true);
   await intro.close();
+  // Reading a lectern book scrolls the book alone: the page underneath is
+  // locked while it is open and free again once it closes.
+  const extras = await browser.newPage({
+    viewport: { width: 1280, height: 800 },
+    reducedMotion: "reduce",
+  });
+  extras.on("pageerror", (error) => errors.push(error.message));
+  await extras.goto(`${process.env.TEST_URL || "http://localhost:5173"}/?intro=0`);
+  const locked = () =>
+    extras.evaluate(() => document.documentElement.classList.contains("is-page-locked"));
+  await extras.locator('[data-area="career"]').click();
+  assert.equal(await locked(), true);
+  await extras.mouse.move(640, 420);
+  await extras.mouse.wheel(0, 3000);
+  await extras.waitForTimeout(400);
+  assert.equal(await extras.evaluate(() => scrollY), 0, "the page holds still behind the book");
+  assert.ok(await extras.locator("#panel").evaluate((el) => el.scrollTop > 0), "the book scrolls");
+  await extras.keyboard.press("Escape");
+  await extras.waitForFunction(() => !document.documentElement.classList.contains("is-page-locked"));
+  await extras.mouse.wheel(0, 400);
+  await extras.waitForTimeout(300);
+  assert.ok(await extras.evaluate(() => scrollY > 0), "the page scrolls again once the book closes");
+  // Hidden extras run in their own stage: the portfolio is paused, hidden,
+  // locked and out of reach, and exiting returns to the hero section.
+  const inStage = () =>
+    extras.evaluate(() => ({
+      shellInert: document.querySelector(".shell").inert,
+      locked: document.documentElement.classList.contains("is-page-locked"),
+      hidden: getComputedStyle(document.querySelector(".shell")).visibility === "hidden",
+      focus: document.activeElement.className,
+    }));
+  const backHome = async () => {
+    await extras.locator(".minigame").waitFor({ state: "detached" });
+    await extras.locator(".minigame-iris").waitFor({ state: "detached" });
+    const home = await extras.evaluate(() => ({
+      scrollY,
+      focus: document.activeElement.id,
+      inert: document.querySelector(".shell").inert,
+      locked: document.documentElement.classList.contains("is-page-locked"),
+    }));
+    assert.deepEqual(home, { scrollY: 0, focus: "world", inert: false, locked: false });
+  };
+  await extras.locator(".drift-clearing").scrollIntoViewIfNeeded();
+  await extras.locator(".egg-car").click({ force: true });
+  await extras.locator('.minigame[data-game="drift"]').waitFor();
+  assert.deepEqual(await inStage(), {
+    shellInert: true,
+    locked: true,
+    hidden: true,
+    focus: "minigame-screen",
+  });
+  const lockedAt = await extras.evaluate(() => scrollY);
+  await extras.keyboard.down("w");
+  await extras.keyboard.down("d");
+  await extras.waitForTimeout(1400);
+  await extras.keyboard.up("d");
+  await extras.keyboard.up("w");
+  assert.equal(await extras.evaluate(() => scrollY), lockedAt, "driving never scrolls the page");
+  assert.notEqual(await extras.locator('.minigame-stat[data-stat="time"] dd').textContent(), "1:30");
+  await extras.keyboard.press("Escape");
+  await backHome();
+  // The fisherman offers his rod first; Escape declines, Enter accepts.
+  await extras.locator(".stable-clearing").scrollIntoViewIfNeeded();
+  await extras.locator(".egg-angler").click({ force: true });
+  await extras.locator(".egg-offer").waitFor();
+  assert.equal(await extras.evaluate(() => document.activeElement.className), "egg-offer-yes");
+  await extras.keyboard.press("Escape");
+  assert.equal(await extras.locator(".egg-offer").isVisible(), false);
+  assert.match(await extras.evaluate(() => document.activeElement.className), /egg-angler/);
+  await extras.keyboard.press("Enter");
+  await extras.keyboard.press("Enter");
+  await extras.locator('.minigame[data-game="fishing"]').waitFor();
+  await extras.keyboard.down(" ");
+  await extras.waitForTimeout(400);
+  await extras.keyboard.up(" ");
+  assert.equal(await extras.locator(".minigame-banner").isVisible(), false);
+  await extras.locator(".minigame-exit").click();
+  await backHome();
+  // Both cabinets in the Game Dev cabin: walk up to the left one and press
+  // E, then step across and click the right one.
+  const held = async (key, ms) => {
+    await extras.keyboard.down(key);
+    await extras.waitForTimeout(ms);
+    await extras.keyboard.up(key);
+  };
+  const promptText = () =>
+    extras.evaluate(() =>
+      document.querySelector("#interact").hidden ? null : document.querySelector("#interact span").textContent,
+    );
+  await held("s", 250);
+  await held("a", 1300);
+  await held("s", 300);
+  await held("a", 400);
+  assert.equal(await promptText(), "Enter the game development cabin");
+  await extras.keyboard.press("e");
+  await extras.locator('.world-wrap.is-inside[data-room="gamedev"]').waitFor();
+  await held("w", 480);
+  await held("a", 1700);
+  await held("w", 700);
+  assert.equal(await promptText(), "Play Maze Munch");
+  assert.equal(await extras.locator('.egg-arcade[data-game="maze"]').evaluate((el) => el.classList.contains("is-near")), true);
+  await extras.keyboard.press("e");
+  await extras.locator('.minigame[data-game="maze"]').waitFor();
+  await extras.keyboard.press("Escape");
+  await backHome();
+  assert.equal(await extras.locator(".world-wrap").evaluate((el) => el.dataset.room), "gamedev", "still in the cabin");
+  await held("d", 380);
+  assert.equal(await promptText(), "Play Night Owl");
+  await extras.locator('.egg-arcade[data-game="flap"]').click();
+  await extras.locator('.minigame[data-game="flap"]').waitFor();
+  await extras.locator(".minigame-exit").click();
+  await backHome();
+  await extras.close();
   const linked = await browser.newPage();
   await linked.goto(`${process.env.TEST_URL || "http://localhost:5173"}#career`);
   assert.equal(await linked.locator(".intro").count(), 0);
   await linked.close();
   assert.deepEqual(errors, []);
   console.log(
-    "Browser verification passed: title screen and opening cutscene, 4 destinations, focus return, Escape, shared static reading content and portrait, bounded cabin movement and viewport rendering, reduced motion, mobile layout, and no runtime errors.",
+    "Browser verification passed: title screen and opening cutscene, 4 destinations, focus return, Escape, locked page behind the reading book, isolated minigame stages for both arcade cabinets, the fisherman and the pickup, shared static reading content and portrait, bounded cabin movement and viewport rendering, reduced motion, mobile layout, and no runtime errors.",
   );
 } finally {
   await browser.close();

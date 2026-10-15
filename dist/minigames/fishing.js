@@ -1,7 +1,7 @@
 // Moonlit Angler: the fisherman lends you his rod at the same night lake as
-// his camp at the bottom of the page. Hold to wind up and release to cast,
-// wait for the bobber to plunge, strike, then keep the fish inside the net
-// zone until the meter fills. Each fish swims its own way and some are much
+// his camp at the bottom of the page. Everything is one key: Space casts,
+// a bite hooks itself, and holding Space reels, keeping the fish inside the
+// net zone until the meter fills. Each fish swims its own way and some are
 // rarer than others. One night lasts 75 seconds; no inventory, no menus.
 import { W, H, painter, surface, format, seeded, nightSky, horizon, clamp } from "./pixel.js";
 
@@ -10,14 +10,15 @@ export const meta = { id: "fishing", title: "Moonlit Angler", touch: "hold", tou
 export const NIGHT = 75;
 
 // Species: weight is how common they are; behaviour shapes the fight.
-// Common fish drift gently and leave a wide net; the rare ones are a
-// little quicker and narrower, so there is still something to chase.
+// Common fish drift slowly and leave a net over half the water, so they
+// come in almost at once; the rare ones are only a little quicker and
+// narrower, so there is still something to chase without it turning mean.
 export const FISH = [
-  { id: "perch", name: "Moon Perch", rarity: "Common", weight: 46, behaviour: "smooth", agility: 1.1, zone: 0.44, size: [14, 24], body: "#8aa0a0", back: "#5a7a7a", belly: "#c8d8d0", fin: "#c4552e" },
-  { id: "bream", name: "Reed Bream", rarity: "Common", weight: 30, behaviour: "floater", agility: 0.9, zone: 0.44, size: [20, 34], body: "#c49a4a", back: "#8a6a3a", belly: "#e8d098", fin: "#8a6a3a" },
-  { id: "trout", name: "Lantern Trout", rarity: "Uncommon", weight: 15, behaviour: "dart", agility: 2, zone: 0.38, size: [26, 44], body: "#7fa07a", back: "#4a6a4a", belly: "#e8d7ad", fin: "#e48f7a" },
-  { id: "pike", name: "Mossback Pike", rarity: "Rare", weight: 7, behaviour: "sinker", agility: 2.4, zone: 0.33, size: [50, 80], body: "#5a7a44", back: "#3a4a2a", belly: "#b8c888", fin: "#749151" },
-  { id: "koi", name: "Starlit Koi", rarity: "Legendary", weight: 2, behaviour: "mixed", agility: 3.2, zone: 0.28, size: [40, 62], body: "#f0ece0", back: "#e4573d", belly: "#fff8e8", fin: "#f0a040" },
+  { id: "perch", name: "Moon Perch", rarity: "Common", weight: 46, behaviour: "smooth", agility: 0.7, zone: 0.56, size: [14, 24], body: "#8aa0a0", back: "#5a7a7a", belly: "#c8d8d0", fin: "#c4552e" },
+  { id: "bream", name: "Reed Bream", rarity: "Common", weight: 30, behaviour: "floater", agility: 0.6, zone: 0.56, size: [20, 34], body: "#c49a4a", back: "#8a6a3a", belly: "#e8d098", fin: "#8a6a3a" },
+  { id: "trout", name: "Lantern Trout", rarity: "Uncommon", weight: 15, behaviour: "dart", agility: 1.1, zone: 0.5, size: [26, 44], body: "#7fa07a", back: "#4a6a4a", belly: "#e8d7ad", fin: "#e48f7a" },
+  { id: "pike", name: "Mossback Pike", rarity: "Rare", weight: 7, behaviour: "sinker", agility: 1.6, zone: 0.42, size: [50, 80], body: "#5a7a44", back: "#3a4a2a", belly: "#b8c888", fin: "#749151" },
+  { id: "koi", name: "Starlit Koi", rarity: "Legendary", weight: 2, behaviour: "mixed", agility: 2.1, zone: 0.36, size: [40, 62], body: "#f0ece0", back: "#e4573d", belly: "#fff8e8", fin: "#f0a040" },
 ];
 const RARITY_BOOST = { Common: 0, Uncommon: 1, Rare: 2, Legendary: 3 };
 
@@ -34,9 +35,10 @@ export function pickFish(roll, power = 0, perfect = false) {
 
 // The fight: the net zone rises while held and sinks when released,
 // bouncing off the bottom; the meter fills while the fish is in the net.
-// Forgiving by design: the meter starts near half, fills quickly and drains
-// slowly, so a wobble or two never loses a fish.
-export const REEL = { lift: 2.6, sink: 2, fill: 0.42, drain: 0.11, start: 0.45 };
+// Forgiving by design: the net moves gently, the meter starts at half,
+// fills in about a second and drains slowly, so even several seconds
+// out of the net never loses a fish.
+export const REEL = { lift: 2.1, sink: 1.6, fill: 0.5, drain: 0.055, start: 0.5 };
 export function reelStep(fight, holding, dt) {
   fight.zv += (holding ? REEL.lift : -REEL.sink) * dt;
   fight.zone += fight.zv * dt;
@@ -53,6 +55,8 @@ export function reelStep(fight, holding, dt) {
   return fight.progress >= 1 ? "caught" : fight.progress <= 0 ? "escaped" : "fighting";
 }
 // Where each kind of fish wants to be next, and how fast it gets there.
+// Every fish holds a course for a couple of seconds and keeps to the
+// middle of the water, so the net can follow it without guessing.
 export function swimStep(fight, species, dt, random) {
   fight.timer -= dt;
   fight.clock += dt;
@@ -60,27 +64,27 @@ export function swimStep(fight, species, dt, random) {
   if (fight.timer <= 0) {
     switch (species.behaviour) {
       case "smooth":
-        fight.timer = pick(1.6, 2.4);
-        fight.target = pick(0.3, 0.7);
+        fight.timer = pick(2.4, 3.4);
+        fight.target = pick(0.38, 0.62);
         break;
       case "floater":
-        fight.timer = pick(1.8, 2.6);
-        fight.target = pick(0.45, 0.8);
+        fight.timer = pick(2.6, 3.6);
+        fight.target = pick(0.5, 0.72);
         break;
       case "dart":
-        fight.timer = pick(1.2, 1.9);
-        fight.target = random() < 0.5 ? pick(0.15, 0.4) : pick(0.6, 0.85);
+        fight.timer = pick(1.9, 2.7);
+        fight.target = random() < 0.5 ? pick(0.25, 0.42) : pick(0.58, 0.75);
         break;
       case "sinker":
-        fight.timer = pick(1.1, 1.8);
-        fight.target = random() < 0.75 ? pick(0.1, 0.4) : pick(0.55, 0.8);
+        fight.timer = pick(1.8, 2.6);
+        fight.target = random() < 0.75 ? pick(0.18, 0.42) : pick(0.55, 0.72);
         break;
       default:
-        fight.timer = pick(0.8, 1.3);
-        fight.target = pick(0.08, 0.92);
+        fight.timer = pick(1.5, 2.2);
+        fight.target = pick(0.15, 0.85);
     }
   }
-  const wobble = species.behaviour === "smooth" ? Math.sin(fight.clock * 1.6) * 0.04 : 0;
+  const wobble = species.behaviour === "smooth" ? Math.sin(fight.clock * 1.2) * 0.02 : 0;
   fight.fish = clamp(fight.fish + (fight.target + wobble - fight.fish) * Math.min(1, dt * species.agility), 0, 1);
   return fight.fish;
 }
@@ -116,7 +120,7 @@ export function createGame(api) {
     p = painter(ctx),
     random = seeded(Date.now() & 0xffff);
   const backdrop = paintBackdrop();
-  let state, clock, timer, night, started, catches, power, cast, bob, fight, species, landing, particles, ripples, message, bestCatch, ended, biggest, seen;
+  let state, clock, timer, night, started, catches, cast, bob, fight, species, landing, particles, ripples, bestCatch, ended;
   bestCatch = best.get();
 
   function paintBackdrop() {
@@ -217,9 +221,6 @@ export function createGame(api) {
     started = false;
     ended = false;
     catches = [];
-    biggest = null;
-    seen = new Set();
-    power = 0;
     cast = null;
     bob = null;
     fight = null;
@@ -228,72 +229,42 @@ export function createGame(api) {
     particles = [];
     ripples = [];
     hud.banner(null);
-    hint();
+    hud.hint("SPACE to reel", "HOLD to reel");
   }
 
-  // One short hint below the game, following what the rod is doing.
-  let hinted = null;
-  function hint() {
-    if (hinted === state) return;
-    hinted = state;
-    const [keys, taps] = {
-      idle: ["Hold Space to cast", "Hold to cast"],
-      charging: ["Let go to cast", "Let go to cast"],
-      casting: ["Wait for a bite", "Wait for a bite"],
-      waiting: ["Wait for a bite", "Wait for a bite"],
-      bite: ["Space to strike!", "Tap to strike!"],
-      fight: ["Hold Space to reel in", "Hold to reel in"],
-      done: ["Space to fish again", "Tap to fish again"],
-    }[state] || [null, null];
-    if (keys) hud.hint(keys, taps);
-  }
-  function say(text, tone = "") {
-    hud.float(text, 240, 44, tone);
-  }
   function splash(x, y, count = 8, color = "#a8c8e8") {
     for (let i = 0; i < count; i++)
       particles.push({ x, y, vx: (random() - 0.5) * 60, vy: -30 - random() * 50, life: 0.5 + random() * 0.4, color });
     ripples.push({ x, y, age: 0 });
   }
 
+  // Space out of a fight casts; in a fight, holding it reels.
   function press(action) {
     if (action !== "action") return;
     if (state === "done") {
       if (clock > 0.6) newNight();
       return;
     }
-    if (state === "idle") {
-      if (!started) {
-        started = true;
-        hud.banner(null);
-      }
-      state = "charging";
-      timer = 0;
-      power = 0;
-    } else if (state === "bite") hook();
-  }
-  function release(action) {
-    if (action !== "action" || state !== "charging") return;
-    const perfect = power > 0.9;
-    if (perfect) say("Perfect cast!");
-    const reach = 0.15 + power * 0.85;
+    if (state !== "idle") return;
+    started = true;
+    const reach = 0.5 + random() * 0.5;
     cast = {
       from: tip(),
       to: { x: 268 + reach * 176, y: 216 - reach * 76 },
       power: reach,
-      perfect,
       t: 0,
     };
     state = "casting";
     timer = 0;
   }
+  // A bite hooks itself: the fish starts in the middle of the net.
   function hook() {
-    species = pickFish(random(), cast.power, cast.perfect);
+    species = pickFish(random(), cast.power);
     fight = {
-      zone: 0.35,
+      zone: 0.5 - species.zone / 2,
       zv: 0,
       size: species.zone,
-      fish: 0.4,
+      fish: 0.5,
       target: 0.5,
       timer: 0,
       clock: 0,
@@ -303,7 +274,7 @@ export function createGame(api) {
     state = "fight";
     timer = 0;
     splash(bob.x, bob.y, 10);
-    hud.announce(`Hooked something. Hold to keep it in the net.`);
+    hud.announce("A fish is on. Hold Space to keep it in the net.");
   }
   function reelIn() {
     state = "reeling";
@@ -320,13 +291,10 @@ export function createGame(api) {
 
   function rodAngle() {
     switch (state) {
-      case "charging":
-        return -1.15 - power * 1.05;
       case "casting":
         return -2.2 + Math.min(1, cast.t / 0.16) * 1.6;
       case "waiting":
-      case "bite":
-        return -0.72 + (state === "bite" ? 0.18 : 0);
+        return -0.72;
       case "fight":
         return -0.5 + Math.sin(clock * 11) * 0.06 + (fight.inside ? 0 : 0.08);
       case "landing":
@@ -353,10 +321,6 @@ export function createGame(api) {
       if (night === 0 && !["fight", "landing"].includes(state)) endNight();
     }
     switch (state) {
-      case "charging":
-        // The wind-up swings back and forth, so a perfect cast is timing.
-        power = 1 - Math.abs(((timer / 1.1) % 2) - 1);
-        break;
       case "casting":
         cast.t += dt;
         {
@@ -367,25 +331,14 @@ export function createGame(api) {
             splash(bob.x, bob.y, 6);
             state = "waiting";
             timer = 0;
-            cast.wait = 1.4 + random() * (3.6 - cast.power * 1.2);
+            cast.wait = 1.2 + random() * 1.6;
             cast.nibbles = [0.3, 0.55, 0.8].map((f) => f * cast.wait + random() * 0.2);
           }
         }
         break;
       case "waiting":
         if (cast.nibbles.some((n) => Math.abs(timer - n) < dt)) ripples.push({ x: bob.x, y: bob.y, age: 0 });
-        if (timer >= cast.wait) {
-          state = "bite";
-          timer = 0;
-          splash(bob.x, bob.y, 6);
-          hud.announce("A bite! Strike now.");
-        }
-        break;
-      case "bite":
-        if (timer > 1.3) {
-          say("It slipped the hook.", "is-bad");
-          reelIn();
-        }
+        if (timer >= cast.wait) hook();
         break;
       case "fight": {
         swimStep(fight, species, dt, random);
@@ -394,7 +347,7 @@ export function createGame(api) {
         if (random() < dt * 8) particles.push({ x: bob.x + (random() - 0.5) * 8, y: bob.y, vx: (random() - 0.5) * 40, vy: -20 - random() * 30, life: 0.4, color: "#a8c8e8" });
         if (result === "caught") land();
         else if (result === "escaped") {
-          say("It got away!", "is-bad");
+          hud.announce("It got away.");
           reelIn();
         }
         break;
@@ -403,11 +356,7 @@ export function createGame(api) {
         landing.t += dt;
         if (landing.t >= 1.25) {
           splash(BUCKET.x, BUCKET.y - 10, 6);
-          const fresh = !seen.has(landing.species.id);
-          seen.add(landing.species.id);
           catches.push(landing);
-          if (!biggest || landing.size > biggest.size) biggest = landing;
-          say(`${landing.species.name} · ${landing.size} cm${landing.species.rarity === "Common" ? "" : ` · ${landing.species.rarity}`}${fresh && catches.length > 1 ? " · new!" : ""}`);
           hud.announce(`Caught a ${landing.species.name}, ${landing.size} centimetres, ${landing.species.rarity}.`);
           landing = null;
           bob = null;
@@ -437,10 +386,7 @@ export function createGame(api) {
     particles = particles.filter((particle) => particle.life > 0);
     for (const ripple of ripples) ripple.age += dt;
     ripples = ripples.filter((ripple) => ripple.age < 1.2);
-    hint();
-    hud.score(
-      `${catches.length} ${catches.length === 1 ? "fish" : "fish"} · ${Math.floor(Math.ceil(night) / 60)}:${String(Math.ceil(night) % 60).padStart(2, "0")}`,
-    );
+    hud.score(catches.length);
   }
   function endNight() {
     if (ended) return;
@@ -452,8 +398,8 @@ export function createGame(api) {
     best.save(catches.length);
     const record = catches.length > bestCatch && catches.length > 0;
     bestCatch = Math.max(bestCatch, catches.length);
-    hud.banner(record ? "Best night yet!" : "Night’s over");
-    hint();
+    hud.banner(record ? "New best!" : "Game over");
+    hud.hint("SPACE to play again", "TAP to play again");
   }
 
   // --- Drawing -------------------------------------------------------------
@@ -598,23 +544,21 @@ export function createGame(api) {
       const k = landing.t;
       end = k < 0.55 ? arc(landing.from, HAND, k / 0.55, 46) : null;
     } else if (bob) end = bob;
-    else if (state === "idle" || state === "charging") end = { x: t.x + 1, y: t.y + 10 };
+    else if (state === "idle") end = { x: t.x + 1, y: t.y + 10 };
     if (end) {
-      const sag = state === "waiting" || state === "bite" ? 8 : state === "fight" ? -2 : 3;
+      const sag = state === "waiting" ? 8 : state === "fight" ? -2 : 3;
       for (let i = 0; i <= 24; i++) {
         const k = i / 24;
         p.rect(t.x + (end.x - t.x) * k, t.y + (end.y - t.y) * k + Math.sin(k * Math.PI) * sag, 1, 1, "#c8c0b0");
       }
     }
     if (bob && state !== "landing") {
-      const dip = state === "bite" ? 3 : state === "fight" ? 2 : 0,
+      const dip = state === "fight" ? 2 : 0,
         bobbing = api.reduced || state === "casting" ? 0 : Math.round(Math.sin(time * 2.6));
       const near = state === "waiting" && cast.nibbles.some((n) => Math.abs(timer - n) < 0.12);
       const y = Math.round(bob.y + bobbing + dip + (near ? 1 : 0));
-      if (state !== "bite" || Math.floor(time * 10) % 2) {
-        p.rect(bob.x - 1, y - 3, 3, 2, "#c4304a");
-        p.rect(bob.x - 1, y - 1, 3, 1, "#f2ead8");
-      }
+      p.rect(bob.x - 1, y - 3, 3, 2, "#c4304a");
+      p.rect(bob.x - 1, y - 1, 3, 1, "#f2ead8");
       if (state === "fight") {
         // The fish's shadow pulls side to side under the float.
         const sway = (fight.fish - 0.5) * 18;
@@ -623,17 +567,6 @@ export function createGame(api) {
         p.oval(bob.x + sway, bob.y + 5, 7, 2, "#0b1230");
         ctx.restore();
       }
-    }
-    if (state === "charging") {
-      // The wind-up meter by his side, with the perfect band at the top.
-      const x = ANGLER.x - 22,
-        y = ANGLER.feet - 46,
-        h = 38;
-      p.rect(x - 2, y - 2, 8, h + 4, "#22180f");
-      p.rect(x, y, 4, h, "#142040");
-      p.rect(x, y, 4, Math.round(h * 0.1), "#7a5a20");
-      const fill = Math.round(h * power);
-      p.rect(x, y + h - fill, 4, fill, power > 0.9 ? "#f6cf5a" : power > 0.5 ? "#7fc0a0" : "#4a8a6a");
     }
   }
   function drawLanding() {
@@ -670,18 +603,6 @@ export function createGame(api) {
     p.rect(mx, y, 6, h, "#120a0c");
     p.rect(mx + 1, y + h - fill, 4, fill, fight.progress > 0.66 ? "#7fc0a0" : fight.progress > 0.33 ? "#f6cf5a" : "#e4573d");
   }
-  function drawBite(time) {
-    if (state !== "bite") return;
-    const bob2 = api.reduced ? 0 : Math.round(Math.sin(time * 14)),
-      x = ANGLER.x,
-      y = ANGLER.feet - 62 + bob2;
-    p.glow(x, y + 6, 12, "#f6cf5a", 0.18);
-    p.rect(x - 3, y - 1, 6, 11, "#2a1a0c");
-    p.rect(x - 3, y + 11, 6, 5, "#2a1a0c");
-    p.rect(x - 2, y, 4, 9, "#f6cf5a");
-    p.rect(x - 2, y + 12, 4, 3, "#f6cf5a");
-  }
-
   function draw() {
     const time = api.reduced ? 0 : performance.now() / 1000;
     ctx.drawImage(backdrop, 0, 0);
@@ -693,9 +614,8 @@ export function createGame(api) {
     drawLanding();
     for (const particle of particles) p.rect(particle.x, particle.y, 1, 1, particle.color);
     drawFight(time);
-    drawBite(time);
   }
 
   newNight();
-  return { update, draw, press, release };
+  return { update, draw, press };
 }

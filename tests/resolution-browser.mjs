@@ -145,7 +145,7 @@ try {
             );
           }),
           boardInset: [
-            ...document.querySelectorAll(".reading-invitation a > *"),
+            ...document.querySelectorAll(".reading-invitation a > :not(.sign-paint)"),
           ].every((e) => {
             const a = rect(".reading-invitation a"),
               b = e.getBoundingClientRect();

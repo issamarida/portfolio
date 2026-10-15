@@ -200,14 +200,8 @@ export function createGame(api) {
   function paintBoard() {
     const { canvas, ctx: c } = surface(W, H),
       b = painter(c);
+    // Just the maze on the cabinet's dark glass: no side panels.
     b.rect(0, 0, W, H, "#0b0614");
-    // Side panels: the cabinet's plum bezel with a few twinkling studs.
-    for (const x of [0, W - OX + 6]) {
-      b.rect(x, 0, OX - 6, H, "#140a1e");
-      b.rect(x + 6, 6, OX - 18, H - 12, "#1c0f2a");
-      const r = seeded(x + 7);
-      for (let i = 0; i < 26; i++) b.rect(x + 8 + r() * (OX - 22), 8 + r() * (H - 18), 1, 1, r() < 0.5 ? "#8b5a9c" : "#3c1f4c");
-    }
     for (let r = 0; r < ROWS; r++)
       for (let col = 0; col < COLS; col++) {
         const cell = MAZE[r][col],
@@ -254,7 +248,7 @@ export function createGame(api) {
     newLevel();
     state = "ready";
     hud.banner(null);
-    hud.hint("Arrow keys to move", "Swipe to move");
+    hud.hint("WASD to move", "SWIPE to move");
   }
   function newLevel() {
     pellet = pellets();
@@ -285,7 +279,6 @@ export function createGame(api) {
     if (!fruit || player.c !== fruit.c || player.r !== fruit.r) return;
     const value = 200 + level * 100;
     score += value;
-    float(`+${value}`, fruit.c, fruit.r);
     fruit = null;
   }
   function eat() {
@@ -310,7 +303,6 @@ export function createGame(api) {
     if (!pellet.size) {
       state = "clear";
       clock = 0;
-      hud.banner("Cleared!");
     }
   }
 
@@ -413,7 +405,6 @@ export function createGame(api) {
       if (w.frightened) {
         const value = 200 * 2 ** chain++;
         score += value;
-        float(`+${value}`, them.x, them.y);
         w.frightened = false;
         w.mode = "eyes";
         api.hud.announce(`Ate ${w.name} for ${value} points`);
@@ -424,10 +415,6 @@ export function createGame(api) {
       }
     }
   }
-  function float(text, c, r) {
-    hud.float(text, OX + (c + 0.5) * TILE, OY + (r + 0.5) * TILE, "is-gold");
-  }
-
   function update(dt) {
     if (state === "play") updatePlay(dt);
     else if (state === "dying") {
@@ -436,14 +423,14 @@ export function createGame(api) {
         lives--;
         if (lives <= 0) {
           state = "over";
+          const record = score > bestScore && score > 0;
           best.save(score);
           bestScore = Math.max(bestScore, score);
-          hud.banner("Game over");
-          hud.hint("Space to play again", "Tap to play again");
+          hud.banner(record ? "New best!" : "Game over");
+          hud.hint("SPACE to play again", "TAP to play again");
         } else {
           resetActors();
           state = "ready";
-          hud.banner("Ready");
         }
       }
     } else if (state === "clear") {
@@ -452,7 +439,6 @@ export function createGame(api) {
         level++;
         newLevel();
         state = "ready";
-        hud.banner(`Level ${level}`);
       }
     }
     hud.score(format(score));
@@ -560,14 +546,6 @@ export function createGame(api) {
       p.rect(x - 1, y - 6, 2, 3, "#3d704f");
       p.oval(x, y, 4, 4, "#c4304a");
       p.rect(x - 2, y - 2, 2, 2, "#f0a0b8");
-    }
-    // Lives and level berries in the side bezels.
-    for (let i = 0; i < Math.max(0, lives - (state === "dying" ? 1 : 0)); i++) muncher(OX / 2 - 12 + i * 14, H - 22, "right", 0.6);
-    for (let i = 0; i < Math.min(level, 6); i++) {
-      const x = W - OX / 2 - 18 + (i % 3) * 14,
-        y = H - 22 - Math.floor(i / 3) * 14;
-      p.oval(x, y, 4, 4, "#c4304a");
-      p.rect(x - 1, y - 6, 2, 3, "#3d704f");
     }
     const tile = (pos) => [OX + (pos.x + 0.5) * TILE, OY + (pos.y + 0.5) * TILE];
     for (const w of wisps) {

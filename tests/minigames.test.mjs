@@ -142,17 +142,43 @@ test("a steady net lands a fish quickly and a few slips never lose it", () => {
   }
   assert.equal(result, "caught");
   assert.ok(time > 0.8 && time < 2, `caught in ${time.toFixed(2)}s`);
-  // Two seconds out of the net still leaves the fish on the line.
+  // Five seconds out of the net still leaves the fish on the line.
   const slip = { zone: 0, zv: 0, size: 0.4, fish: 0.9, target: 0.9, timer: 1, clock: 0, progress: REEL.start, inside: false };
-  for (let i = 0; i < 120; i++) assert.equal(reelStep(slip, false, 1 / 60), "fighting");
+  for (let i = 0; i < 300; i++) assert.equal(reelStep(slip, false, 1 / 60), "fighting");
   const lost = { zone: 0, zv: 0, size: 0.2, fish: 0.9, target: 0.9, timer: 1, clock: 0, progress: REEL.start, inside: false };
   let outcome = "fighting";
   for (let i = 0; i < 600 && outcome === "fighting"; i++) outcome = reelStep(lost, false, 1 / 60);
   assert.equal(outcome, "escaped");
   // Common fish leave a wider net and swim slower than the rare ones.
   const [perch, , , pike, koi] = FISH;
-  assert.ok(perch.zone >= 0.4 && perch.zone > pike.zone && pike.zone > koi.zone);
+  assert.ok(perch.zone >= 0.5 && perch.zone > pike.zone && pike.zone > koi.zone);
   assert.ok(perch.agility < pike.agility && pike.agility < koi.agility);
+  // A player who only reacts a beat late still lands every common fish in
+  // well under two seconds; the rarest take a little longer, never forever.
+  const landingOnce = (species, random) => {
+    const fight = { zone: 0.5 - species.zone / 2, zv: 0, size: species.zone, fish: 0.5, target: 0.5, timer: 0, clock: 0, progress: REEL.start, inside: false },
+      seen = [];
+    let result = "fighting",
+      time = 0,
+      hold = false;
+    while (result === "fighting" && time < 20) {
+      swimStep(fight, species, 1 / 60, random);
+      seen.push(fight.fish);
+      if (seen.length % 12 === 0) hold = fight.zone + fight.size / 2 < seen[Math.max(0, seen.length - 30)];
+      result = reelStep(fight, hold, 1 / 60);
+      time += 1 / 60;
+    }
+    assert.equal(result, "caught", species.id);
+    return time;
+  };
+  const landing = (species) => {
+    const random = seeded(3);
+    let total = 0;
+    for (let i = 0; i < 40; i++) total += landingOnce(species, random);
+    return total / 40;
+  };
+  assert.ok(landing(perch) < 1.5 && landing(FISH[1]) < 1.5);
+  assert.ok(landing(koi) > landing(perch) && landing(koi) < 4);
   // Fish stay inside the bar whatever they do.
   const random = seeded(9);
   for (const species of FISH) {

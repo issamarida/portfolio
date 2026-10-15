@@ -127,9 +127,11 @@ function bestStore(id) {
   };
 }
 
-// The stage is deliberately bare: the game box, the score centred above it,
-// one short controls hint centred below and a small way out. On touch
-// screens only the pads the game needs are added.
+// The stage is deliberately bare and the same for every game: the score
+// alone centred above, the game in the middle and one controls hint centred
+// below, in one scheme ("A / D to steer") even where more keys work. A
+// small way out sits in the corner; on touch screens only the pads the game
+// needs are added. Nothing else is drawn over the play.
 const coarse = () => matchMedia("(pointer: coarse)").matches;
 function buildStage(meta) {
   const root = element("section", "minigame");
@@ -151,12 +153,10 @@ function buildStage(meta) {
   canvas.width = W;
   canvas.height = H;
   canvas.setAttribute("aria-hidden", "true");
-  const banner = element("p", "minigame-banner"),
-    floats = element("div", "minigame-floats");
+  const banner = element("p", "minigame-banner");
   banner.hidden = true;
   banner.setAttribute("aria-hidden", "true");
-  floats.setAttribute("aria-hidden", "true");
-  frame.append(canvas, floats, banner);
+  frame.append(canvas, banner);
   screen.append(frame);
   const hint = element("p", "minigame-hint");
   const touch = element("div", "minigame-touch");
@@ -171,7 +171,7 @@ function buildStage(meta) {
   const status = element("p", "sr-only");
   status.setAttribute("role", "status");
   root.append(exit, score, screen, hint, touch, status);
-  return { root, exit, score, screen, frame, canvas, banner, floats, hint, touch, status };
+  return { root, exit, score, screen, frame, canvas, banner, hint, touch, status };
 }
 
 // Launches a minigame. `origin` is the viewport point the iris closes on;
@@ -267,14 +267,14 @@ export class Stage {
       best,
       touch: coarse(),
       hud: {
-        // The one line of score above the game.
+        // The score, and nothing else, above the game.
         score: (text) => {
           if (parts.score.textContent !== String(text)) parts.score.textContent = text;
         },
         // The one short controls hint below it: keyboard or touch wording.
         hint: (keys, taps = keys) => this.hint(coarse() ? taps : keys),
+        // Only for the end of a run (and pausing): big lettering on the game.
         banner: (title) => this.banner(title),
-        float: (text, x, y, tone = "") => this.float(text, x, y, tone),
         announce: (text) => (parts.status.textContent = text),
       },
     };
@@ -398,7 +398,7 @@ export class Stage {
     const saved = [this.bannerText, this.hintText];
     if (paused) {
       this.banner("Paused");
-      this.hint(coarse() ? "Tap to resume" : "Space to resume");
+      this.hint(coarse() ? "TAP to resume" : "SPACE to resume");
       [this.bannerText, this.hintText] = saved;
       this.restore = saved;
     } else {
@@ -418,13 +418,6 @@ export class Stage {
   hint(text) {
     this.hintText = text;
     if (this.parts.hint.textContent !== text) this.parts.hint.textContent = text;
-  }
-  float(text, x, y, tone) {
-    const chip = element("span", `minigame-float ${tone}`, text);
-    chip.style.left = `${(x / W) * 100}%`;
-    chip.style.top = `${(y / H) * 100}%`;
-    this.parts.floats.append(chip);
-    setTimeout(() => chip.remove(), 1100);
   }
   dispose() {
     cancelAnimationFrame(this.raf);

@@ -5,6 +5,7 @@ import { pendingIntro } from "./intro.js";
 import { lockPage, unlockPage } from "./scroll-lock.js";
 import { mountEggs } from "./eggs.js";
 import { minigameActive } from "./minigames/stage.js";
+import { mountReadingSign } from "./reading-sign.js";
 const canvas = document.querySelector("#world"),
   panel = document.querySelector("#panel"),
   interact = document.querySelector("#interact");
@@ -44,6 +45,12 @@ if (intro) await new Promise((resolve) => requestAnimationFrame(() => setTimeout
 await capped(
   Promise.all(["24px VT323", '24px "Pixelify Sans"'].map((font) => document.fonts.load(font))),
   intro ? 4000 : 1200,
+);
+// The reading sign is painted on the billboards' pixel grid once its
+// words have their real font, so its board never changes after reveal.
+mountReadingSign(
+  document.querySelector(".reading-invitation a"),
+  document.querySelector("#journey-world"),
 );
 const world = new World(canvas, (near, kind) => {
   interact.hidden = !near;
@@ -133,6 +140,9 @@ function hangBoards() {
   }
 }
 function resizeJourney() {
+  // The opening camera moves the page with a transform; measuring then
+  // would scale the layout, so it waits for the camera to hand back.
+  if (journey.style.transform) return;
   const box = journey.getBoundingClientRect();
   if (box.width <= 0 || box.height <= 0) return;
   worldTop = scrollY + box.top;
@@ -414,6 +424,7 @@ if (intro) {
   intro.attach(world, {
     about: destinations.find((d) => d.id === "about"),
     onFinish: () => {
+      scheduleResize();
       updateViewport();
       canvas.focus({ preventScroll: true });
     },

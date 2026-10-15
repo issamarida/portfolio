@@ -344,8 +344,8 @@ export function createGame(api) {
     const record = score.total > bestScore && score.total > 0;
     best.save(score.total);
     bestScore = Math.max(bestScore, score.total);
-    hud.banner(record ? "New best!" : "Time!");
-    hud.hint("Space to drive again", "Tap to drive again");
+    hud.banner(record ? "New best!" : "Game over");
+    hud.hint("SPACE to play again", "TAP to play again");
   }
 
   function update(dt) {
@@ -368,13 +368,9 @@ export function createGame(api) {
           const lost = crash(score);
           shake = 0.25;
           crashFlash = 0.3;
-          hud.float(lost ? `Crash! −${format(lost)}` : "Crash!", car.x, car.y - 16, "is-bad");
-          hud.announce("Crashed. Combo lost.");
+          hud.announce(lost ? `Crashed and lost ${format(lost)} points.` : "Crashed.");
         }
-        const banked = scoreStep(score, car, h);
-        if (banked && banked.points > 0) {
-          hud.float(`+${format(banked.points)}`, car.x, car.y - 16, "is-gold");
-        }
+        scoreStep(score, car, h);
       }
       leaveMarks(dt);
       if (time === 0) finish();
@@ -391,8 +387,7 @@ export function createGame(api) {
       d.vy *= 1 - dt * 2;
     }
     dust = dust.filter((d) => d.life > 0);
-    const clock = `${Math.floor(Math.ceil(time) / 60)}:${String(Math.ceil(time) % 60).padStart(2, "0")}`;
-    hud.score(`${format(score.total)} · ×${score.combo} · ${clock}`);
+    hud.score(format(score.total));
   }
   // Rear tyres leave marks and kick up dust while they slide.
   function leaveMarks(dt) {

@@ -83,7 +83,9 @@ const SIGN_TEXT = {
   gamedev: "GAME DEV",
   about: "ABOUT",
 };
-const GLYPHS = {
+// The reading sign (reading-sign.js) letters with the same face, so the
+// set also carries the letters and the narrow stops its words need.
+export const GLYPHS = {
   A: [".###.", "#...#", "#...#", "#####", "#...#", "#...#", "#...#"],
   B: ["####.", "#...#", "#...#", "####.", "#...#", "#...#", "####."],
   C: [".###.", "#...#", "#....", "#....", "#....", "#...#", ".###."],
@@ -99,6 +101,14 @@ const GLYPHS = {
   T: ["#####", "..#..", "..#..", "..#..", "..#..", "..#..", "..#.."],
   U: ["#...#", "#...#", "#...#", "#...#", "#...#", "#...#", ".###."],
   V: ["#...#", "#...#", "#...#", "#...#", "#...#", ".#.#.", "..#.."],
+  F: ["#####", "#....", "#....", "####.", "#....", "#....", "#...."],
+  I: [".###.", "..#..", "..#..", "..#..", "..#..", "..#..", ".###."],
+  L: ["#....", "#....", "#....", "#....", "#....", "#....", "#####"],
+  N: ["#...#", "##..#", "##..#", "#.#.#", "#..##", "#..##", "#...#"],
+  W: ["#...#", "#...#", "#...#", "#.#.#", "#.#.#", "##.##", "#...#"],
+  Y: ["#...#", "#...#", ".#.#.", "..#..", "..#..", "..#..", "..#.."],
+  "?": [".###.", "#...#", "....#", "...#.", "..#..", ".....", "..#.."],
+  ".": [".", ".", ".", ".", ".", ".", "#"],
 };
 const signTextWidth = (text) =>
   [...text].reduce((w, ch) => w + (ch === " " ? 3 : 6), -1);
@@ -888,6 +898,11 @@ export class World {
   // Art uses a 480-pixel-wide framebuffer and a two-unit pixel grid.
   rect(x, y, w, h, color) {
     this.ctx.fillStyle = color;
+    this.cell(x, y, w, h);
+  }
+  // The same snapped fill without touching the colour, so shapes made of
+  // many rows set their colour once rather than once per row.
+  cell(x, y, w, h) {
     this.ctx.fillRect(
       Math.round(x / 2) * 2,
       Math.round(y / 2) * 2,
@@ -897,10 +912,17 @@ export class World {
   }
   path(points, color) {
     // Scanline rasterization keeps diagonals stepped instead of antialiased.
-    const low = Math.floor(Math.min(...points.map((p) => p[1])) / 2) * 2;
-    const high = Math.max(...points.map((p) => p[1]));
+    let low = Infinity,
+      high = -Infinity;
+    for (const p of points) {
+      if (p[1] < low) low = p[1];
+      if (p[1] > high) high = p[1];
+    }
+    low = Math.floor(low / 2) * 2;
+    this.ctx.fillStyle = color;
+    const intersections = [];
     for (let y = low; y < high; y += 2) {
-      const intersections = [];
+      intersections.length = 0;
       for (let i = 0; i < points.length; i++) {
         const a = points[i],
           b = points[(i + 1) % points.length];
@@ -909,14 +931,15 @@ export class World {
             a[0] + ((y - a[1]) * (b[0] - a[0])) / (b[1] - a[1]),
           );
       }
-      intersections.sort((a, b) => a - b);
+      if (intersections.length > 2) intersections.sort((a, b) => a - b);
+      else if (intersections[0] > intersections[1])
+        intersections.reverse();
       for (let i = 0; i + 1 < intersections.length; i += 2)
-        this.rect(
+        this.cell(
           intersections[i],
           y,
           intersections[i + 1] - intersections[i],
           2,
-          color,
         );
     }
   }
@@ -1243,9 +1266,10 @@ export class World {
     this.rect(604, 249, 10, 5, "#c8b890");
   }
   ellipse(x, y, w, h, color) {
+    this.ctx.fillStyle = color;
     for (let yy = -h / 2; yy <= h / 2; yy += 2) {
       const span = (w / 2) * Math.sqrt(Math.max(0, 1 - (yy / (h / 2)) ** 2));
-      this.rect(x - span, y + yy, span * 2, 2, color);
+      this.cell(x - span, y + yy, span * 2, 2);
     }
   }
   // Live village trees are drawn from two cached sprites per tree: the

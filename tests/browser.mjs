@@ -110,6 +110,9 @@ try {
     await page.locator(".reading-invitation a").evaluate((el) => getComputedStyle(el).borderImageSource),
     /cabin-board\.svg/,
   );
+  // With scripts the sign is painted on the billboards' grid, words kept.
+  assert.equal(await page.locator(".reading-invitation.is-painted .sign-paint").count(), 1);
+  assert.match(await page.locator(".reading-invitation a").innerText(), /Prefer reading instead of playing\?/i);
   assert.equal(
     await page
       .locator(".shell")
@@ -371,6 +374,7 @@ try {
   await intro.keyboard.press("Enter");
   await intro.locator(".intro-dialog").waitFor({ state: "visible" });
   await intro.locator(".intro-controls").waitFor({ state: "visible" });
+  assert.equal(await intro.locator(".intro-dialog img").evaluate((el) => getComputedStyle(el).boxShadow), "none");
   assert.match(
     await intro.locator(".intro-line").innerText(),
     /Hey, I’m Issam! Welcome to my little corner of the internet\. Walk into any cabin/,
@@ -470,7 +474,10 @@ try {
   await extras.keyboard.up("d");
   await extras.keyboard.up("w");
   assert.equal(await extras.evaluate(() => scrollY), lockedAt, "driving never scrolls the page");
-  assert.doesNotMatch(await extras.locator(".minigame-score").textContent(), /1:30$/);
+  // Every stage shows the score alone above the game and one control
+  // scheme below it.
+  assert.match(await extras.locator(".minigame-score").textContent(), /^[\d,]+$/);
+  assert.equal(await extras.locator(".minigame-hint").textContent(), "A / D to steer");
   await extras.keyboard.press("Escape");
   await backHome();
   // The fisherman offers his rod first; Escape declines, Enter accepts.
@@ -484,10 +491,13 @@ try {
   await extras.keyboard.press("Enter");
   await extras.keyboard.press("Enter");
   await extras.locator('.minigame[data-game="fishing"]').waitFor();
+  assert.equal(await extras.locator(".minigame-hint").textContent(), "SPACE to reel");
   await extras.keyboard.down(" ");
   await extras.waitForTimeout(400);
   await extras.keyboard.up(" ");
   assert.equal(await extras.locator(".minigame-banner").isVisible(), false);
+  assert.equal(await extras.locator(".minigame-score").textContent(), "0");
+  assert.equal(await extras.locator(".minigame-hint").textContent(), "SPACE to reel");
   await extras.locator(".minigame-exit").click();
   await backHome();
   // Both cabinets in the Game Dev cabin: walk up to the left one and press
@@ -515,6 +525,7 @@ try {
   assert.equal(await extras.locator('.egg-arcade[data-game="maze"]').evaluate((el) => el.classList.contains("is-near")), true);
   await extras.keyboard.press("e");
   await extras.locator('.minigame[data-game="maze"]').waitFor();
+  assert.equal(await extras.locator(".minigame-hint").textContent(), "WASD to move");
   await extras.keyboard.press("Escape");
   await backHome();
   assert.equal(await extras.locator(".world-wrap").evaluate((el) => el.dataset.room), "gamedev", "still in the cabin");
@@ -522,6 +533,8 @@ try {
   assert.equal(await promptText(), "Play Night Owl");
   await extras.locator('.egg-arcade[data-game="flap"]').click();
   await extras.locator('.minigame[data-game="flap"]').waitFor();
+  assert.equal(await extras.locator(".minigame-hint").textContent(), "SPACE to flap");
+  assert.equal(await extras.locator(".minigame-float, .minigame-floats").count(), 0);
   await extras.locator(".minigame-exit").click();
   await backHome();
   await extras.close();

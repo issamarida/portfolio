@@ -1,7 +1,8 @@
 // Opening sequence: the village lake at night behind a broken wooden
 // plank that drops in on its ropes, then a camera swoop onto the
-// About cabin where the player steps outside to greet the visitor. It only
-// borrows the live world canvases, so the final frame matches the page.
+// About cabin where the player steps outside to greet the visitor. The
+// camera moves the real page, so whatever it shows is the finished hero,
+// boards and signs included, and the last frame simply is the page.
 import { mountPlank } from "./plank.js";
 
 const GREETING =
@@ -128,7 +129,8 @@ function paintGlints(glints, rand) {
 // The title is shown by the tiny boot module before the village's own code
 // has even run, so a first visit only ever sees the opening. The live world
 // attaches later, once it, the fonts and the hero's art are ready; a click
-// or Escape before that is remembered and carried out on arrival.
+// or Escape before that is remembered and carried out on arrival, while the
+// night scene stays up so nothing unfinished shows through.
 let opened = null;
 export const pendingIntro = () => opened;
 export function runIntro(world, options) {
@@ -153,7 +155,6 @@ export function openIntro() {
   root.setAttribute("aria-modal", "true");
   root.setAttribute("aria-labelledby", "intro-title");
   root.innerHTML = `
-    <canvas class="intro-stage" aria-hidden="true"></canvas>
     <div class="intro-title-screen">
       <div class="intro-night" aria-hidden="true">
         <canvas class="intro-backdrop"></canvas>
@@ -187,8 +188,7 @@ export function openIntro() {
   document.body.append(root);
   document.documentElement.classList.add("intro-open");
   document.documentElement.classList.remove("intro-pending");
-  const stage = root.querySelector(".intro-stage"),
-    backdrop = root.querySelector(".intro-backdrop"),
+  const backdrop = root.querySelector(".intro-backdrop"),
     start = root.querySelector(".intro-start"),
     dialog = root.querySelector(".intro-dialog"),
     line = root.querySelector(".intro-line"),
@@ -210,23 +210,51 @@ export function openIntro() {
     last = 0,
     finished = false;
 
+  // The page's own placement, measured without the camera on it.
+  let home = null;
+  function measure() {
+    const transform = journey.style.transform;
+    journey.style.transform = "";
+    const box = journey.getBoundingClientRect();
+    journey.style.transform = transform;
+    home = { left: box.left, top: box.top, scale: box.width / 960 };
+  }
   function pageView() {
-    const box = journey.getBoundingClientRect(),
-      scale = box.width / 960;
     return {
-      scale,
-      cx: (innerWidth / 2 - box.left) / scale,
-      cy: (innerHeight / 2 - box.top) / scale,
+      scale: home.scale,
+      cx: (innerWidth / 2 - home.left) / home.scale,
+      cy: (innerHeight / 2 - home.top) / home.scale,
     };
   }
   function cabinView() {
     const scale = Math.max(
-      pageView().scale * 1.6,
+      home.scale * 1.6,
       Math.min(innerWidth / 250, innerHeight / 200),
     );
     const sky = world.layout.skyHeight || 0;
     // The dialogue sits low, so frame the doorway in the upper half.
     return { scale, cx: about.doorX, cy: sky + 412 + (innerHeight * 0.2) / scale };
+  }
+  // The swoop starts inside the clearing, never on the whole hero: wide
+  // enough to read as arriving, close enough to keep the sky out of frame.
+  // Tall phones cannot fit more of the village than the cabin shot, so
+  // there the camera pans across from the fountain instead.
+  function arrivalView() {
+    const end = cabinView(),
+      sky = world.layout.skyHeight || 0,
+      scale = Math.max(
+        end.scale * 0.55,
+        innerWidth / 960,
+        Math.min(end.scale, innerHeight / 470),
+      ),
+      halfW = innerWidth / 2 / scale,
+      halfH = innerHeight / 2 / scale;
+    const clamp = (value, low, high) => (low > high ? (low + high) / 2 : Math.min(high, Math.max(low, value)));
+    return {
+      scale,
+      cx: clamp(480 + (about.doorX - 480) * 0.45, halfW, 960 - halfW),
+      cy: clamp(sky + 300, sky + halfH, sky + 540 - halfH),
+    };
   }
   function mixView(a, b, t) {
     return {
@@ -235,38 +263,24 @@ export function openIntro() {
       cy: a.cy + (b.cy - a.cy) * t,
     };
   }
-  function paint(view, target = stage, ratio = devicePixelRatio || 1) {
-    const ctx = target.getContext("2d");
-    const width = Math.round(innerWidth * ratio),
-      height = Math.round(innerHeight * ratio);
-    if (target.width !== width || target.height !== height) {
-      target.width = width;
-      target.height = height;
-    }
-    ctx.imageSmoothingEnabled = false;
-    const s = view.scale * ratio,
+  // Puts the world point (cx, cy) in the middle of the screen at the given
+  // scale by transforming the page itself, snapped to device pixels.
+  function frame(view) {
+    const ratio = devicePixelRatio || 1,
+      snap = (value) => Math.round(value * ratio) / ratio,
+      k = view.scale / home.scale,
       left = view.cx - innerWidth / 2 / view.scale,
       top = view.cy - innerHeight / 2 / view.scale;
-    // Only the village column is painted: the temple margins behind the
-    // intro stay in view the whole way through.
-    ctx.clearRect(0, 0, width, height);
-    ctx.fillStyle = "#17242b";
-    ctx.fillRect(Math.round(-left * s), 0, Math.round(960 * s), height);
-    for (const surface of world.surfaces) {
-      const y = (surface.top - top) * s;
-      if (y > height || y + surface.height * s < 0) continue;
-      ctx.drawImage(
-        surface.canvas,
-        0,
-        0,
-        surface.canvas.width,
-        surface.canvas.height,
-        Math.round(-left * s),
-        Math.round(y),
-        Math.round(960 * s),
-        Math.round(surface.height * s),
-      );
-    }
+    const x = snap(-left * view.scale - home.left),
+      y = snap(-top * view.scale - home.top);
+    journey.style.transformOrigin = "0 0";
+    journey.style.transform =
+      Math.abs(k - 1) < 1e-4 && !x && !y ? "" : `translate(${x}px, ${y}px) scale(${k})`;
+  }
+  function onResize() {
+    if (!camera || finished) return;
+    measure();
+    if (phase === "ready" || phase === "talk" || phase === "walk") frame(cabinView());
   }
 
   // The title backdrop is painted once; only its two glint layers move,
@@ -325,14 +339,14 @@ export function openIntro() {
     if (document.hidden) return;
     if (phase === "zoom-in") {
       const k = reduced() ? 1 : clamp01(clock / 1.5);
-      paint(mixView(camera.from, cabinView(), ease(k)));
+      frame(mixView(camera.from, cabinView(), ease(k)));
     } else if (phase === "zoom-out") {
       clock += dt;
       const k = reduced() ? 1 : clamp01(clock / 1.1);
-      paint(mixView(camera.from, pageView(), ease(k)));
+      frame(mixView(camera.from, pageView(), ease(k)));
       if (k >= 1) finish();
       return;
-    } else paint(cabinView());
+    } else frame(cabinView());
     if (phase === "talk") {
       typed = Math.min(GREETING.length, typed + dt * TYPE_RATE);
       line.textContent = GREETING.slice(0, Math.max(0, Math.floor(typed)));
@@ -343,14 +357,20 @@ export function openIntro() {
   function begin() {
     if (phase !== "title") return;
     if (!world) {
+      // The plank answers at once; the night stays up until the village
+      // behind it is completely ready.
       queued = queued || "begin";
+      root.classList.add("is-starting");
       return;
     }
     scrollTo(0, 0);
+    measure();
     phase = "zoom-in";
     world.suspended = false;
+    camera = { from: arrivalView() };
+    // The camera is on the clearing before the night lifts.
+    frame(camera.from);
     root.classList.add("is-playing");
-    camera = { from: pageView() };
     clock = 0;
     world.active = false;
     world.keys.clear();
@@ -391,6 +411,8 @@ export function openIntro() {
     world.active = true;
     world.keys.clear();
     removeEventListener("keydown", onKey, true);
+    removeEventListener("resize", onResize);
+    journey.style.transform = journey.style.transformOrigin = "";
     world.suspended = false;
     inert.forEach((el) => (el.inert = false));
     root.remove();
@@ -425,6 +447,7 @@ export function openIntro() {
     else if (phase === "ready") leave();
   }
   addEventListener("keydown", onKey, true);
+  addEventListener("resize", onResize);
   start.addEventListener("click", (event) => {
     event.stopPropagation();
     begin();

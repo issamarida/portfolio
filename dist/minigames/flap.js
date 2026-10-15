@@ -115,7 +115,7 @@ export function createGame(api) {
     let x = W + 40;
     for (let i = 0; i < 4; i++, x += FLIGHT.spacing) pillars.push(newPillar(x, pillars.at(-1)));
     hud.banner(null);
-    hud.hint("Space to flap", "Tap to flap");
+    hud.hint("SPACE to flap", "TAP to flap");
   }
   function newPillar(x, previous) {
     const gap = gapFor(score),
@@ -180,7 +180,7 @@ export function createGame(api) {
           best.save(score);
           bestScore = Math.max(bestScore, score);
           hud.banner(record && score > 0 ? "New best!" : "Game over");
-          hud.hint("Space to fly again", "Tap to fly again");
+          hud.hint("SPACE to play again", "TAP to play again");
         }
       }
     }

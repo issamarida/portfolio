@@ -2696,6 +2696,11 @@ dialog p {
 html.intro-open {
   overflow: hidden;
 }
+/* The camera moves the page itself; the temple margins stay in front of
+   it, so the opening is framed the same way from title to hero. */
+html.intro-open .temple {
+  z-index: 2;
+}
 .intro {
   position: fixed;
   inset: 0;
@@ -2703,29 +2708,6 @@ html.intro-open {
   background: none;
   font-family: var(--pixel);
   color: #f3ead2;
-}
-.intro-stage {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  image-rendering: pixelated;
-  opacity: 0;
-}
-.intro.is-playing .intro-stage {
-  opacity: 1;
-}
-.intro.is-leaving {
-  animation: intro-fade 1.1s steps(6) forwards;
-}
-@keyframes intro-fade {
-  0%,
-  70% {
-    opacity: 1;
-  }
-  100% {
-    opacity: 0;
-  }
 }
 /* Title: a still, pre-blurred night ocean and one scroll to unroll. */
 .intro-title-screen {
@@ -2901,7 +2883,9 @@ html.intro-open {
   outline: 3px dashed #f6cf5a;
   outline-offset: 10px;
 }
-/* Starting yanks the plank back up on its ropes as the camera swoops in. */
+/* Starting yanks the plank back up on its ropes as the camera swoops in;
+   a click while the village is still getting ready lifts it straight away. */
+.intro.is-starting .intro-start,
 .intro.is-playing .intro-start {
   animation: plank-lift 0.45s cubic-bezier(0.5, 0, 0.9, 0.6) both;
 }
@@ -3085,7 +3069,6 @@ html.intro-open {
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  .intro.is-leaving,
   .intro-night,
   .intro-glints,
   .intro-start,
@@ -3096,10 +3079,12 @@ html.intro-open {
   .intro-dialog {
     animation: none !important;
   }
+  .intro.is-starting .intro-start,
   .intro.is-playing .intro-start {
     visibility: hidden;
   }
 }
+.intro.is-starting .intro-start,
 .intro.is-playing .intro-start {
   pointer-events: none;
 }
@@ -3693,6 +3678,9 @@ mark.kw {
   -webkit-box-decoration-break: clone;
   box-decoration-break: clone;
   text-shadow: 0 0 6px #f2c36a40;
+  /* Never swept in on scroll, in the page or the reading book. */
+  animation: none;
+  transition: none;
 }
 
 /* The door prompt follows the player, standing under their feet, and
@@ -3988,11 +3976,6 @@ body {
 }
 .sky-header .identity img {
   border-radius: 50%;
-  background: #2a4c8a;
-  box-shadow:
-    0 0 0 calc(1 * var(--cp)) #22120c,
-    0 0 0 calc(2.5 * var(--cp)) #3d68b0,
-    0 0 0 calc(3.5 * var(--cp)) #22120c;
 }
 /* Name and email hang together on the left; the two profile boards hang
    side by side on the right, matched in size. */
@@ -4197,12 +4180,9 @@ dialog {
   width: 84px;
   height: 84px;
   margin-top: 4px;
-  background: #2a4c8a;
-  box-shadow:
-    0 0 0 3px #22120c,
-    0 0 0 7px #3d68b0,
-    0 0 0 10px #22120c,
-    0 0 0 13px #6e3622;
+  /* Like the hero board, the portrait sits on the wood with no ring. */
+  background: none;
+  box-shadow: none;
 }
 .intro-dialog-body {
   padding-top: 2px;
@@ -4707,32 +4687,6 @@ html.is-minigame body > :not(.minigame):not(.minigame-iris) {
   letter-spacing: 0.04em;
   color: #b8a888;
 }
-.minigame-floats {
-  position: absolute;
-  inset: 0;
-  overflow: hidden;
-  pointer-events: none;
-}
-.minigame-float {
-  position: absolute;
-  font: 400 20px / 1 var(--pixel);
-  color: #ffe3a0;
-  white-space: nowrap;
-  text-shadow:
-    2px 2px 0 #120a0c,
-    -1px -1px 0 #120a0c;
-  transform: translate(-50%, -50%);
-  animation: minigame-float 1.2s steps(8, end) both;
-}
-.minigame-float.is-bad {
-  color: #ff8a7a;
-}
-@keyframes minigame-float {
-  to {
-    opacity: 0;
-    transform: translate(-50%, -160%);
-  }
-}
 .minigame-touch {
   display: none;
 }
@@ -4805,7 +4759,7 @@ html.is-minigame body > :not(.minigame):not(.minigame-iris) {
     font-size: 22px;
   }
   .minigame-hint {
-    grid-column: 1;
+    grid-column: 1 / -1;
     font-size: 15px;
   }
   .minigame-touch {
@@ -4820,12 +4774,6 @@ html.is-minigame body > :not(.minigame):not(.minigame-iris) {
   .minigame-touch[data-layout="hold"] .minigame-pad {
     width: 110px;
     min-height: 110px;
-  }
-}
-@media (prefers-reduced-motion: reduce) {
-  .minigame-float {
-    animation: none;
-    opacity: 0.9;
   }
 }
 
@@ -4926,4 +4874,33 @@ html.is-minigame body > :not(.minigame):not(.minigame-iris) {
     padding: calc(max(21px, 2.1cqw) - 3 * var(--cp)) calc(max(12px, 1.4cqw) - 3 * var(--cp))
       calc(max(22px, 2.2cqw) - 3 * var(--cp));
   }
+}
+
+/* With scripts the sign is painted by reading-sign.js exactly like the
+   cabin billboards; the words stay in place, unseen, for focus, screen
+   readers and selection, and the CSS board above remains the fallback. */
+.reading-invitation .sign-paint {
+  position: absolute;
+  z-index: 0;
+  pointer-events: none;
+  image-rendering: pixelated;
+}
+.reading-invitation.is-painted a {
+  color: transparent;
+  text-shadow: none;
+  background: none;
+  box-shadow: none;
+}
+.reading-invitation.is-painted strong,
+.reading-invitation.is-painted .billboard-detail {
+  position: relative;
+  z-index: 1;
+  color: transparent;
+}
+.reading-invitation.is-painted a::before {
+  content: none;
+}
+.reading-invitation.is-painted a:hover,
+.reading-invitation.is-painted a:focus-visible {
+  color: transparent;
 }
